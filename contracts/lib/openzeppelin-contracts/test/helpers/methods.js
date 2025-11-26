@@ -1,4 +1,4 @@
-const { ethers } = require('hardhat');
+const { ethers } = require("hardhat");
 
 const selector = signature => ethers.FunctionFragment.from(signature).selector;
 

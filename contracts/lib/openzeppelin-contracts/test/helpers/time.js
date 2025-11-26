@@ -1,6 +1,6 @@
-const { ethers } = require('hardhat');
-const { time, mine, mineUpTo } = require('@nomicfoundation/hardhat-network-helpers');
-const { mapValues } = require('./iterate');
+const { ethers } = require("hardhat");
+const { time, mine, mineUpTo } = require("@nomicfoundation/hardhat-network-helpers");
+const { mapValues } = require("./iterate");
 
 const clock = {
   blocknumber: () => time.latestBlock().then(ethers.toBigInt),

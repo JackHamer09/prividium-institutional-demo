@@ -1,5 +1,5 @@
-const { ethers } = require('hardhat');
-const { impersonateAccount, setBalance } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require("hardhat");
+const { impersonateAccount, setBalance } = require("@nomicfoundation/hardhat-network-helpers");
 
 // Hardhat default balance
 const DEFAULT_BALANCE = 10000n * ethers.WeiPerEther;

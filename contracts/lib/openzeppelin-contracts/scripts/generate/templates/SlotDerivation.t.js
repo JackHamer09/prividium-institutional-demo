@@ -1,6 +1,6 @@
-const format = require('../format-lines');
-const { capitalize } = require('../../helpers');
-const { TYPES } = require('./Slot.opts');
+const format = require("../format-lines");
+const { capitalize } = require("../../helpers");
+const { TYPES } = require("./Slot.opts");
 
 const header = `\
 pragma solidity ^0.8.20;
@@ -103,11 +103,11 @@ function _assertDeriveMapping${name}(${type} memory key) internal view {
 // GENERATE
 module.exports = format(
   header,
-  'contract SlotDerivationTest is Test, SymTest {',
+  "contract SlotDerivationTest is Test, SymTest {",
   format(
     [].concat(
-      'using SlotDerivation for bytes32;',
-      '',
+      "using SlotDerivation for bytes32;",
+      "",
       array,
       TYPES.flatMap(type =>
         [].concat(
@@ -123,5 +123,5 @@ module.exports = format(
       mappingDirty(TYPES.address),
     ),
   ).trimEnd(),
-  '}',
+  "}",
 );

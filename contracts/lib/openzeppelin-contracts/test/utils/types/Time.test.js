@@ -1,10 +1,10 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-const { product } = require('../../helpers/iterate');
-const { max } = require('../../helpers/math');
-const time = require('../../helpers/time');
+const { product } = require("../../helpers/iterate");
+const { max } = require("../../helpers/math");
+const time = require("../../helpers/time");
 
 const MAX_UINT32 = 1n << (32n - 1n);
 const MAX_UINT48 = 1n << (48n - 1n);
@@ -37,38 +37,38 @@ const effectSamplesForTimepoint = timepoint => [
 ];
 
 async function fixture() {
-  const mock = await ethers.deployContract('$Time');
+  const mock = await ethers.deployContract("$Time");
   return { mock };
 }
 
-describe('Time', function () {
+describe("Time", function () {
   beforeEach(async function () {
     Object.assign(this, await loadFixture(fixture));
   });
 
-  describe('clocks', function () {
-    it('timestamp', async function () {
+  describe("clocks", function () {
+    it("timestamp", async function () {
       expect(await this.mock.$timestamp()).to.equal(await time.clock.timestamp());
     });
 
-    it('block number', async function () {
+    it("block number", async function () {
       expect(await this.mock.$blockNumber()).to.equal(await time.clock.blocknumber());
     });
   });
 
-  describe('Delay', function () {
-    describe('packing and unpacking', function () {
+  describe("Delay", function () {
+    describe("packing and unpacking", function () {
       const valueBefore = 17n;
       const valueAfter = 42n;
       const effect = 69n;
       const delay = 1272825341158973505578n;
 
-      it('pack', async function () {
+      it("pack", async function () {
         expect(await this.mock.$pack(valueBefore, valueAfter, effect)).to.equal(delay);
         expect(packDelay({ valueBefore, valueAfter, effect })).to.equal(delay);
       });
 
-      it('unpack', async function () {
+      it("unpack", async function () {
         expect(await this.mock.$unpack(delay)).to.deep.equal([valueBefore, valueAfter, effect]);
 
         expect(unpackDelay(delay)).to.deep.equal({
@@ -79,7 +79,7 @@ describe('Time', function () {
       });
     });
 
-    it('toDelay', async function () {
+    it("toDelay", async function () {
       for (const value of [...SOME_VALUES, MAX_UINT32]) {
         expect(await this.mock.$toDelay(value).then(unpackDelay)).to.deep.equal({
           valueBefore: 0n,
@@ -89,7 +89,7 @@ describe('Time', function () {
       }
     });
 
-    it('get & getFull', async function () {
+    it("get & getFull", async function () {
       const timepoint = await time.clock.timestamp();
       const valueBefore = 24194n;
       const valueAfter = 4214143n;
@@ -107,14 +107,14 @@ describe('Time', function () {
       }
     });
 
-    it('withUpdate', async function () {
+    it("withUpdate", async function () {
       const timepoint = await time.clock.timestamp();
       const valueBefore = 24194n;
       const valueAfter = 4214143n;
       const newvalueAfter = 94716n;
 
       for (const effect of effectSamplesForTimepoint(timepoint))
-        for (const minSetback of [...SOME_VALUES, MAX_UINT32]) {
+        {for (const minSetback of [...SOME_VALUES, MAX_UINT32]) {
           const isPast = effect <= timepoint;
           const expectedvalueBefore = isPast ? valueAfter : valueBefore;
           const expectedSetback = max(minSetback, expectedvalueBefore - newvalueAfter, 0n);
@@ -129,7 +129,7 @@ describe('Time', function () {
             }),
             timepoint + expectedSetback,
           ]);
-        }
+        }}
     });
   });
 });

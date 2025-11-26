@@ -1,6 +1,6 @@
 <template>
   <div>
-    <AuthConnectionView v-if="!walletStore.isConnected" />
+    <AuthConnectionView v-if="!isFullyAuthorized" />
 
     <div v-else class="min-h-screen flex flex-col bg-white">
       <LayoutHeader />
@@ -13,9 +13,16 @@
 
 <script lang="ts" setup>
 const walletStore = useWalletStore();
+const prividiumStore = usePrividiumStore();
 
-// Initialize wallet store on mount
+// Both wallet AND Prividium auth required
+const isFullyAuthorized = computed(() =>
+  walletStore.isConnected && prividiumStore.isAuthorized,
+);
+
+// Initialize stores on mount
 walletStore.initialize();
+prividiumStore.initialize();
 
 // Cleanup on unmount
 onUnmounted(() => {

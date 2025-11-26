@@ -1,10 +1,10 @@
-const format = require('../format-lines');
-const { OPTS } = require('./MerkleProof.opts');
+const format = require("../format-lines");
+const { OPTS } = require("./MerkleProof.opts");
 
-const DEFAULT_HASH = 'Hashes.commutativeKeccak256';
+const DEFAULT_HASH = "Hashes.commutativeKeccak256";
 
-const formatArgsSingleLine = (...args) => args.filter(Boolean).join(', ');
-const formatArgsMultiline = (...args) => '\n' + format(args.filter(Boolean).join(',\0').split('\0'));
+const formatArgsSingleLine = (...args) => args.filter(Boolean).join(", ");
+const formatArgsMultiline = (...args) => "\n" + format(args.filter(Boolean).join(",\0").split("\0"));
 
 // TEMPLATE
 const header = `\
@@ -50,15 +50,15 @@ const templateProof = ({ suffix, location, visibility, hash }) => `\
  * sibling hashes on the branch from the leaf to the root of the tree. Each
  * pair of leaves and each pair of pre-images are assumed to be sorted.
  *
- * This version handles proofs in ${location} with ${hash ? 'a custom' : 'the default'} hashing function.
+ * This version handles proofs in ${location} with ${hash ? "a custom" : "the default"} hashing function.
  */
 function verify${suffix}(${(hash ? formatArgsMultiline : formatArgsSingleLine)(
   `bytes32[] ${location} proof`,
-  'bytes32 root',
-  'bytes32 leaf',
+  "bytes32 root",
+  "bytes32 leaf",
   hash && `function(bytes32, bytes32) view returns (bytes32) ${hash}`,
 )}) internal ${visibility} returns (bool) {
-    return processProof${suffix}(proof, leaf${hash ? `, ${hash}` : ''}) == root;
+    return processProof${suffix}(proof, leaf${hash ? `, ${hash}` : ""}) == root;
 }
 
 /**
@@ -67,11 +67,11 @@ function verify${suffix}(${(hash ? formatArgsMultiline : formatArgsSingleLine)(
  * hash matches the root of the tree. When processing the proof, the pairs
  * of leaves & pre-images are assumed to be sorted.
  *
- * This version handles proofs in ${location} with ${hash ? 'a custom' : 'the default'} hashing function.
+ * This version handles proofs in ${location} with ${hash ? "a custom" : "the default"} hashing function.
  */
 function processProof${suffix}(${(hash ? formatArgsMultiline : formatArgsSingleLine)(
   `bytes32[] ${location} proof`,
-  'bytes32 leaf',
+  "bytes32 leaf",
   hash && `function(bytes32, bytes32) view returns (bytes32) ${hash}`,
 )}) internal ${visibility} returns (bytes32) {
     bytes32 computedHash = leaf;
@@ -87,7 +87,7 @@ const templateMultiProof = ({ suffix, location, visibility, hash }) => `\
  * @dev Returns true if the \`leaves\` can be simultaneously proven to be a part of a Merkle tree defined by
  * \`root\`, according to \`proof\` and \`proofFlags\` as described in {processMultiProof}.
  *
- * This version handles multiproofs in ${location} with ${hash ? 'a custom' : 'the default'} hashing function.
+ * This version handles multiproofs in ${location} with ${hash ? "a custom" : "the default"} hashing function.
  *
  * CAUTION: Not all Merkle trees admit multiproofs. See {processMultiProof} for details.
  *
@@ -97,11 +97,11 @@ const templateMultiProof = ({ suffix, location, visibility, hash }) => `\
 function multiProofVerify${suffix}(${formatArgsMultiline(
   `bytes32[] ${location} proof`,
   `bool[] ${location} proofFlags`,
-  'bytes32 root',
-  `bytes32[] memory leaves`,
+  "bytes32 root",
+  "bytes32[] memory leaves",
   hash && `function(bytes32, bytes32) view returns (bytes32) ${hash}`,
 )}) internal ${visibility} returns (bool) {
-    return processMultiProof${suffix}(proof, proofFlags, leaves${hash ? `, ${hash}` : ''}) == root;
+    return processMultiProof${suffix}(proof, proofFlags, leaves${hash ? `, ${hash}` : ""}) == root;
 }
 
 /**
@@ -110,7 +110,7 @@ function multiProofVerify${suffix}(${formatArgsMultiline(
  * leaf/inner node or a proof sibling node, depending on whether each \`proofFlags\` item is true or false
  * respectively.
  *
- * This version handles multiproofs in ${location} with ${hash ? 'a custom' : 'the default'} hashing function.
+ * This version handles multiproofs in ${location} with ${hash ? "a custom" : "the default"} hashing function.
  *
  * CAUTION: Not all Merkle trees admit multiproofs. To use multiproofs, it is sufficient to ensure that: 1) the tree
  * is complete (but not necessarily perfect), 2) the leaves to be proven are in the opposite order they are in the
@@ -123,7 +123,7 @@ function multiProofVerify${suffix}(${formatArgsMultiline(
 function processMultiProof${suffix}(${formatArgsMultiline(
   `bytes32[] ${location} proof`,
   `bool[] ${location} proofFlags`,
-  `bytes32[] memory leaves`,
+  "bytes32[] memory leaves",
   hash && `function(bytes32, bytes32) view returns (bytes32) ${hash}`,
 )}) internal ${visibility} returns (bytes32 merkleRoot) {
     // This function rebuilds the root hash by traversing the tree up from the leaves. The root is rebuilt by
@@ -175,7 +175,7 @@ function processMultiProof${suffix}(${formatArgsMultiline(
 // GENERATE
 module.exports = format(
   header.trimEnd(),
-  'library MerkleProof {',
+  "library MerkleProof {",
   format(
     [].concat(
       errors,
@@ -183,5 +183,5 @@ module.exports = format(
       OPTS.flatMap(opts => templateMultiProof(opts)),
     ),
   ).trimEnd(),
-  '}',
+  "}",
 );

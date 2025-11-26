@@ -8,53 +8,83 @@
         Short-term collateralized lending market
       </p>
 
-      <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-8">
-        <div class="flex items-center justify-between">
-          <span class="text-sm text-slate-700">RPC Status:</span>
-          <div class="flex items-center gap-2">
-            <div
-              :class="[
-                'w-2 h-2 rounded-full',
-                rpcStatus.isConnected ? 'bg-green-500' : 'bg-red-500',
-              ]"
-            />
-            <span
-class="text-sm font-medium"
-:class="[
-              rpcStatus.isConnected ? 'text-green-700' : 'text-red-700',
-            ]">
-              {{ rpcStatus.isConnected ? 'Connected' : rpcStatus.isChecking ? 'Checking...' : 'Disconnected' }}
-            </span>
-          </div>
-        </div>
+      <!-- Step 1: Prividium Login -->
+      <div v-if="!prividiumStore.isAuthorized" class="space-y-4">
+        <CommonButton
+          variant="primary"
+          size="lg"
+          full-width
+          :loading="prividiumStore.isAuthorizing"
+          @click="handleAuthorize"
+        >
+          Login with Prividium
+        </CommonButton>
+
+        <p v-if="prividiumStore.authError" class="text-sm text-red-600 mt-2">
+          {{ prividiumStore.authError }}
+        </p>
       </div>
 
-      <CommonButton
-        variant="primary"
-        size="lg"
-        full-width
-        :loading="walletStore.isConnecting"
-        @click="handleConnect"
-      >
-        Connect Wallet
-      </CommonButton>
+      <!-- Step 2: Connect Wallet (after Prividium auth) -->
+      <div v-else-if="!walletStore.isConnected" class="space-y-4">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+          <div class="flex items-center justify-center gap-2">
+            <svg
+              class="w-5 h-5 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            <span class="text-sm text-green-700">Logged in with Prividium</span>
+          </div>
+        </div>
 
-      <p class="text-xs text-slate-500 mt-4">
-        Only browser wallet providers are supported
-      </p>
+        <CommonButton
+          variant="primary"
+          size="lg"
+          full-width
+          :loading="walletStore.isConnecting"
+          @click="handleConnect"
+        >
+          Connect Wallet
+        </CommonButton>
+
+        <p class="text-xs text-slate-500 mt-4">
+          Only browser wallet providers are supported
+        </p>
+
+        <button
+          class="text-sm text-slate-500 hover:text-slate-700 mt-4 underline"
+          @click="handleLogout"
+        >
+          Use different account
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
 const walletStore = useWalletStore();
-const rpcStatus = useRpcStatus();
+const prividiumStore = usePrividiumStore();
 const toast = useToast();
 
-// Start RPC monitoring
-onMounted(() => {
-  rpcStatus.startMonitoring();
-});
+async function handleAuthorize() {
+  try {
+    await prividiumStore.authorize();
+  } catch (error) {
+    console.error("Authorization error:", error);
+    const message = error instanceof Error ? error.message : "Failed to authorize";
+    toast.error(message);
+  }
+}
 
 async function handleConnect() {
   try {
@@ -64,5 +94,9 @@ async function handleConnect() {
     const message = error instanceof Error ? error.message : "Failed to connect wallet";
     toast.error(message);
   }
+}
+
+function handleLogout() {
+  prividiumStore.unauthorize();
 }
 </script>

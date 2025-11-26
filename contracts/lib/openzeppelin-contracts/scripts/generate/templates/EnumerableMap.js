@@ -1,6 +1,6 @@
-const format = require('../format-lines');
-const { fromBytes32, toBytes32 } = require('./conversion');
-const { MAP_TYPES } = require('./Enumerable.opts');
+const format = require("../format-lines");
+const { fromBytes32, toBytes32 } = require("./conversion");
+const { MAP_TYPES } = require("./Enumerable.opts");
 
 const header = `\
 pragma solidity ^0.8.24;
@@ -204,7 +204,7 @@ struct ${name} {
  * already present.
  */
 function set(${name} storage map, ${key.type} key, ${value.type} value) internal returns (bool) {
-    return set(map._inner, ${toBytes32(key.type, 'key')}, ${toBytes32(value.type, 'value')});
+    return set(map._inner, ${toBytes32(key.type, "key")}, ${toBytes32(value.type, "value")});
 }
 
 /**
@@ -213,7 +213,7 @@ function set(${name} storage map, ${key.type} key, ${value.type} value) internal
  * Returns true if the key was removed from the map, that is if it was present.
  */
 function remove(${name} storage map, ${key.type} key) internal returns (bool) {
-    return remove(map._inner, ${toBytes32(key.type, 'key')});
+    return remove(map._inner, ${toBytes32(key.type, "key")});
 }
 
 /**
@@ -231,7 +231,7 @@ function clear(${name} storage map) internal {
  * @dev Returns true if the key is in the map. O(1).
  */
 function contains(${name} storage map, ${key.type} key) internal view returns (bool) {
-    return contains(map._inner, ${toBytes32(key.type, 'key')});
+    return contains(map._inner, ${toBytes32(key.type, "key")});
 }
 
 /**
@@ -252,7 +252,7 @@ function length(${name} storage map) internal view returns (uint256) {
  */
 function at(${name} storage map, uint256 index) internal view returns (${key.type} key, ${value.type} value) {
     (bytes32 atKey, bytes32 val) = at(map._inner, index);
-    return (${fromBytes32(key.type, 'atKey')}, ${fromBytes32(value.type, 'val')});
+    return (${fromBytes32(key.type, "atKey")}, ${fromBytes32(value.type, "val")});
 }
 
 /**
@@ -260,8 +260,8 @@ function at(${name} storage map, uint256 index) internal view returns (${key.typ
  * Does not revert if \`key\` is not in the map.
  */
 function tryGet(${name} storage map, ${key.type} key) internal view returns (bool exists, ${value.type} value) {
-    (bool success, bytes32 val) = tryGet(map._inner, ${toBytes32(key.type, 'key')});
-    return (success, ${fromBytes32(value.type, 'val')});
+    (bool success, bytes32 val) = tryGet(map._inner, ${toBytes32(key.type, "key")});
+    return (success, ${fromBytes32(value.type, "val")});
 }
 
 /**
@@ -272,7 +272,7 @@ function tryGet(${name} storage map, ${key.type} key) internal view returns (boo
  * - \`key\` must be in the map.
  */
 function get(${name} storage map, ${key.type} key) internal view returns (${value.type}) {
-    return ${fromBytes32(value.type, `get(map._inner, ${toBytes32(key.type, 'key')})`)};
+    return ${fromBytes32(value.type, `get(map._inner, ${toBytes32(key.type, "key")})`)};
 }
 
 /**
@@ -403,7 +403,7 @@ function tryGet(
     ${key.typeLoc} key
 ) internal view returns (bool exists, ${value.typeLoc} value) {
     value = map._values[key];
-    exists = ${value.memory ? 'bytes(value).length != 0' : `value != ${value.type}(0)`} || contains(map, key);
+    exists = ${value.memory ? "bytes(value).length != 0" : `value != ${value.type}(0)`} || contains(map, key);
 }
 
 /**
@@ -449,15 +449,15 @@ function keys(${name} storage map, uint256 start, uint256 end) internal view ret
 // GENERATE
 module.exports = format(
   header.trimEnd(),
-  'library EnumerableMap {',
+  "library EnumerableMap {",
   format(
     [].concat(
-      'using EnumerableSet for *;',
-      '',
+      "using EnumerableSet for *;",
+      "",
       defaultMap,
       MAP_TYPES.filter(({ key, value }) => !(key.memory || value.memory)).map(customMap),
       MAP_TYPES.filter(({ key, value }) => key.memory || value.memory).map(memoryMap),
     ),
   ).trimEnd(),
-  '}',
+  "}",
 );

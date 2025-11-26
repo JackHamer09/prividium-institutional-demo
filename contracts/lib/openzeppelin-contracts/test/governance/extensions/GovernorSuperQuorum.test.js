@@ -1,42 +1,42 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-const { GovernorHelper } = require('../../helpers/governance');
-const { ProposalState, VoteType } = require('../../helpers/enums');
-const time = require('../../helpers/time');
+const { GovernorHelper } = require("../../helpers/governance");
+const { ProposalState, VoteType } = require("../../helpers/enums");
+const time = require("../../helpers/time");
 
 const TOKENS = [
-  { Token: '$ERC20Votes', mode: 'blocknumber' },
-  { Token: '$ERC20VotesTimestampMock', mode: 'timestamp' },
+  { Token: "$ERC20Votes", mode: "blocknumber" },
+  { Token: "$ERC20VotesTimestampMock", mode: "timestamp" },
 ];
 
 const DEFAULT_ADMIN_ROLE = ethers.ZeroHash;
-const PROPOSER_ROLE = ethers.id('PROPOSER_ROLE');
-const EXECUTOR_ROLE = ethers.id('EXECUTOR_ROLE');
-const CANCELLER_ROLE = ethers.id('CANCELLER_ROLE');
+const PROPOSER_ROLE = ethers.id("PROPOSER_ROLE");
+const EXECUTOR_ROLE = ethers.id("EXECUTOR_ROLE");
+const CANCELLER_ROLE = ethers.id("CANCELLER_ROLE");
 
-const name = 'OZ-Governor';
-const version = '1';
-const tokenName = 'MockToken';
-const tokenSymbol = 'MTKN';
-const tokenSupply = ethers.parseEther('100');
+const name = "OZ-Governor";
+const version = "1";
+const tokenName = "MockToken";
+const tokenSymbol = "MTKN";
+const tokenSupply = ethers.parseEther("100");
 const votingDelay = 4n;
 const votingPeriod = 16n;
 const quorum = 10n;
 const superQuorum = 40n;
-const value = ethers.parseEther('1');
+const value = ethers.parseEther("1");
 const delay = time.duration.hours(1n);
 
-describe('GovernorSuperQuorum', function () {
+describe("GovernorSuperQuorum", function () {
   for (const { Token, mode } of TOKENS) {
     const fixture = async () => {
       const [proposer, voter1, voter2, voter3, voter4, voter5] = await ethers.getSigners();
-      const receiver = await ethers.deployContract('CallReceiverMock');
+      const receiver = await ethers.deployContract("CallReceiverMock");
 
-      const timelock = await ethers.deployContract('TimelockController', [delay, [], [], proposer]);
+      const timelock = await ethers.deployContract("TimelockController", [delay, [], [], proposer]);
       const token = await ethers.deployContract(Token, [tokenName, tokenSymbol, tokenName, version]);
-      const mock = await ethers.deployContract('$GovernorSuperQuorumMock', [
+      const mock = await ethers.deployContract("$GovernorSuperQuorumMock", [
         name,
         votingDelay, // initialVotingDelay
         votingPeriod, // initialVotingPeriod
@@ -76,21 +76,21 @@ describe('GovernorSuperQuorum', function () {
             {
               target: this.receiver.target,
               value,
-              data: this.receiver.interface.encodeFunctionData('mockFunction'),
+              data: this.receiver.interface.encodeFunctionData("mockFunction"),
             },
           ],
-          '<proposal description>',
+          "<proposal description>",
         );
       });
 
-      it('deployment check', async function () {
+      it("deployment check", async function () {
         await expect(this.mock.name()).to.eventually.equal(name);
         await expect(this.mock.token()).to.eventually.equal(this.token);
         await expect(this.mock.quorum(0)).to.eventually.equal(quorum);
         await expect(this.mock.superQuorum(0)).to.eventually.equal(superQuorum);
       });
 
-      it('proposal succeeds early when super quorum is reached', async function () {
+      it("proposal succeeds early when super quorum is reached", async function () {
         await this.helper.connect(this.proposer).propose();
         await this.helper.waitForSnapshot();
 
@@ -107,7 +107,7 @@ describe('GovernorSuperQuorum', function () {
         await expect(this.mock.state(this.proposal.id)).to.eventually.equal(ProposalState.Succeeded);
       });
 
-      it('proposal remains active if super quorum is not reached', async function () {
+      it("proposal remains active if super quorum is not reached", async function () {
         await this.helper.connect(this.proposer).propose();
         await this.helper.waitForSnapshot();
 
@@ -126,7 +126,7 @@ describe('GovernorSuperQuorum', function () {
         await expect(this.mock.state(this.proposal.id)).to.eventually.equal(ProposalState.Succeeded);
       });
 
-      it('proposal remains active if super quorum is reached but vote fails', async function () {
+      it("proposal remains active if super quorum is reached but vote fails", async function () {
         await this.helper.connect(this.proposer).propose();
         await this.helper.waitForSnapshot();
 
@@ -147,7 +147,7 @@ describe('GovernorSuperQuorum', function () {
         await expect(this.mock.state(this.proposal.id)).to.eventually.equal(ProposalState.Defeated);
       });
 
-      it('proposal is queued if super quorum is reached and eta is set', async function () {
+      it("proposal is queued if super quorum is reached and eta is set", async function () {
         await this.helper.connect(this.proposer).propose();
 
         await this.helper.waitForSnapshot();

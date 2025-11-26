@@ -1,11 +1,11 @@
-const { ethers } = require('hardhat');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require("hardhat");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-const { mapValues } = require('../../helpers/iterate');
-const { generators } = require('../../helpers/random');
-const { SET_TYPES } = require('../../../scripts/generate/templates/Enumerable.opts');
+const { mapValues } = require("../../helpers/iterate");
+const { generators } = require("../../helpers/random");
+const { SET_TYPES } = require("../../../scripts/generate/templates/Enumerable.opts");
 
-const { shouldBehaveLikeSet } = require('./EnumerableSet.behavior');
+const { shouldBehaveLikeSet } = require("./EnumerableSet.behavior");
 
 const getMethods = (mock, fnSigs) =>
   mapValues(
@@ -16,7 +16,7 @@ const getMethods = (mock, fnSigs) =>
   );
 
 async function fixture() {
-  const mock = await ethers.deployContract('$EnumerableSet');
+  const mock = await ethers.deployContract("$EnumerableSet");
 
   const env = Object.fromEntries(
     SET_TYPES.map(({ name, value }) => [
@@ -38,8 +38,8 @@ async function fixture() {
           valuesPage: `$values_EnumerableSet_${name}(uint256,uint256,uint256)`,
         }),
         events: {
-          addReturn: `return$add_EnumerableSet_${name}_${value.type.replace(/[[\]]/g, '_')}`,
-          removeReturn: `return$remove_EnumerableSet_${name}_${value.type.replace(/[[\]]/g, '_')}`,
+          addReturn: `return$add_EnumerableSet_${name}_${value.type.replace(/[[\]]/g, "_")}`,
+          removeReturn: `return$remove_EnumerableSet_${name}_${value.type.replace(/[[\]]/g, "_")}`,
         },
       },
     ]),
@@ -48,7 +48,7 @@ async function fixture() {
   return { mock, env };
 }
 
-describe('EnumerableSet', function () {
+describe("EnumerableSet", function () {
   beforeEach(async function () {
     Object.assign(this, await loadFixture(fixture));
   });

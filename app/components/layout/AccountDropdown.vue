@@ -35,6 +35,14 @@
     >
       <MenuItems class="absolute right-0 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-lg ring-1 ring-black/5 focus:outline-none">
         <div class="p-1">
+          <!-- Prividium Auth Status -->
+          <div class="px-3 py-2 border-b border-slate-100 mb-1">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-green-500" />
+              <span class="text-xs text-slate-600">Prividium Authorized</span>
+            </div>
+          </div>
+
           <MenuItem v-slot="{ active }">
             <button
               :class="[

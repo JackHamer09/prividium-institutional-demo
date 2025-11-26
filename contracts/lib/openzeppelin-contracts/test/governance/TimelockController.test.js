@@ -1,28 +1,28 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { PANIC_CODES } = require('@nomicfoundation/hardhat-chai-matchers/panic');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
+const { PANIC_CODES } = require("@nomicfoundation/hardhat-chai-matchers/panic");
 
-const { GovernorHelper } = require('../helpers/governance');
-const { OperationState } = require('../helpers/enums');
-const time = require('../helpers/time');
+const { GovernorHelper } = require("../helpers/governance");
+const { OperationState } = require("../helpers/enums");
+const time = require("../helpers/time");
 
-const { shouldSupportInterfaces } = require('../utils/introspection/SupportsInterface.behavior');
+const { shouldSupportInterfaces } = require("../utils/introspection/SupportsInterface.behavior");
 
-const salt = '0x025e7b0be353a74631ad648c667493c0e1cd31caa4cc2d3520fdc171ea0cc726'; // a random value
+const salt = "0x025e7b0be353a74631ad648c667493c0e1cd31caa4cc2d3520fdc171ea0cc726"; // a random value
 
 const MINDELAY = time.duration.days(1);
 const DEFAULT_ADMIN_ROLE = ethers.ZeroHash;
-const PROPOSER_ROLE = ethers.id('PROPOSER_ROLE');
-const EXECUTOR_ROLE = ethers.id('EXECUTOR_ROLE');
-const CANCELLER_ROLE = ethers.id('CANCELLER_ROLE');
+const PROPOSER_ROLE = ethers.id("PROPOSER_ROLE");
+const EXECUTOR_ROLE = ethers.id("EXECUTOR_ROLE");
+const CANCELLER_ROLE = ethers.id("CANCELLER_ROLE");
 
 const getAddress = obj => obj.address ?? obj.target ?? obj;
 
 function genOperation(target, value, data, predecessor, salt) {
   const id = ethers.keccak256(
     ethers.AbiCoder.defaultAbiCoder().encode(
-      ['address', 'uint256', 'bytes', 'uint256', 'bytes32'],
+      ["address", "uint256", "bytes", "uint256", "bytes32"],
       [getAddress(target), value, data, predecessor, salt],
     ),
   );
@@ -32,7 +32,7 @@ function genOperation(target, value, data, predecessor, salt) {
 function genOperationBatch(targets, values, payloads, predecessor, salt) {
   const id = ethers.keccak256(
     ethers.AbiCoder.defaultAbiCoder().encode(
-      ['address[]', 'uint256[]', 'bytes[]', 'uint256', 'bytes32'],
+      ["address[]", "uint256[]", "bytes[]", "uint256", "bytes32"],
       [targets.map(getAddress), values, payloads, predecessor, salt],
     ),
   );
@@ -42,9 +42,9 @@ function genOperationBatch(targets, values, payloads, predecessor, salt) {
 async function fixture() {
   const [admin, proposer, canceller, executor, other] = await ethers.getSigners();
 
-  const mock = await ethers.deployContract('TimelockController', [MINDELAY, [proposer], [executor], admin]);
-  const callreceivermock = await ethers.deployContract('CallReceiverMock');
-  const implementation2 = await ethers.deployContract('Implementation2');
+  const mock = await ethers.deployContract("TimelockController", [MINDELAY, [proposer], [executor], admin]);
+  const callreceivermock = await ethers.deployContract("CallReceiverMock");
+  const implementation2 = await ethers.deployContract("Implementation2");
 
   expect(await mock.hasRole(CANCELLER_ROLE, proposer)).to.be.true;
   await mock.connect(admin).revokeRole(CANCELLER_ROLE, proposer);
@@ -62,14 +62,14 @@ async function fixture() {
   };
 }
 
-describe('TimelockController', function () {
+describe("TimelockController", function () {
   beforeEach(async function () {
     Object.assign(this, await loadFixture(fixture));
   });
 
-  shouldSupportInterfaces(['ERC1155Receiver']);
+  shouldSupportInterfaces(["ERC1155Receiver"]);
 
-  it('initial state', async function () {
+  it("initial state", async function () {
     expect(await this.mock.getMinDelay()).to.equal(MINDELAY);
 
     expect(await this.mock.DEFAULT_ADMIN_ROLE()).to.equal(DEFAULT_ADMIN_ROLE);
@@ -96,8 +96,8 @@ describe('TimelockController', function () {
     ).to.deep.equal([false, false, true]);
   });
 
-  it('optional admin', async function () {
-    const mock = await ethers.deployContract('TimelockController', [
+  it("optional admin", async function () {
+    const mock = await ethers.deployContract("TimelockController", [
       MINDELAY,
       [this.proposer],
       [this.executor],
@@ -107,15 +107,15 @@ describe('TimelockController', function () {
     expect(await mock.hasRole(DEFAULT_ADMIN_ROLE, mock.target)).to.be.true;
   });
 
-  describe('methods', function () {
-    describe('operation hashing', function () {
-      it('hashOperation', async function () {
+  describe("methods", function () {
+    describe("operation hashing", function () {
+      it("hashOperation", async function () {
         this.operation = genOperation(
-          '0x29cebefe301c6ce1bb36b58654fea275e1cacc83',
-          '0xf94fdd6e21da21d2',
-          '0xa3bc5104',
-          '0xba41db3be0a9929145cfe480bd0f1f003689104d275ae912099f925df424ef94',
-          '0x60d9109846ab510ed75c15f979ae366a8a2ace11d34ba9788c13ac296db50e6e',
+          "0x29cebefe301c6ce1bb36b58654fea275e1cacc83",
+          "0xf94fdd6e21da21d2",
+          "0xa3bc5104",
+          "0xba41db3be0a9929145cfe480bd0f1f003689104d275ae912099f925df424ef94",
+          "0x60d9109846ab510ed75c15f979ae366a8a2ace11d34ba9788c13ac296db50e6e",
         );
         expect(
           await this.mock.hashOperation(
@@ -128,13 +128,13 @@ describe('TimelockController', function () {
         ).to.equal(this.operation.id);
       });
 
-      it('hashOperationBatch', async function () {
+      it("hashOperationBatch", async function () {
         this.operation = genOperationBatch(
-          Array(8).fill('0x2d5f21620e56531c1d59c2df9b8e95d129571f71'),
-          Array(8).fill('0x2b993cfce932ccee'),
-          Array(8).fill('0xcf51966b'),
-          '0xce8f45069cc71d25f71ba05062de1a3974f9849b004de64a70998bca9d29c2e7',
-          '0x8952d74c110f72bfe5accdf828c74d53a7dfb71235dfa8a1e8c75d8576b372ff',
+          Array(8).fill("0x2d5f21620e56531c1d59c2df9b8e95d129571f71"),
+          Array(8).fill("0x2b993cfce932ccee"),
+          Array(8).fill("0xcf51966b"),
+          "0xce8f45069cc71d25f71ba05062de1a3974f9849b004de64a70998bca9d29c2e7",
+          "0x8952d74c110f72bfe5accdf828c74d53a7dfb71235dfa8a1e8c75d8576b372ff",
         );
         expect(
           await this.mock.hashOperationBatch(
@@ -147,19 +147,19 @@ describe('TimelockController', function () {
         ).to.equal(this.operation.id);
       });
     });
-    describe('simple', function () {
-      describe('schedule', function () {
+    describe("simple", function () {
+      describe("schedule", function () {
         beforeEach(async function () {
           this.operation = genOperation(
-            '0x31754f590B97fD975Eb86938f18Cc304E264D2F2',
+            "0x31754f590B97fD975Eb86938f18Cc304E264D2F2",
             0n,
-            '0x3bf92ccc',
+            "0x3bf92ccc",
             ethers.ZeroHash,
             salt,
           );
         });
 
-        it('proposer can schedule', async function () {
+        it("proposer can schedule", async function () {
           const tx = await this.mock
             .connect(this.proposer)
             .schedule(
@@ -172,7 +172,7 @@ describe('TimelockController', function () {
             );
 
           await expect(tx)
-            .to.emit(this.mock, 'CallScheduled')
+            .to.emit(this.mock, "CallScheduled")
             .withArgs(
               this.operation.id,
               0n,
@@ -182,7 +182,7 @@ describe('TimelockController', function () {
               this.operation.predecessor,
               MINDELAY,
             )
-            .to.emit(this.mock, 'CallSalt')
+            .to.emit(this.mock, "CallSalt")
             .withArgs(this.operation.id, this.operation.salt);
 
           expect(await this.mock.getTimestamp(this.operation.id)).to.equal(
@@ -190,7 +190,7 @@ describe('TimelockController', function () {
           );
         });
 
-        it('prevent overwriting active operation', async function () {
+        it("prevent overwriting active operation", async function () {
           await this.mock
             .connect(this.proposer)
             .schedule(
@@ -214,11 +214,11 @@ describe('TimelockController', function () {
                 MINDELAY,
               ),
           )
-            .to.be.revertedWithCustomError(this.mock, 'TimelockUnexpectedOperationState')
+            .to.be.revertedWithCustomError(this.mock, "TimelockUnexpectedOperationState")
             .withArgs(this.operation.id, GovernorHelper.proposalStatesToBitMap(OperationState.Unset));
         });
 
-        it('prevent non-proposer from committing', async function () {
+        it("prevent non-proposer from committing", async function () {
           await expect(
             this.mock
               .connect(this.other)
@@ -231,11 +231,11 @@ describe('TimelockController', function () {
                 MINDELAY,
               ),
           )
-            .to.be.revertedWithCustomError(this.mock, 'AccessControlUnauthorizedAccount')
+            .to.be.revertedWithCustomError(this.mock, "AccessControlUnauthorizedAccount")
             .withArgs(this.other, PROPOSER_ROLE);
         });
 
-        it('enforce minimum delay', async function () {
+        it("enforce minimum delay", async function () {
           await expect(
             this.mock
               .connect(this.proposer)
@@ -248,11 +248,11 @@ describe('TimelockController', function () {
                 MINDELAY - 1n,
               ),
           )
-            .to.be.revertedWithCustomError(this.mock, 'TimelockInsufficientDelay')
+            .to.be.revertedWithCustomError(this.mock, "TimelockInsufficientDelay")
             .withArgs(MINDELAY - 1n, MINDELAY);
         });
 
-        it('schedule operation with salt zero', async function () {
+        it("schedule operation with salt zero", async function () {
           await expect(
             this.mock
               .connect(this.proposer)
@@ -264,22 +264,22 @@ describe('TimelockController', function () {
                 ethers.ZeroHash,
                 MINDELAY,
               ),
-          ).to.not.emit(this.mock, 'CallSalt');
+          ).to.not.emit(this.mock, "CallSalt");
         });
       });
 
-      describe('execute', function () {
+      describe("execute", function () {
         beforeEach(async function () {
           this.operation = genOperation(
-            '0xAe22104DCD970750610E6FE15E623468A98b15f7',
+            "0xAe22104DCD970750610E6FE15E623468A98b15f7",
             0n,
-            '0x13e414de',
+            "0x13e414de",
             ethers.ZeroHash,
-            '0xc1059ed2dc130227aa1d1d539ac94c641306905c020436c636e19e3fab56fc7f',
+            "0xc1059ed2dc130227aa1d1d539ac94c641306905c020436c636e19e3fab56fc7f",
           );
         });
 
-        it('revert if operation is not scheduled', async function () {
+        it("revert if operation is not scheduled", async function () {
           await expect(
             this.mock
               .connect(this.executor)
@@ -291,11 +291,11 @@ describe('TimelockController', function () {
                 this.operation.salt,
               ),
           )
-            .to.be.revertedWithCustomError(this.mock, 'TimelockUnexpectedOperationState')
+            .to.be.revertedWithCustomError(this.mock, "TimelockUnexpectedOperationState")
             .withArgs(this.operation.id, GovernorHelper.proposalStatesToBitMap(OperationState.Ready));
         });
 
-        describe('with scheduled operation', function () {
+        describe("with scheduled operation", function () {
           beforeEach(async function () {
             await this.mock
               .connect(this.proposer)
@@ -309,7 +309,7 @@ describe('TimelockController', function () {
               );
           });
 
-          it('revert if execution comes too early 1/2', async function () {
+          it("revert if execution comes too early 1/2", async function () {
             await expect(
               this.mock
                 .connect(this.executor)
@@ -321,11 +321,11 @@ describe('TimelockController', function () {
                   this.operation.salt,
                 ),
             )
-              .to.be.revertedWithCustomError(this.mock, 'TimelockUnexpectedOperationState')
+              .to.be.revertedWithCustomError(this.mock, "TimelockUnexpectedOperationState")
               .withArgs(this.operation.id, GovernorHelper.proposalStatesToBitMap(OperationState.Ready));
           });
 
-          it('revert if execution comes too early 2/2', async function () {
+          it("revert if execution comes too early 2/2", async function () {
             // -1 is too tight, test sometime fails
             await this.mock.getTimestamp(this.operation.id).then(clock => time.increaseTo.timestamp(clock - 5n));
 
@@ -340,16 +340,16 @@ describe('TimelockController', function () {
                   this.operation.salt,
                 ),
             )
-              .to.be.revertedWithCustomError(this.mock, 'TimelockUnexpectedOperationState')
+              .to.be.revertedWithCustomError(this.mock, "TimelockUnexpectedOperationState")
               .withArgs(this.operation.id, GovernorHelper.proposalStatesToBitMap(OperationState.Ready));
           });
 
-          describe('on time', function () {
+          describe("on time", function () {
             beforeEach(async function () {
               await this.mock.getTimestamp(this.operation.id).then(time.increaseTo.timestamp);
             });
 
-            it('executor can reveal', async function () {
+            it("executor can reveal", async function () {
               await expect(
                 this.mock
                   .connect(this.executor)
@@ -361,11 +361,11 @@ describe('TimelockController', function () {
                     this.operation.salt,
                   ),
               )
-                .to.emit(this.mock, 'CallExecuted')
+                .to.emit(this.mock, "CallExecuted")
                 .withArgs(this.operation.id, 0n, this.operation.target, this.operation.value, this.operation.data);
             });
 
-            it('prevent non-executor from revealing', async function () {
+            it("prevent non-executor from revealing", async function () {
               await expect(
                 this.mock
                   .connect(this.other)
@@ -377,17 +377,17 @@ describe('TimelockController', function () {
                     this.operation.salt,
                   ),
               )
-                .to.be.revertedWithCustomError(this.mock, 'AccessControlUnauthorizedAccount')
+                .to.be.revertedWithCustomError(this.mock, "AccessControlUnauthorizedAccount")
                 .withArgs(this.other, EXECUTOR_ROLE);
             });
 
-            it('prevents reentrancy execution', async function () {
+            it("prevents reentrancy execution", async function () {
               // Create operation
-              const reentrant = await ethers.deployContract('$TimelockReentrant');
+              const reentrant = await ethers.deployContract("$TimelockReentrant");
               const reentrantOperation = genOperation(
                 reentrant,
                 0n,
-                reentrant.interface.encodeFunctionData('reenter'),
+                reentrant.interface.encodeFunctionData("reenter"),
                 ethers.ZeroHash,
                 salt,
               );
@@ -411,7 +411,7 @@ describe('TimelockController', function () {
               await this.mock.connect(this.admin).grantRole(EXECUTOR_ROLE, reentrant);
 
               // Prepare reenter
-              const data = this.mock.interface.encodeFunctionData('execute', [
+              const data = this.mock.interface.encodeFunctionData("execute", [
                 getAddress(reentrantOperation.target),
                 reentrantOperation.value,
                 reentrantOperation.data,
@@ -432,7 +432,7 @@ describe('TimelockController', function () {
                     reentrantOperation.salt,
                   ),
               )
-                .to.be.revertedWithCustomError(this.mock, 'TimelockUnexpectedOperationState')
+                .to.be.revertedWithCustomError(this.mock, "TimelockUnexpectedOperationState")
                 .withArgs(reentrantOperation.id, GovernorHelper.proposalStatesToBitMap(OperationState.Ready));
 
               // Disable reentrancy
@@ -451,7 +451,7 @@ describe('TimelockController', function () {
                     nonReentrantOperation.salt,
                   ),
               )
-                .to.emit(this.mock, 'CallExecuted')
+                .to.emit(this.mock, "CallExecuted")
                 .withArgs(
                   nonReentrantOperation.id,
                   0n,
@@ -465,19 +465,19 @@ describe('TimelockController', function () {
       });
     });
 
-    describe('batch', function () {
-      describe('schedule', function () {
+    describe("batch", function () {
+      describe("schedule", function () {
         beforeEach(async function () {
           this.operation = genOperationBatch(
-            Array(8).fill('0xEd912250835c812D4516BBD80BdaEA1bB63a293C'),
+            Array(8).fill("0xEd912250835c812D4516BBD80BdaEA1bB63a293C"),
             Array(8).fill(0n),
-            Array(8).fill('0x2fcb7a88'),
+            Array(8).fill("0x2fcb7a88"),
             ethers.ZeroHash,
-            '0x6cf9d042ade5de78bed9ffd075eb4b2a4f6b1736932c2dc8af517d6e066f51f5',
+            "0x6cf9d042ade5de78bed9ffd075eb4b2a4f6b1736932c2dc8af517d6e066f51f5",
           );
         });
 
-        it('proposer can schedule', async function () {
+        it("proposer can schedule", async function () {
           const tx = this.mock
             .connect(this.proposer)
             .scheduleBatch(
@@ -490,7 +490,7 @@ describe('TimelockController', function () {
             );
           for (const i in this.operation.targets) {
             await expect(tx)
-              .to.emit(this.mock, 'CallScheduled')
+              .to.emit(this.mock, "CallScheduled")
               .withArgs(
                 this.operation.id,
                 i,
@@ -500,7 +500,7 @@ describe('TimelockController', function () {
                 this.operation.predecessor,
                 MINDELAY,
               )
-              .to.emit(this.mock, 'CallSalt')
+              .to.emit(this.mock, "CallSalt")
               .withArgs(this.operation.id, this.operation.salt);
           }
 
@@ -509,7 +509,7 @@ describe('TimelockController', function () {
           );
         });
 
-        it('prevent overwriting active operation', async function () {
+        it("prevent overwriting active operation", async function () {
           await this.mock
             .connect(this.proposer)
             .scheduleBatch(
@@ -533,11 +533,11 @@ describe('TimelockController', function () {
                 MINDELAY,
               ),
           )
-            .to.be.revertedWithCustomError(this.mock, 'TimelockUnexpectedOperationState')
+            .to.be.revertedWithCustomError(this.mock, "TimelockUnexpectedOperationState")
             .withArgs(this.operation.id, GovernorHelper.proposalStatesToBitMap(OperationState.Unset));
         });
 
-        it('length of batch parameter must match #1', async function () {
+        it("length of batch parameter must match #1", async function () {
           await expect(
             this.mock
               .connect(this.proposer)
@@ -550,11 +550,11 @@ describe('TimelockController', function () {
                 MINDELAY,
               ),
           )
-            .to.be.revertedWithCustomError(this.mock, 'TimelockInvalidOperationLength')
+            .to.be.revertedWithCustomError(this.mock, "TimelockInvalidOperationLength")
             .withArgs(this.operation.targets.length, this.operation.payloads.length, 0n);
         });
 
-        it('length of batch parameter must match #1', async function () {
+        it("length of batch parameter must match #1", async function () {
           await expect(
             this.mock
               .connect(this.proposer)
@@ -567,11 +567,11 @@ describe('TimelockController', function () {
                 MINDELAY,
               ),
           )
-            .to.be.revertedWithCustomError(this.mock, 'TimelockInvalidOperationLength')
+            .to.be.revertedWithCustomError(this.mock, "TimelockInvalidOperationLength")
             .withArgs(this.operation.targets.length, 0n, this.operation.payloads.length);
         });
 
-        it('prevent non-proposer from committing', async function () {
+        it("prevent non-proposer from committing", async function () {
           await expect(
             this.mock
               .connect(this.other)
@@ -584,11 +584,11 @@ describe('TimelockController', function () {
                 MINDELAY,
               ),
           )
-            .to.be.revertedWithCustomError(this.mock, 'AccessControlUnauthorizedAccount')
+            .to.be.revertedWithCustomError(this.mock, "AccessControlUnauthorizedAccount")
             .withArgs(this.other, PROPOSER_ROLE);
         });
 
-        it('enforce minimum delay', async function () {
+        it("enforce minimum delay", async function () {
           await expect(
             this.mock
               .connect(this.proposer)
@@ -601,23 +601,23 @@ describe('TimelockController', function () {
                 MINDELAY - 1n,
               ),
           )
-            .to.be.revertedWithCustomError(this.mock, 'TimelockInsufficientDelay')
+            .to.be.revertedWithCustomError(this.mock, "TimelockInsufficientDelay")
             .withArgs(MINDELAY - 1n, MINDELAY);
         });
       });
 
-      describe('execute', function () {
+      describe("execute", function () {
         beforeEach(async function () {
           this.operation = genOperationBatch(
-            Array(8).fill('0x76E53CcEb05131Ef5248553bEBDb8F70536830b1'),
+            Array(8).fill("0x76E53CcEb05131Ef5248553bEBDb8F70536830b1"),
             Array(8).fill(0n),
-            Array(8).fill('0x58a60f63'),
+            Array(8).fill("0x58a60f63"),
             ethers.ZeroHash,
-            '0x9545eeabc7a7586689191f78a5532443698538e54211b5bd4d7dc0fc0102b5c7',
+            "0x9545eeabc7a7586689191f78a5532443698538e54211b5bd4d7dc0fc0102b5c7",
           );
         });
 
-        it('revert if operation is not scheduled', async function () {
+        it("revert if operation is not scheduled", async function () {
           await expect(
             this.mock
               .connect(this.executor)
@@ -629,11 +629,11 @@ describe('TimelockController', function () {
                 this.operation.salt,
               ),
           )
-            .to.be.revertedWithCustomError(this.mock, 'TimelockUnexpectedOperationState')
+            .to.be.revertedWithCustomError(this.mock, "TimelockUnexpectedOperationState")
             .withArgs(this.operation.id, GovernorHelper.proposalStatesToBitMap(OperationState.Ready));
         });
 
-        describe('with scheduled operation', function () {
+        describe("with scheduled operation", function () {
           beforeEach(async function () {
             await this.mock
               .connect(this.proposer)
@@ -647,7 +647,7 @@ describe('TimelockController', function () {
               );
           });
 
-          it('revert if execution comes too early 1/2', async function () {
+          it("revert if execution comes too early 1/2", async function () {
             await expect(
               this.mock
                 .connect(this.executor)
@@ -659,11 +659,11 @@ describe('TimelockController', function () {
                   this.operation.salt,
                 ),
             )
-              .to.be.revertedWithCustomError(this.mock, 'TimelockUnexpectedOperationState')
+              .to.be.revertedWithCustomError(this.mock, "TimelockUnexpectedOperationState")
               .withArgs(this.operation.id, GovernorHelper.proposalStatesToBitMap(OperationState.Ready));
           });
 
-          it('revert if execution comes too early 2/2', async function () {
+          it("revert if execution comes too early 2/2", async function () {
             // -1 is to tight, test sometime fails
             await this.mock.getTimestamp(this.operation.id).then(clock => time.increaseTo.timestamp(clock - 5n));
 
@@ -678,16 +678,16 @@ describe('TimelockController', function () {
                   this.operation.salt,
                 ),
             )
-              .to.be.revertedWithCustomError(this.mock, 'TimelockUnexpectedOperationState')
+              .to.be.revertedWithCustomError(this.mock, "TimelockUnexpectedOperationState")
               .withArgs(this.operation.id, GovernorHelper.proposalStatesToBitMap(OperationState.Ready));
           });
 
-          describe('on time', function () {
+          describe("on time", function () {
             beforeEach(async function () {
               await this.mock.getTimestamp(this.operation.id).then(time.increaseTo.timestamp);
             });
 
-            it('executor can reveal', async function () {
+            it("executor can reveal", async function () {
               const tx = this.mock
                 .connect(this.executor)
                 .executeBatch(
@@ -699,7 +699,7 @@ describe('TimelockController', function () {
                 );
               for (const i in this.operation.targets) {
                 await expect(tx)
-                  .to.emit(this.mock, 'CallExecuted')
+                  .to.emit(this.mock, "CallExecuted")
                   .withArgs(
                     this.operation.id,
                     i,
@@ -710,7 +710,7 @@ describe('TimelockController', function () {
               }
             });
 
-            it('prevent non-executor from revealing', async function () {
+            it("prevent non-executor from revealing", async function () {
               await expect(
                 this.mock
                   .connect(this.other)
@@ -722,11 +722,11 @@ describe('TimelockController', function () {
                     this.operation.salt,
                   ),
               )
-                .to.be.revertedWithCustomError(this.mock, 'AccessControlUnauthorizedAccount')
+                .to.be.revertedWithCustomError(this.mock, "AccessControlUnauthorizedAccount")
                 .withArgs(this.other, EXECUTOR_ROLE);
             });
 
-            it('length mismatch #1', async function () {
+            it("length mismatch #1", async function () {
               await expect(
                 this.mock
                   .connect(this.executor)
@@ -738,11 +738,11 @@ describe('TimelockController', function () {
                     this.operation.salt,
                   ),
               )
-                .to.be.revertedWithCustomError(this.mock, 'TimelockInvalidOperationLength')
+                .to.be.revertedWithCustomError(this.mock, "TimelockInvalidOperationLength")
                 .withArgs(0n, this.operation.payloads.length, this.operation.values.length);
             });
 
-            it('length mismatch #2', async function () {
+            it("length mismatch #2", async function () {
               await expect(
                 this.mock
                   .connect(this.executor)
@@ -754,11 +754,11 @@ describe('TimelockController', function () {
                     this.operation.salt,
                   ),
               )
-                .to.be.revertedWithCustomError(this.mock, 'TimelockInvalidOperationLength')
+                .to.be.revertedWithCustomError(this.mock, "TimelockInvalidOperationLength")
                 .withArgs(this.operation.targets.length, this.operation.payloads.length, 0n);
             });
 
-            it('length mismatch #3', async function () {
+            it("length mismatch #3", async function () {
               await expect(
                 this.mock
                   .connect(this.executor)
@@ -770,17 +770,17 @@ describe('TimelockController', function () {
                     this.operation.salt,
                   ),
               )
-                .to.be.revertedWithCustomError(this.mock, 'TimelockInvalidOperationLength')
+                .to.be.revertedWithCustomError(this.mock, "TimelockInvalidOperationLength")
                 .withArgs(this.operation.targets.length, 0n, this.operation.values.length);
             });
 
-            it('prevents reentrancy execution', async function () {
+            it("prevents reentrancy execution", async function () {
               // Create operation
-              const reentrant = await ethers.deployContract('$TimelockReentrant');
+              const reentrant = await ethers.deployContract("$TimelockReentrant");
               const reentrantBatchOperation = genOperationBatch(
                 [reentrant],
                 [0n],
-                [reentrant.interface.encodeFunctionData('reenter')],
+                [reentrant.interface.encodeFunctionData("reenter")],
                 ethers.ZeroHash,
                 salt,
               );
@@ -804,7 +804,7 @@ describe('TimelockController', function () {
               await this.mock.connect(this.admin).grantRole(EXECUTOR_ROLE, reentrant);
 
               // Prepare reenter
-              const data = this.mock.interface.encodeFunctionData('executeBatch', [
+              const data = this.mock.interface.encodeFunctionData("executeBatch", [
                 reentrantBatchOperation.targets.map(getAddress),
                 reentrantBatchOperation.values,
                 reentrantBatchOperation.payloads,
@@ -825,7 +825,7 @@ describe('TimelockController', function () {
                     reentrantBatchOperation.salt,
                   ),
               )
-                .to.be.revertedWithCustomError(this.mock, 'TimelockUnexpectedOperationState')
+                .to.be.revertedWithCustomError(this.mock, "TimelockUnexpectedOperationState")
                 .withArgs(reentrantBatchOperation.id, GovernorHelper.proposalStatesToBitMap(OperationState.Ready));
 
               // Disable reentrancy
@@ -844,7 +844,7 @@ describe('TimelockController', function () {
                 );
               for (const i in nonReentrantBatchOperation.targets) {
                 await expect(tx)
-                  .to.emit(this.mock, 'CallExecuted')
+                  .to.emit(this.mock, "CallExecuted")
                   .withArgs(
                     nonReentrantBatchOperation.id,
                     i,
@@ -857,17 +857,17 @@ describe('TimelockController', function () {
           });
         });
 
-        it('partial execution', async function () {
+        it("partial execution", async function () {
           const operation = genOperationBatch(
             [this.callreceivermock, this.callreceivermock, this.callreceivermock],
             [0n, 0n, 0n],
             [
-              this.callreceivermock.interface.encodeFunctionData('mockFunction'),
-              this.callreceivermock.interface.encodeFunctionData('mockFunctionRevertsNoReason'),
-              this.callreceivermock.interface.encodeFunctionData('mockFunction'),
+              this.callreceivermock.interface.encodeFunctionData("mockFunction"),
+              this.callreceivermock.interface.encodeFunctionData("mockFunctionRevertsNoReason"),
+              this.callreceivermock.interface.encodeFunctionData("mockFunction"),
             ],
             ethers.ZeroHash,
-            '0x8ac04aa0d6d66b8812fb41d39638d37af0a9ab11da507afd65c509f8ed079d3e',
+            "0x8ac04aa0d6d66b8812fb41d39638d37af0a9ab11da507afd65c509f8ed079d3e",
           );
 
           await this.mock
@@ -893,19 +893,19 @@ describe('TimelockController', function () {
                 operation.predecessor,
                 operation.salt,
               ),
-          ).to.be.revertedWithCustomError(this.mock, 'FailedCall');
+          ).to.be.revertedWithCustomError(this.mock, "FailedCall");
         });
       });
     });
 
-    describe('cancel', function () {
+    describe("cancel", function () {
       beforeEach(async function () {
         this.operation = genOperation(
-          '0xC6837c44AA376dbe1d2709F13879E040CAb653ca',
+          "0xC6837c44AA376dbe1d2709F13879E040CAb653ca",
           0n,
-          '0x296e58dd',
+          "0x296e58dd",
           ethers.ZeroHash,
-          '0xa2485763600634800df9fc9646fb2c112cf98649c55f63dd1d9c7d13a64399d9',
+          "0xa2485763600634800df9fc9646fb2c112cf98649c55f63dd1d9c7d13a64399d9",
         );
         await this.mock
           .connect(this.proposer)
@@ -919,44 +919,44 @@ describe('TimelockController', function () {
           );
       });
 
-      it('canceller can cancel', async function () {
+      it("canceller can cancel", async function () {
         await expect(this.mock.connect(this.canceller).cancel(this.operation.id))
-          .to.emit(this.mock, 'Cancelled')
+          .to.emit(this.mock, "Cancelled")
           .withArgs(this.operation.id);
       });
 
-      it('cannot cancel invalid operation', async function () {
+      it("cannot cancel invalid operation", async function () {
         await expect(this.mock.connect(this.canceller).cancel(ethers.ZeroHash))
-          .to.be.revertedWithCustomError(this.mock, 'TimelockUnexpectedOperationState')
+          .to.be.revertedWithCustomError(this.mock, "TimelockUnexpectedOperationState")
           .withArgs(
             ethers.ZeroHash,
             GovernorHelper.proposalStatesToBitMap([OperationState.Waiting, OperationState.Ready]),
           );
       });
 
-      it('prevent non-canceller from canceling', async function () {
+      it("prevent non-canceller from canceling", async function () {
         await expect(this.mock.connect(this.other).cancel(this.operation.id))
-          .to.be.revertedWithCustomError(this.mock, 'AccessControlUnauthorizedAccount')
+          .to.be.revertedWithCustomError(this.mock, "AccessControlUnauthorizedAccount")
           .withArgs(this.other, CANCELLER_ROLE);
       });
     });
   });
 
-  describe('maintenance', function () {
-    it('prevent unauthorized maintenance', async function () {
+  describe("maintenance", function () {
+    it("prevent unauthorized maintenance", async function () {
       await expect(this.mock.connect(this.other).updateDelay(0n))
-        .to.be.revertedWithCustomError(this.mock, 'TimelockUnauthorizedCaller')
+        .to.be.revertedWithCustomError(this.mock, "TimelockUnauthorizedCaller")
         .withArgs(this.other);
     });
 
-    it('timelock scheduled maintenance', async function () {
+    it("timelock scheduled maintenance", async function () {
       const newDelay = time.duration.hours(6);
       const operation = genOperation(
         this.mock,
         0n,
-        this.mock.interface.encodeFunctionData('updateDelay', [newDelay]),
+        this.mock.interface.encodeFunctionData("updateDelay", [newDelay]),
         ethers.ZeroHash,
-        '0xf8e775b2c5f4d66fb5c7fa800f35ef518c262b6014b3c0aee6ea21bff157f108',
+        "0xf8e775b2c5f4d66fb5c7fa800f35ef518c262b6014b3c0aee6ea21bff157f108",
       );
 
       await this.mock
@@ -970,28 +970,28 @@ describe('TimelockController', function () {
           .connect(this.executor)
           .execute(operation.target, operation.value, operation.data, operation.predecessor, operation.salt),
       )
-        .to.emit(this.mock, 'MinDelayChange')
+        .to.emit(this.mock, "MinDelayChange")
         .withArgs(MINDELAY, newDelay);
 
       expect(await this.mock.getMinDelay()).to.equal(newDelay);
     });
   });
 
-  describe('dependency', function () {
+  describe("dependency", function () {
     beforeEach(async function () {
       this.operation1 = genOperation(
-        '0xdE66bD4c97304200A95aE0AadA32d6d01A867E39',
+        "0xdE66bD4c97304200A95aE0AadA32d6d01A867E39",
         0n,
-        '0x01dc731a',
+        "0x01dc731a",
         ethers.ZeroHash,
-        '0x64e932133c7677402ead2926f86205e2ca4686aebecf5a8077627092b9bb2feb',
+        "0x64e932133c7677402ead2926f86205e2ca4686aebecf5a8077627092b9bb2feb",
       );
       this.operation2 = genOperation(
-        '0x3c7944a3F1ee7fc8c5A5134ba7c79D11c3A1FCa3',
+        "0x3c7944a3F1ee7fc8c5A5134ba7c79D11c3A1FCa3",
         0n,
-        '0x8f531849',
+        "0x8f531849",
         this.operation1.id,
-        '0x036e1311cac523f9548e6461e29fb1f8f9196b91910a41711ea22f5de48df07d',
+        "0x036e1311cac523f9548e6461e29fb1f8f9196b91910a41711ea22f5de48df07d",
       );
       await this.mock
         .connect(this.proposer)
@@ -1017,7 +1017,7 @@ describe('TimelockController', function () {
       await this.mock.getTimestamp(this.operation2.id).then(time.increaseTo.timestamp);
     });
 
-    it('cannot execute before dependency', async function () {
+    it("cannot execute before dependency", async function () {
       await expect(
         this.mock
           .connect(this.executor)
@@ -1029,11 +1029,11 @@ describe('TimelockController', function () {
             this.operation2.salt,
           ),
       )
-        .to.be.revertedWithCustomError(this.mock, 'TimelockUnexecutedPredecessor')
+        .to.be.revertedWithCustomError(this.mock, "TimelockUnexecutedPredecessor")
         .withArgs(this.operation1.id);
     });
 
-    it('can execute after dependency', async function () {
+    it("can execute after dependency", async function () {
       await this.mock
         .connect(this.executor)
         .execute(
@@ -1055,16 +1055,16 @@ describe('TimelockController', function () {
     });
   });
 
-  describe('usage scenario', function () {
+  describe("usage scenario", function () {
     this.timeout(10000);
 
-    it('call', async function () {
+    it("call", async function () {
       const operation = genOperation(
         this.implementation2,
         0n,
-        this.implementation2.interface.encodeFunctionData('setValue', [42n]),
+        this.implementation2.interface.encodeFunctionData("setValue", [42n]),
         ethers.ZeroHash,
-        '0x8043596363daefc89977b25f9d9b4d06c3910959ef0c4d213557a903e1b555e2',
+        "0x8043596363daefc89977b25f9d9b4d06c3910959ef0c4d213557a903e1b555e2",
       );
 
       await this.mock
@@ -1080,13 +1080,13 @@ describe('TimelockController', function () {
       expect(await this.implementation2.getValue()).to.equal(42n);
     });
 
-    it('call reverting', async function () {
+    it("call reverting", async function () {
       const operation = genOperation(
         this.callreceivermock,
         0n,
-        this.callreceivermock.interface.encodeFunctionData('mockFunctionRevertsNoReason'),
+        this.callreceivermock.interface.encodeFunctionData("mockFunctionRevertsNoReason"),
         ethers.ZeroHash,
-        '0xb1b1b276fdf1a28d1e00537ea73b04d56639128b08063c1a2f70a52e38cba693',
+        "0xb1b1b276fdf1a28d1e00537ea73b04d56639128b08063c1a2f70a52e38cba693",
       );
 
       await this.mock
@@ -1099,16 +1099,16 @@ describe('TimelockController', function () {
         this.mock
           .connect(this.executor)
           .execute(operation.target, operation.value, operation.data, operation.predecessor, operation.salt),
-      ).to.be.revertedWithCustomError(this.mock, 'FailedCall');
+      ).to.be.revertedWithCustomError(this.mock, "FailedCall");
     });
 
-    it('call throw', async function () {
+    it("call throw", async function () {
       const operation = genOperation(
         this.callreceivermock,
         0n,
-        this.callreceivermock.interface.encodeFunctionData('mockFunctionThrows'),
+        this.callreceivermock.interface.encodeFunctionData("mockFunctionThrows"),
         ethers.ZeroHash,
-        '0xe5ca79f295fc8327ee8a765fe19afb58f4a0cbc5053642bfdd7e73bc68e0fc67',
+        "0xe5ca79f295fc8327ee8a765fe19afb58f4a0cbc5053642bfdd7e73bc68e0fc67",
       );
 
       await this.mock
@@ -1125,13 +1125,13 @@ describe('TimelockController', function () {
       ).to.be.revertedWithPanic(PANIC_CODES.ASSERTION_ERROR);
     });
 
-    it('call out of gas', async function () {
+    it("call out of gas", async function () {
       const operation = genOperation(
         this.callreceivermock,
         0n,
-        this.callreceivermock.interface.encodeFunctionData('mockFunctionOutOfGas'),
+        this.callreceivermock.interface.encodeFunctionData("mockFunctionOutOfGas"),
         ethers.ZeroHash,
-        '0xf3274ce7c394c5b629d5215723563a744b817e1730cca5587c567099a14578fd',
+        "0xf3274ce7c394c5b629d5215723563a744b817e1730cca5587c567099a14578fd",
       );
 
       await this.mock
@@ -1144,18 +1144,18 @@ describe('TimelockController', function () {
         this.mock
           .connect(this.executor)
           .execute(operation.target, operation.value, operation.data, operation.predecessor, operation.salt, {
-            gasLimit: '100000',
+            gasLimit: "100000",
           }),
-      ).to.be.revertedWithCustomError(this.mock, 'FailedCall');
+      ).to.be.revertedWithCustomError(this.mock, "FailedCall");
     });
 
-    it('call payable with eth', async function () {
+    it("call payable with eth", async function () {
       const operation = genOperation(
         this.callreceivermock,
         1n,
-        this.callreceivermock.interface.encodeFunctionData('mockFunction'),
+        this.callreceivermock.interface.encodeFunctionData("mockFunction"),
         ethers.ZeroHash,
-        '0x5ab73cd33477dcd36c1e05e28362719d0ed59a7b9ff14939de63a43073dc1f44',
+        "0x5ab73cd33477dcd36c1e05e28362719d0ed59a7b9ff14939de63a43073dc1f44",
       );
 
       await this.mock
@@ -1177,13 +1177,13 @@ describe('TimelockController', function () {
       expect(await ethers.provider.getBalance(this.callreceivermock)).to.equal(1n);
     });
 
-    it('call nonpayable with eth', async function () {
+    it("call nonpayable with eth", async function () {
       const operation = genOperation(
         this.callreceivermock,
         1,
-        this.callreceivermock.interface.encodeFunctionData('mockFunctionNonPayable'),
+        this.callreceivermock.interface.encodeFunctionData("mockFunctionNonPayable"),
         ethers.ZeroHash,
-        '0xb78edbd920c7867f187e5aa6294ae5a656cfbf0dea1ccdca3751b740d0f2bdf8',
+        "0xb78edbd920c7867f187e5aa6294ae5a656cfbf0dea1ccdca3751b740d0f2bdf8",
       );
 
       await this.mock
@@ -1199,19 +1199,19 @@ describe('TimelockController', function () {
         this.mock
           .connect(this.executor)
           .execute(operation.target, operation.value, operation.data, operation.predecessor, operation.salt),
-      ).to.be.revertedWithCustomError(this.mock, 'FailedCall');
+      ).to.be.revertedWithCustomError(this.mock, "FailedCall");
 
       expect(await ethers.provider.getBalance(this.mock)).to.equal(0n);
       expect(await ethers.provider.getBalance(this.callreceivermock)).to.equal(0n);
     });
 
-    it('call reverting with eth', async function () {
+    it("call reverting with eth", async function () {
       const operation = genOperation(
         this.callreceivermock,
         1,
-        this.callreceivermock.interface.encodeFunctionData('mockFunctionRevertsNoReason'),
+        this.callreceivermock.interface.encodeFunctionData("mockFunctionRevertsNoReason"),
         ethers.ZeroHash,
-        '0xdedb4563ef0095db01d81d3f2decf57cf83e4a72aa792af14c43a792b56f4de6',
+        "0xdedb4563ef0095db01d81d3f2decf57cf83e4a72aa792af14c43a792b56f4de6",
       );
 
       await this.mock
@@ -1227,28 +1227,28 @@ describe('TimelockController', function () {
         this.mock
           .connect(this.executor)
           .execute(operation.target, operation.value, operation.data, operation.predecessor, operation.salt),
-      ).to.be.revertedWithCustomError(this.mock, 'FailedCall');
+      ).to.be.revertedWithCustomError(this.mock, "FailedCall");
 
       expect(await ethers.provider.getBalance(this.mock)).to.equal(0n);
       expect(await ethers.provider.getBalance(this.callreceivermock)).to.equal(0n);
     });
   });
 
-  describe('safe receive', function () {
-    describe('ERC721', function () {
+  describe("safe receive", function () {
+    describe("ERC721", function () {
       const tokenId = 1n;
 
       beforeEach(async function () {
-        this.token = await ethers.deployContract('$ERC721', ['Non Fungible Token', 'NFT']);
+        this.token = await ethers.deployContract("$ERC721", ["Non Fungible Token", "NFT"]);
         await this.token.$_mint(this.other, tokenId);
       });
 
-      it('can receive an ERC721 safeTransfer', async function () {
+      it("can receive an ERC721 safeTransfer", async function () {
         await this.token.connect(this.other).safeTransferFrom(this.other, this.mock, tokenId);
       });
     });
 
-    describe('ERC1155', function () {
+    describe("ERC1155", function () {
       const tokenIds = {
         1: 1000n,
         2: 2000n,
@@ -1256,23 +1256,23 @@ describe('TimelockController', function () {
       };
 
       beforeEach(async function () {
-        this.token = await ethers.deployContract('$ERC1155', ['https://token-cdn-domain/{id}.json']);
-        await this.token.$_mintBatch(this.other, Object.keys(tokenIds), Object.values(tokenIds), '0x');
+        this.token = await ethers.deployContract("$ERC1155", ["https://token-cdn-domain/{id}.json"]);
+        await this.token.$_mintBatch(this.other, Object.keys(tokenIds), Object.values(tokenIds), "0x");
       });
 
-      it('can receive ERC1155 safeTransfer', async function () {
+      it("can receive ERC1155 safeTransfer", async function () {
         await this.token.connect(this.other).safeTransferFrom(
           this.other,
           this.mock,
           ...Object.entries(tokenIds)[0], // id + amount
-          '0x',
+          "0x",
         );
       });
 
-      it('can receive ERC1155 safeBatchTransfer', async function () {
+      it("can receive ERC1155 safeBatchTransfer", async function () {
         await this.token
           .connect(this.other)
-          .safeBatchTransferFrom(this.other, this.mock, Object.keys(tokenIds), Object.values(tokenIds), '0x');
+          .safeBatchTransferFrom(this.other, this.mock, Object.keys(tokenIds), Object.values(tokenIds), "0x");
       });
     });
   });

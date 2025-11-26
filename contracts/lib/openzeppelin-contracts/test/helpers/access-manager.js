@@ -1,8 +1,8 @@
-const { ethers } = require('hardhat');
+const { ethers } = require("hardhat");
 
-const { MAX_UINT64 } = require('./constants');
-const time = require('./time');
-const { upgradeableSlot } = require('./storage');
+const { MAX_UINT64 } = require("./constants");
+const time = require("./time");
+const { upgradeableSlot } = require("./storage");
 
 function buildBaseRoles() {
   const roles = {
@@ -46,8 +46,8 @@ const formatAccess = access => [access[0], access[1].toString()];
 const MINSETBACK = time.duration.days(5);
 const EXPIRATION = time.duration.weeks(1);
 
-const EXECUTION_ID_STORAGE_SLOT = upgradeableSlot('AccessManager', 3n);
-const CONSUMING_SCHEDULE_STORAGE_SLOT = upgradeableSlot('AccessManaged', 0n);
+const EXECUTION_ID_STORAGE_SLOT = upgradeableSlot("AccessManager", 3n);
+const CONSUMING_SCHEDULE_STORAGE_SLOT = upgradeableSlot("AccessManaged", 0n);
 
 /**
  * @requires this.{manager, caller, target, calldata}
@@ -68,7 +68,7 @@ const lazyGetAddress = addressable => addressable.address ?? addressable.target 
 const hashOperation = (caller, target, data) =>
   ethers.keccak256(
     ethers.AbiCoder.defaultAbiCoder().encode(
-      ['address', 'address', 'bytes'],
+      ["address", "address", "bytes"],
       [lazyGetAddress(caller), lazyGetAddress(target), data],
     ),
   );

@@ -1,14 +1,14 @@
-const { ethers, predeploy } = require('hardhat');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers, predeploy } = require("hardhat");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-const { getDomain } = require('../helpers/eip712');
-const { ERC4337Helper } = require('../helpers/erc4337');
-const { NonNativeSigner, P256SigningKey, RSASHA256SigningKey, WebAuthnSigningKey } = require('../helpers/signers');
-const { PackedUserOperation } = require('../helpers/eip712-types');
+const { getDomain } = require("../helpers/eip712");
+const { ERC4337Helper } = require("../helpers/erc4337");
+const { NonNativeSigner, P256SigningKey, RSASHA256SigningKey, WebAuthnSigningKey } = require("../helpers/signers");
+const { PackedUserOperation } = require("../helpers/eip712-types");
 
-const { shouldBehaveLikeAccountCore, shouldBehaveLikeAccountHolder } = require('./Account.behavior');
-const { shouldBehaveLikeERC1271 } = require('../utils/cryptography/ERC1271.behavior');
-const { shouldBehaveLikeERC7821 } = require('./extensions/ERC7821.behavior');
+const { shouldBehaveLikeAccountCore, shouldBehaveLikeAccountHolder } = require("./Account.behavior");
+const { shouldBehaveLikeERC1271 } = require("../utils/cryptography/ERC1271.behavior");
+const { shouldBehaveLikeERC7821 } = require("./extensions/ERC7821.behavior");
 
 // Prepare signer in advance (RSA are long to initialize)
 const signerECDSA = ethers.Wallet.createRandom();
@@ -20,21 +20,21 @@ const signerWebAuthn = new NonNativeSigner(WebAuthnSigningKey.random());
 async function fixture() {
   // EOAs and environment
   const [beneficiary, other] = await ethers.getSigners();
-  const target = await ethers.deployContract('CallReceiverMock');
+  const target = await ethers.deployContract("CallReceiverMock");
 
   // ERC-7913 verifiers
-  const verifierP256 = await ethers.deployContract('ERC7913P256Verifier');
-  const verifierRSA = await ethers.deployContract('ERC7913RSAVerifier');
-  const verifierWebAuthn = await ethers.deployContract('ERC7913WebAuthnVerifier');
+  const verifierP256 = await ethers.deployContract("ERC7913P256Verifier");
+  const verifierRSA = await ethers.deployContract("ERC7913RSAVerifier");
+  const verifierWebAuthn = await ethers.deployContract("ERC7913WebAuthnVerifier");
 
   // ERC-4337 env
   const helper = new ERC4337Helper();
   await helper.wait();
   const entrypointDomain = await getDomain(predeploy.entrypoint.v08);
-  const domain = { name: 'AccountERC7913', version: '1', chainId: entrypointDomain.chainId }; // Missing verifyingContract,
+  const domain = { name: "AccountERC7913", version: "1", chainId: entrypointDomain.chainId }; // Missing verifyingContract,
 
   const makeMock = signer =>
-    helper.newAccount('$AccountERC7913Mock', [signer, 'AccountERC7913', '1']).then(mock => {
+    helper.newAccount("$AccountERC7913Mock", [signer, "AccountERC7913", "1"]).then(mock => {
       domain.verifyingContract = mock.address;
       return mock;
     });
@@ -59,13 +59,13 @@ async function fixture() {
   };
 }
 
-describe('AccountERC7913', function () {
+describe("AccountERC7913", function () {
   beforeEach(async function () {
     Object.assign(this, await loadFixture(fixture));
   });
 
   // Using ECDSA key as verifier
-  describe('ECDSA key', function () {
+  describe("ECDSA key", function () {
     beforeEach(async function () {
       this.signer = signerECDSA;
       this.mock = await this.makeMock(this.signer.address);
@@ -78,7 +78,7 @@ describe('AccountERC7913', function () {
   });
 
   // Using P256 key with an ERC-7913 verifier
-  describe('P256 key', function () {
+  describe("P256 key", function () {
     beforeEach(async function () {
       this.signer = signerP256;
       this.mock = await this.makeMock(
@@ -97,14 +97,14 @@ describe('AccountERC7913', function () {
   });
 
   // Using RSA key with an ERC-7913 verifier
-  describe('RSA key', function () {
+  describe("RSA key", function () {
     beforeEach(async function () {
       this.signer = signerRSA;
       this.mock = await this.makeMock(
         ethers.concat([
           this.verifierRSA.target,
           ethers.AbiCoder.defaultAbiCoder().encode(
-            ['bytes', 'bytes'],
+            ["bytes", "bytes"],
             [this.signer.signingKey.publicKey.e, this.signer.signingKey.publicKey.n],
           ),
         ]),
@@ -118,7 +118,7 @@ describe('AccountERC7913', function () {
   });
 
   // Using WebAuthn key with an ERC-7913 verifier
-  describe('WebAuthn key', function () {
+  describe("WebAuthn key", function () {
     beforeEach(async function () {
       this.signer = signerWebAuthn;
       this.mock = await this.makeMock(

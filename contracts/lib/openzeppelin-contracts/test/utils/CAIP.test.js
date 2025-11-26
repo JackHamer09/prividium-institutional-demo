@@ -1,19 +1,19 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
 
-const { CHAINS, getLocalChain } = require('../helpers/chains');
+const { CHAINS, getLocalChain } = require("../helpers/chains");
 
-describe('CAIP utilities', function () {
+describe("CAIP utilities", function () {
   before(async function () {
     this.local = await getLocalChain();
   });
 
-  describe('CAIP-2', function () {
+  describe("CAIP-2", function () {
     before(async function () {
-      this.mock = await ethers.deployContract('$CAIP2');
+      this.mock = await ethers.deployContract("$CAIP2");
     });
 
-    it('local()', async function () {
+    it("local()", async function () {
       const { caip2 } = this.local;
       expect(await this.mock.$local()).to.equal(caip2);
     });
@@ -29,11 +29,11 @@ describe('CAIP utilities', function () {
     }
   });
 
-  describe('CAIP-10', function () {
+  describe("CAIP-10", function () {
     const { address: account } = ethers.Wallet.createRandom();
 
     before(async function () {
-      this.mock = await ethers.deployContract('$CAIP10');
+      this.mock = await ethers.deployContract("$CAIP10");
     });
 
     it(`local(${account})`, async function () {

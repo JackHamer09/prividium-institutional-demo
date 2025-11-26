@@ -1,15 +1,15 @@
-const { ethers } = require('hardhat');
-const { formatType } = require('./eip712');
+const { ethers } = require("hardhat");
+const { formatType } = require("./eip712");
 
-const PersonalSign = formatType({ prefixed: 'bytes' });
+const PersonalSign = formatType({ prefixed: "bytes" });
 const TypedDataSign = contentsTypeName =>
   formatType({
     contents: contentsTypeName,
-    name: 'string',
-    version: 'string',
-    chainId: 'uint256',
-    verifyingContract: 'address',
-    salt: 'bytes32',
+    name: "string",
+    version: "string",
+    chainId: "uint256",
+    verifyingContract: "address",
+    salt: "bytes32",
   });
 
 class ERC7739Signer extends ethers.AbstractSigner {
@@ -73,15 +73,15 @@ class ERC4337Utils {
       prefixed: ethers.concat([
         ethers.toUtf8Bytes(ethers.MessagePrefix),
         ethers.toUtf8Bytes(String(message.length)),
-        typeof message === 'string' ? ethers.toUtf8Bytes(message) : message,
+        typeof message === "string" ? ethers.toUtf8Bytes(message) : message,
       ]),
     };
   }
 
   static prepareSignTypedData(contents, signerDomain) {
     return {
-      name: signerDomain.name ?? '',
-      version: signerDomain.version ?? '',
+      name: signerDomain.name ?? "",
+      version: signerDomain.version ?? "",
       chainId: signerDomain.chainId ?? 0,
       verifyingContract: signerDomain.verifyingContract ?? ethers.ZeroAddress,
       salt: signerDomain.salt ?? ethers.ZeroHash,
@@ -97,9 +97,9 @@ class ERC4337Utils {
     // contentsType             A(uint256 v)B(Z z)Z(A a)
     // contentsDescr            A(uint256 v)B(Z z)Z(A a)B
     const allTypes = { TypedDataSign: TypedDataSign(contentsTypeName), ...contentsTypes };
-    const typedDataSignType = ethers.TypedDataEncoder.from(allTypes).encodeType('TypedDataSign');
-    const contentsType = typedDataSignType.slice(typedDataSignType.indexOf(')') + 1); // Remove TypedDataSign (first object)
-    const contentsDescr = contentsType + (contentsType.startsWith(contentsTypeName) ? '' : contentsTypeName);
+    const typedDataSignType = ethers.TypedDataEncoder.from(allTypes).encodeType("TypedDataSign");
+    const contentsType = typedDataSignType.slice(typedDataSignType.indexOf(")") + 1); // Remove TypedDataSign (first object)
+    const contentsDescr = contentsType + (contentsType.startsWith(contentsTypeName) ? "" : contentsTypeName);
 
     return {
       allTypes,

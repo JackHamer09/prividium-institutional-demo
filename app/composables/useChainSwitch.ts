@@ -1,5 +1,5 @@
 import { switchChain } from "@wagmi/core";
-import { MAIN_CHAIN_ID } from "../config/chains";
+import { getMainChainId } from "../config/chains";
 
 /**
  * Chain switching utilities for ensuring correct network before write operations
@@ -10,7 +10,14 @@ export function useChainSwitch() {
   const toast = useToast();
 
   /**
-   * Ensure wallet is on the correct chain (MAIN_CHAIN_ID)
+   * Get the current main chain ID
+   */
+  function getChainId(): number {
+    return getMainChainId();
+  }
+
+  /**
+   * Ensure wallet is on the correct chain
    * Prompts user to switch if on wrong chain
    * @returns true if on correct chain or successfully switched, false otherwise
    */
@@ -20,12 +27,14 @@ export function useChainSwitch() {
       return false;
     }
 
-    if (walletStore.chainId === MAIN_CHAIN_ID) {
+    const mainChainId = getMainChainId();
+
+    if (walletStore.chainId === mainChainId) {
       return true; // Already on correct chain
     }
 
     try {
-      await switchChain(config, { chainId: MAIN_CHAIN_ID });
+      await switchChain(config, { chainId: mainChainId });
       return true;
     } catch (error) {
       console.error("Failed to switch chain:", error);
@@ -35,6 +44,7 @@ export function useChainSwitch() {
   }
 
   return {
+    getChainId,
     ensureCorrectChain,
   };
 }

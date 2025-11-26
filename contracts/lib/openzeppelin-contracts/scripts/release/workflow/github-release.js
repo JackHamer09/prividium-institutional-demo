@@ -1,9 +1,9 @@
-const { readFileSync } = require('fs');
-const { join } = require('path');
-const { version } = require(join(__dirname, '../../../package.json'));
+const { readFileSync } = require("fs");
+const { join } = require("path");
+const { version } = require(join(__dirname, "../../../package.json"));
 
 module.exports = async ({ github, context }) => {
-  const changelog = readFileSync('CHANGELOG.md', 'utf8');
+  const changelog = readFileSync("CHANGELOG.md", "utf8");
 
   await github.rest.repos.createRelease({
     owner: context.repo.owner,
@@ -11,15 +11,15 @@ module.exports = async ({ github, context }) => {
     tag_name: `v${version}`,
     target_commitish: context.sha,
     body: extractSection(changelog, version),
-    prerelease: process.env.PRERELEASE === 'true',
+    prerelease: process.env.PRERELEASE === "true",
   });
 };
 
 // From https://github.com/frangio/extract-changelog/blob/master/src/utils/word-regexp.ts
 function makeWordRegExp(word) {
-  const start = word.length > 0 && /\b/.test(word[0]) ? '\\b' : '';
-  const end = word.length > 0 && /\b/.test(word[word.length - 1]) ? '\\b' : '';
-  return new RegExp(start + [...word].map(c => (/[a-z0-9]/i.test(c) ? c : '\\' + c)).join('') + end);
+  const start = word.length > 0 && /\b/.test(word[0]) ? "\\b" : "";
+  const end = word.length > 0 && /\b/.test(word[word.length - 1]) ? "\\b" : "";
+  return new RegExp(start + [...word].map(c => (/[a-z0-9]/i.test(c) ? c : "\\" + c)).join("") + end);
 }
 
 // From https://github.com/frangio/extract-changelog/blob/master/src/core.ts

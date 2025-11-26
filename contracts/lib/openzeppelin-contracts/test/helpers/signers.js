@@ -1,6 +1,6 @@
-const { ethers } = require('ethers');
-const { secp256r1 } = require('@noble/curves/p256');
-const { generateKeyPairSync, privateEncrypt } = require('crypto');
+const { ethers } = require("ethers");
+const { secp256r1 } = require("@noble/curves/p256");
+const { generateKeyPairSync, privateEncrypt } = require("crypto");
 
 // Lightweight version of BaseWallet
 class NonNativeSigner extends ethers.AbstractSigner {
@@ -9,10 +9,10 @@ class NonNativeSigner extends ethers.AbstractSigner {
   constructor(privateKey, provider) {
     super(provider);
     ethers.assertArgument(
-      privateKey && typeof privateKey.sign === 'function',
-      'invalid private key',
-      'privateKey',
-      '[ REDACTED ]',
+      privateKey && typeof privateKey.sign === "function",
+      "invalid private key",
+      "privateKey",
+      "[ REDACTED ]",
     );
     this.#signingKey = privateKey;
   }
@@ -33,7 +33,7 @@ class NonNativeSigner extends ethers.AbstractSigner {
   }
 
   async signTransaction(/*tx: TransactionRequest*/) {
-    throw new Error('NonNativeSigner cannot send transactions');
+    throw new Error("NonNativeSigner cannot send transactions");
   }
 
   async signMessage(message /*: string | Uint8Array*/) /*: Promise<string>*/ {
@@ -47,12 +47,12 @@ class NonNativeSigner extends ethers.AbstractSigner {
   ) /*: Promise<string>*/ {
     // Populate any ENS names
     const populated = await ethers.TypedDataEncoder.resolveNames(domain, types, value, async name => {
-      ethers.assert(this.provider != null, 'cannot resolve ENS names without a provider', 'UNSUPPORTED_OPERATION', {
-        operation: 'resolveName',
+      ethers.assert(this.provider != null, "cannot resolve ENS names without a provider", "UNSUPPORTED_OPERATION", {
+        operation: "resolveName",
         info: { name },
       });
       const address = await this.provider.resolveName(name);
-      ethers.assert(address != null, 'unconfigured ENS name', 'UNCONFIGURED_NAME', { value: name });
+      ethers.assert(address != null, "unconfigured ENS name", "UNCONFIGURED_NAME", { value: name });
       return address;
     });
 
@@ -84,7 +84,7 @@ class P256SigningKey {
   }
 
   sign(digest /*: BytesLike*/) /*: ethers.Signature*/ {
-    ethers.assertArgument(ethers.dataLength(digest) === 32, 'invalid digest length', 'digest', digest);
+    ethers.assertArgument(ethers.dataLength(digest) === 32, "invalid digest length", "digest", digest);
 
     const sig = secp256r1.sign(ethers.getBytesCopy(digest), ethers.getBytesCopy(this.#privateKey), { lowS: true });
 
@@ -101,13 +101,13 @@ class RSASigningKey {
   #publicKey;
 
   constructor(keyPair) {
-    const jwk = keyPair.publicKey.export({ format: 'jwk' });
+    const jwk = keyPair.publicKey.export({ format: "jwk" });
     this.#privateKey = keyPair.privateKey;
     this.#publicKey = { e: ethers.decodeBase64(jwk.e), n: ethers.decodeBase64(jwk.n) };
   }
 
   static random(modulusLength = 2048) {
-    return new this(generateKeyPairSync('rsa', { modulusLength }));
+    return new this(generateKeyPairSync("rsa", { modulusLength }));
   }
 
   get privateKey() {
@@ -119,13 +119,13 @@ class RSASigningKey {
   }
 
   sign(digest /*: BytesLike*/) /*: ethers.Signature*/ {
-    ethers.assertArgument(ethers.dataLength(digest) === 32, 'invalid digest length', 'digest', digest);
+    ethers.assertArgument(ethers.dataLength(digest) === 32, "invalid digest length", "digest", digest);
     // SHA256 OID = 608648016503040201 (9 bytes) | NULL = 0500 (2 bytes) (explicit) | OCTET_STRING length (0x20) = 0420 (2 bytes)
     return {
       serialized: ethers.hexlify(
         privateEncrypt(
           this.#privateKey,
-          ethers.getBytes(ethers.concat(['0x3031300d060960864801650304020105000420', digest])),
+          ethers.getBytes(ethers.concat(["0x3031300d060960864801650304020105000420", digest])),
         ),
       ),
     };
@@ -134,24 +134,24 @@ class RSASigningKey {
 
 class RSASHA256SigningKey extends RSASigningKey {
   sign(digest /*: BytesLike*/) /*: ethers.Signature*/ {
-    ethers.assertArgument(ethers.dataLength(digest) === 32, 'invalid digest length', 'digest', digest);
+    ethers.assertArgument(ethers.dataLength(digest) === 32, "invalid digest length", "digest", digest);
     return super.sign(ethers.sha256(ethers.getBytes(digest)));
   }
 }
 
 class WebAuthnSigningKey extends P256SigningKey {
   sign(digest /*: BytesLike*/) /*: { serialized: string } */ {
-    ethers.assertArgument(ethers.dataLength(digest) === 32, 'invalid digest length', 'digest', digest);
+    ethers.assertArgument(ethers.dataLength(digest) === 32, "invalid digest length", "digest", digest);
 
     const clientDataJSON = JSON.stringify({
-      type: 'webauthn.get',
-      challenge: ethers.encodeBase64(digest).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', ''),
+      type: "webauthn.get",
+      challenge: ethers.encodeBase64(digest).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", ""),
     });
 
     // Flags 0x05 = AUTH_DATA_FLAGS_UP | AUTH_DATA_FLAGS_UV
     const authenticatorData = ethers.solidityPacked(
-      ['bytes32', 'bytes1', 'bytes4'],
-      [ethers.ZeroHash, '0x05', '0x00000000'],
+      ["bytes32", "bytes1", "bytes4"],
+      [ethers.ZeroHash, "0x05", "0x00000000"],
     );
 
     // Regular P256 signature
@@ -160,12 +160,12 @@ class WebAuthnSigningKey extends P256SigningKey {
     );
 
     const serialized = ethers.AbiCoder.defaultAbiCoder().encode(
-      ['bytes32', 'bytes32', 'uint256', 'uint256', 'bytes', 'string'],
+      ["bytes32", "bytes32", "uint256", "uint256", "bytes", "string"],
       [
         r,
         s,
-        clientDataJSON.indexOf('"challenge"'),
-        clientDataJSON.indexOf('"type"'),
+        clientDataJSON.indexOf("\"challenge\""),
+        clientDataJSON.indexOf("\"type\""),
         authenticatorData,
         clientDataJSON,
       ],
@@ -182,8 +182,8 @@ class MultiERC7913SigningKey {
   constructor(signers) {
     ethers.assertArgument(
       Array.isArray(signers) && signers.length > 0,
-      'signers must be a non-empty array',
-      'signers',
+      "signers must be a non-empty array",
+      "signers",
       signers.length,
     );
 
@@ -198,11 +198,11 @@ class MultiERC7913SigningKey {
   }
 
   sign(digest /*: BytesLike*/ /*: ethers.Signature*/) {
-    ethers.assertArgument(ethers.dataLength(digest) === 32, 'invalid digest length', 'digest', digest);
+    ethers.assertArgument(ethers.dataLength(digest) === 32, "invalid digest length", "digest", digest);
 
     return {
       serialized: ethers.AbiCoder.defaultAbiCoder().encode(
-        ['bytes[]', 'bytes[]'],
+        ["bytes[]", "bytes[]"],
         [
           this.#signers.map(signer => signer.bytes ?? signer.address),
           this.#signers.map(signer => signer.signingKey.sign(digest).serialized),

@@ -1,35 +1,35 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { PANIC_CODES } = require('@nomicfoundation/hardhat-chai-matchers/panic');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
+const { PANIC_CODES } = require("@nomicfoundation/hardhat-chai-matchers/panic");
 
-const { generators } = require('../../helpers/random');
+const { generators } = require("../../helpers/random");
 
 const LENGTH = 4;
 
 async function fixture() {
-  const mock = await ethers.deployContract('$CircularBuffer');
+  const mock = await ethers.deployContract("$CircularBuffer");
   await mock.$setup(0, LENGTH);
   return { mock };
 }
 
-describe('CircularBuffer', function () {
+describe("CircularBuffer", function () {
   beforeEach(async function () {
     Object.assign(this, await loadFixture(fixture));
   });
 
-  it('reverts on invalid setup', async function () {
-    await expect(this.mock.$setup(0, 0)).to.be.revertedWithCustomError(this.mock, 'InvalidBufferSize');
+  it("reverts on invalid setup", async function () {
+    await expect(this.mock.$setup(0, 0)).to.be.revertedWithCustomError(this.mock, "InvalidBufferSize");
   });
 
-  it('starts empty', async function () {
+  it("starts empty", async function () {
     expect(await this.mock.$count(0)).to.equal(0n);
     expect(await this.mock.$length(0)).to.equal(LENGTH);
     expect(await this.mock.$includes(0, ethers.ZeroHash)).to.be.false;
     await expect(this.mock.$last(0, 0)).to.be.revertedWithPanic(PANIC_CODES.ARRAY_ACCESS_OUT_OF_BOUNDS);
   });
 
-  it('push', async function () {
+  it("push", async function () {
     const values = Array.from({ length: LENGTH + 3 }, generators.bytes32);
 
     for (const [i, value] of values.map((v, i) => [i, v])) {
@@ -64,7 +64,7 @@ describe('CircularBuffer', function () {
     }
   });
 
-  it('clear', async function () {
+  it("clear", async function () {
     const value = generators.bytes32();
     await this.mock.$push(0, value);
 

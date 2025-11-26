@@ -1,5 +1,5 @@
-const format = require('../format-lines');
-const { OPTS } = require('./Checkpoints.opts');
+const format = require("../format-lines");
+const { OPTS } = require("./Checkpoints.opts");
 
 // TEMPLATE
 const header = `\
@@ -223,7 +223,7 @@ function _unsafeAccess(
 ) private pure returns (${opts.checkpointTypeName} storage result) {
     assembly {
         mstore(0x00, self.slot)
-        result.slot := add(keccak256(0x00, 0x20), ${opts.checkpointSize === 1 ? 'pos' : `mul(pos, ${opts.checkpointSize})`})
+        result.slot := add(keccak256(0x00, 0x20), ${opts.checkpointSize === 1 ? "pos" : `mul(pos, ${opts.checkpointSize})`})
     }
 }
 `;
@@ -231,12 +231,12 @@ function _unsafeAccess(
 // GENERATE
 module.exports = format(
   header.trimEnd(),
-  'library Checkpoints {',
+  "library Checkpoints {",
   format(
     [].concat(
       errors,
       OPTS.map(opts => template(opts)),
     ),
   ).trimEnd(),
-  '}',
+  "}",
 );

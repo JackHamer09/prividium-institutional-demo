@@ -1,5 +1,5 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
 
 const zip = (array1, array2) => array1.map((item, index) => [item, array2[index]]);
 
@@ -17,20 +17,20 @@ function shouldBehaveLikeMap() {
     expect(await Promise.all(keys.map((_, index) => methods.at(index)))).to.have.deep.members(zip(keys, values));
   }
 
-  it('starts empty', async function () {
+  it("starts empty", async function () {
     expect(await this.methods.contains(this.keyA)).to.be.false;
 
     await expectMembersMatch(this.methods, [], []);
   });
 
-  describe('set', function () {
-    it('adds a key', async function () {
+  describe("set", function () {
+    it("adds a key", async function () {
       await expect(this.methods.set(this.keyA, this.valueA)).to.emit(this.mock, this.events.setReturn).withArgs(true);
 
       await expectMembersMatch(this.methods, [this.keyA], [this.valueA]);
     });
 
-    it('adds several keys', async function () {
+    it("adds several keys", async function () {
       await this.methods.set(this.keyA, this.valueA);
       await this.methods.set(this.keyB, this.valueB);
 
@@ -38,7 +38,7 @@ function shouldBehaveLikeMap() {
       expect(await this.methods.contains(this.keyC)).to.be.false;
     });
 
-    it('returns false when adding keys already in the set', async function () {
+    it("returns false when adding keys already in the set", async function () {
       await this.methods.set(this.keyA, this.valueA);
 
       await expect(this.methods.set(this.keyA, this.valueA)).to.emit(this.mock, this.events.setReturn).withArgs(false);
@@ -46,7 +46,7 @@ function shouldBehaveLikeMap() {
       await expectMembersMatch(this.methods, [this.keyA], [this.valueA]);
     });
 
-    it('updates values for keys already in the set', async function () {
+    it("updates values for keys already in the set", async function () {
       await this.methods.set(this.keyA, this.valueA);
       await this.methods.set(this.keyA, this.valueB);
 
@@ -54,8 +54,8 @@ function shouldBehaveLikeMap() {
     });
   });
 
-  describe('remove', function () {
-    it('removes added keys', async function () {
+  describe("remove", function () {
+    it("removes added keys", async function () {
       await this.methods.set(this.keyA, this.valueA);
 
       await expect(this.methods.remove(this.keyA)).to.emit(this.mock, this.events.removeReturn).withArgs(true);
@@ -64,7 +64,7 @@ function shouldBehaveLikeMap() {
       await expectMembersMatch(this.methods, [], []);
     });
 
-    it('returns false when removing keys not in the set', async function () {
+    it("returns false when removing keys not in the set", async function () {
       await expect(await this.methods.remove(this.keyA))
         .to.emit(this.mock, this.events.removeReturn)
         .withArgs(false);
@@ -72,7 +72,7 @@ function shouldBehaveLikeMap() {
       expect(await this.methods.contains(this.keyA)).to.be.false;
     });
 
-    it('adds and removes multiple keys', async function () {
+    it("adds and removes multiple keys", async function () {
       // []
 
       await this.methods.set(this.keyA, this.valueA);
@@ -117,8 +117,8 @@ function shouldBehaveLikeMap() {
     });
   });
 
-  describe('clear', function () {
-    it('clears a single entry', async function () {
+  describe("clear", function () {
+    it("clears a single entry", async function () {
       await this.methods.set(this.keyA, this.valueA);
 
       await this.methods.clear();
@@ -127,7 +127,7 @@ function shouldBehaveLikeMap() {
       await expectMembersMatch(this.methods, [], []);
     });
 
-    it('clears multiple entries', async function () {
+    it("clears multiple entries", async function () {
       await this.methods.set(this.keyA, this.valueA);
       await this.methods.set(this.keyB, this.valueB);
       await this.methods.set(this.keyC, this.valueC);
@@ -140,11 +140,11 @@ function shouldBehaveLikeMap() {
       await expectMembersMatch(this.methods, [], []);
     });
 
-    it('does not revert on empty map', async function () {
+    it("does not revert on empty map", async function () {
       await this.methods.clear();
     });
 
-    it('clear then add entry', async function () {
+    it("clear then add entry", async function () {
       await this.methods.set(this.keyA, this.valueA);
       await this.methods.set(this.keyB, this.valueB);
       await this.methods.set(this.keyC, this.valueC);
@@ -160,19 +160,19 @@ function shouldBehaveLikeMap() {
     });
   });
 
-  describe('read', function () {
+  describe("read", function () {
     beforeEach(async function () {
       await this.methods.set(this.keyA, this.valueA);
     });
 
-    describe('get', function () {
-      it('existing value', async function () {
+    describe("get", function () {
+      it("existing value", async function () {
         expect(await this.methods.get(this.keyA)).to.equal(this.valueA);
       });
 
-      it('missing value', async function () {
+      it("missing value", async function () {
         await expect(this.methods.get(this.keyB))
-          .to.be.revertedWithCustomError(this.mock, this.error ?? 'EnumerableMapNonexistentKey')
+          .to.be.revertedWithCustomError(this.mock, this.error ?? "EnumerableMapNonexistentKey")
           .withArgs(
             this.key?.memory || this.value?.memory
               ? this.keyB
@@ -181,18 +181,18 @@ function shouldBehaveLikeMap() {
       });
     });
 
-    describe('tryGet', function () {
-      it('existing value', async function () {
+    describe("tryGet", function () {
+      it("existing value", async function () {
         expect(await this.methods.tryGet(this.keyA)).to.have.ordered.members([true, this.valueA]);
       });
 
-      it('missing value', async function () {
+      it("missing value", async function () {
         expect(await this.methods.tryGet(this.keyB)).to.have.ordered.members([false, this.zeroValue]);
       });
     });
   });
 
-  it('keys (full & paginated)', async function () {
+  it("keys (full & paginated)", async function () {
     const keys = [this.keyA, this.keyB, this.keyC];
     await this.methods.set(this.keyA, this.valueA);
     await this.methods.set(this.keyB, this.valueB);
@@ -203,9 +203,9 @@ function shouldBehaveLikeMap() {
 
     // try pagination
     for (const begin of [0, 1, 2, 3, 4])
-      for (const end of [0, 1, 2, 3, 4]) {
+      {for (const end of [0, 1, 2, 3, 4]) {
         expect([...(await this.methods.keysPage(begin, end))]).to.deep.equal(keys.slice(begin, end));
-      }
+      }}
   });
 }
 

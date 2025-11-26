@@ -1,13 +1,13 @@
-const { network } = require('hardhat');
-const { expect } = require('chai');
-const { mine } = require('@nomicfoundation/hardhat-network-helpers');
+const { network } = require("hardhat");
+const { expect } = require("chai");
+const { mine } = require("@nomicfoundation/hardhat-network-helpers");
 
-const { unique } = require('./iterate');
+const { unique } = require("./iterate");
 
 async function batchInBlock(txs) {
   try {
     // disable auto-mining
-    await network.provider.send('evm_setAutomine', [false]);
+    await network.provider.send("evm_setAutomine", [false]);
     // send all transactions
     const responses = await Promise.all(txs.map(fn => fn()));
     // mine one block
@@ -20,7 +20,7 @@ async function batchInBlock(txs) {
     return receipts;
   } finally {
     // enable auto-mining
-    await network.provider.send('evm_setAutomine', [true]);
+    await network.provider.send("evm_setAutomine", [true]);
   }
 }
 

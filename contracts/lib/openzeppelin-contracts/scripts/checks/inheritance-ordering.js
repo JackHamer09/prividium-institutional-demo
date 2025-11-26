@@ -1,24 +1,24 @@
 #!/usr/bin/env node
 
-const path = require('path');
-const graphlib = require('graphlib');
-const match = require('micromatch');
-const { findAll } = require('solidity-ast/utils');
-const { _: artifacts } = require('yargs/yargs')().argv;
+const path = require("path");
+const graphlib = require("graphlib");
+const match = require("micromatch");
+const { findAll } = require("solidity-ast/utils");
+const { _: artifacts } = require("yargs/yargs")().argv;
 
 // files to skip
-const skipPatterns = ['contracts-exposed/**', 'contracts/mocks/**'];
+const skipPatterns = ["contracts-exposed/**", "contracts/mocks/**"];
 
 for (const artifact of artifacts) {
-  const { output: solcOutput } = require(path.resolve(__dirname, '../..', artifact));
+  const { output: solcOutput } = require(path.resolve(__dirname, "../..", artifact));
 
   const graph = new graphlib.Graph({ directed: true });
   const names = {};
   const linearized = [];
 
   for (const source in solcOutput.contracts) {
-    if (match.any(source, skipPatterns)) continue;
-    for (const contractDef of findAll('ContractDefinition', solcOutput.sources[source].ast)) {
+    if (match.any(source, skipPatterns)) {continue;}
+    for (const contractDef of findAll("ContractDefinition", solcOutput.sources[source].ast)) {
       names[contractDef.id] = contractDef.name;
       linearized.push(contractDef.linearizedBaseContracts);
 
@@ -41,7 +41,7 @@ for (const artifact of artifacts) {
         linearized
           .filter(chain => chain.includes(parseInt(x)) && chain.includes(parseInt(y)))
           .forEach(chain => {
-            const comp = chain.indexOf(parseInt(x)) < chain.indexOf(parseInt(y)) ? '>' : '<';
+            const comp = chain.indexOf(parseInt(x)) < chain.indexOf(parseInt(y)) ? ">" : "<";
             console.log(`- ${names[x]} ${comp} ${names[y]} in ${names[chain.find(Boolean)]}`);
             // console.log(`- ${names[x]} ${comp} ${names[y]}: ${chain.reverse().map(id => names[id]).join(', ')}`);
           });
@@ -51,5 +51,5 @@ for (const artifact of artifacts) {
 }
 
 if (!process.exitCode) {
-  console.log('Contract ordering is consistent.');
+  console.log("Contract ordering is consistent.");
 }

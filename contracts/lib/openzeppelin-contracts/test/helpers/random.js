@@ -1,4 +1,4 @@
-const { ethers } = require('hardhat');
+const { ethers } = require("hardhat");
 
 const generators = {
   address: () => ethers.Wallet.createRandom().address,
@@ -13,8 +13,8 @@ generators.address.zero = ethers.ZeroAddress;
 generators.bytes32.zero = ethers.ZeroHash;
 generators.uint256.zero = 0n;
 generators.int256.zero = 0n;
-generators.bytes.zero = '0x';
-generators.string.zero = '';
+generators.bytes.zero = "0x";
+generators.string.zero = "";
 
 // alias hexBytes -> bytes
 generators.hexBytes = generators.bytes;

@@ -1,17 +1,17 @@
-const { ethers } = require('hardhat');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require("hardhat");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-const { mapValues } = require('../../helpers/iterate');
-const { generators } = require('../../helpers/random');
-const { MAP_TYPES, typeDescr, toMapTypeDescr } = require('../../../scripts/generate/templates/Enumerable.opts');
+const { mapValues } = require("../../helpers/iterate");
+const { generators } = require("../../helpers/random");
+const { MAP_TYPES, typeDescr, toMapTypeDescr } = require("../../../scripts/generate/templates/Enumerable.opts");
 
-const { shouldBehaveLikeMap } = require('./EnumerableMap.behavior');
+const { shouldBehaveLikeMap } = require("./EnumerableMap.behavior");
 
 // Add Bytes32ToBytes32Map that must be tested but is not part of the generated types.
-MAP_TYPES.unshift(toMapTypeDescr({ key: typeDescr({ type: 'bytes32' }), value: typeDescr({ type: 'bytes32' }) }));
+MAP_TYPES.unshift(toMapTypeDescr({ key: typeDescr({ type: "bytes32" }), value: typeDescr({ type: "bytes32" }) }));
 
 async function fixture() {
-  const mock = await ethers.deployContract('$EnumerableMap');
+  const mock = await ethers.deployContract("$EnumerableMap");
 
   const env = Object.fromEntries(
     MAP_TYPES.map(({ name, key, value }) => [
@@ -56,7 +56,7 @@ async function fixture() {
           setReturn: `return$set_EnumerableMap_${name}_${key.type}_${value.type}`,
           removeReturn: `return$remove_EnumerableMap_${name}_${key.type}`,
         },
-        error: key.memory || value.memory ? `EnumerableMapNonexistent${key.name}Key` : `EnumerableMapNonexistentKey`,
+        error: key.memory || value.memory ? `EnumerableMapNonexistent${key.name}Key` : "EnumerableMapNonexistentKey",
       },
     ]),
   );
@@ -64,7 +64,7 @@ async function fixture() {
   return { mock, env };
 }
 
-describe('EnumerableMap', function () {
+describe("EnumerableMap", function () {
   beforeEach(async function () {
     Object.assign(this, await loadFixture(fixture));
   });

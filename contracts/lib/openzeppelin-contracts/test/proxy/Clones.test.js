@@ -1,32 +1,32 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-const { generators } = require('../helpers/random');
+const { generators } = require("../helpers/random");
 
-const shouldBehaveLikeClone = require('./Clones.behaviour');
+const shouldBehaveLikeClone = require("./Clones.behaviour");
 
 const cloneInitCode = (instance, args = undefined) =>
   args
     ? ethers.concat([
-        '0x61',
+        "0x61",
         ethers.toBeHex(0x2d + ethers.getBytes(args).length, 2),
-        '0x3d81600a3d39f3363d3d373d3d3d363d73',
+        "0x3d81600a3d39f3363d3d373d3d3d363d73",
         instance.target ?? instance.address ?? instance,
-        '0x5af43d82803e903d91602b57fd5bf3',
+        "0x5af43d82803e903d91602b57fd5bf3",
         args,
       ])
     : ethers.concat([
-        '0x3d602d80600a3d3981f3363d3d373d3d3d363d73',
+        "0x3d602d80600a3d3981f3363d3d373d3d3d363d73",
         instance.target ?? instance.address ?? instance,
-        '0x5af43d82803e903d91602b57fd5bf3',
+        "0x5af43d82803e903d91602b57fd5bf3",
       ]);
 
 async function fixture() {
   const [deployer] = await ethers.getSigners();
 
-  const factory = await ethers.deployContract('$Clones');
-  const implementation = await ethers.deployContract('DummyImplementation');
+  const factory = await ethers.deployContract("$Clones");
+  const implementation = await ethers.deployContract("DummyImplementation");
 
   const newClone =
     args =>
@@ -44,7 +44,7 @@ async function fixture() {
           ? factory.$clone(implementation, ethers.Typed.uint256(opts.deployValue))
           : factory.$clone(implementation));
       if (opts.initData || opts.initValue) {
-        await deployer.sendTransaction({ to: clone, value: opts.initValue ?? 0n, data: opts.initData ?? '0x' });
+        await deployer.sendTransaction({ to: clone, value: opts.initValue ?? 0n, data: opts.initData ?? "0x" });
       }
       return Object.assign(clone, { deploymentTransaction: () => tx });
     };
@@ -71,7 +71,7 @@ async function fixture() {
           ? factory.$cloneDeterministic(implementation, salt, ethers.Typed.uint256(opts.deployValue))
           : factory.$cloneDeterministic(implementation, salt));
       if (opts.initData || opts.initValue) {
-        await deployer.sendTransaction({ to: clone, value: opts.initValue ?? 0n, data: opts.initData ?? '0x' });
+        await deployer.sendTransaction({ to: clone, value: opts.initValue ?? 0n, data: opts.initData ?? "0x" });
       }
       return Object.assign(clone, { deploymentTransaction: () => tx });
     };
@@ -79,39 +79,39 @@ async function fixture() {
   return { deployer, factory, implementation, newClone, newCloneDeterministic };
 }
 
-describe('Clones', function () {
+describe("Clones", function () {
   beforeEach(async function () {
     Object.assign(this, await loadFixture(fixture));
   });
 
-  for (const args of [undefined, '0x', '0x11223344']) {
-    describe(args ? `with immutable args: ${args}` : 'without immutable args', function () {
-      describe('clone', function () {
+  for (const args of [undefined, "0x", "0x11223344"]) {
+    describe(args ? `with immutable args: ${args}` : "without immutable args", function () {
+      describe("clone", function () {
         beforeEach(async function () {
           this.createClone = this.newClone(args);
         });
 
         shouldBehaveLikeClone();
 
-        it('get immutable arguments', async function () {
+        it("get immutable arguments", async function () {
           const instance = await this.createClone();
-          expect(await this.factory.$fetchCloneArgs(instance)).to.equal(args ?? '0x');
+          expect(await this.factory.$fetchCloneArgs(instance)).to.equal(args ?? "0x");
         });
       });
 
-      describe('cloneDeterministic', function () {
+      describe("cloneDeterministic", function () {
         beforeEach(async function () {
           this.createClone = this.newCloneDeterministic(args);
         });
 
         shouldBehaveLikeClone();
 
-        it('get immutable arguments', async function () {
+        it("get immutable arguments", async function () {
           const instance = await this.createClone();
-          expect(await this.factory.$fetchCloneArgs(instance)).to.equal(args ?? '0x');
+          expect(await this.factory.$fetchCloneArgs(instance)).to.equal(args ?? "0x");
         });
 
-        it('revert if address already used', async function () {
+        it("revert if address already used", async function () {
           const salt = ethers.randomBytes(32);
 
           const deployClone = () =>
@@ -123,10 +123,10 @@ describe('Clones', function () {
           await expect(deployClone()).to.not.be.reverted;
 
           // deploy twice
-          await expect(deployClone()).to.be.revertedWithCustomError(this.factory, 'FailedDeployment');
+          await expect(deployClone()).to.be.revertedWithCustomError(this.factory, "FailedDeployment");
         });
 
-        it('address prediction', async function () {
+        it("address prediction", async function () {
           const salt = ethers.randomBytes(32);
 
           const expected = ethers.getCreate2Address(
@@ -144,14 +144,14 @@ describe('Clones', function () {
             expect(predicted).to.equal(expected);
 
             await expect(this.factory.$cloneDeterministicWithImmutableArgs(this.implementation, args, salt))
-              .to.emit(this.factory, 'return$cloneDeterministicWithImmutableArgs_address_bytes_bytes32')
+              .to.emit(this.factory, "return$cloneDeterministicWithImmutableArgs_address_bytes_bytes32")
               .withArgs(predicted);
           } else {
             const predicted = await this.factory.$predictDeterministicAddress(this.implementation, salt);
             expect(predicted).to.equal(expected);
 
             await expect(this.factory.$cloneDeterministic(this.implementation, salt))
-              .to.emit(this.factory, 'return$cloneDeterministic_address_bytes32')
+              .to.emit(this.factory, "return$cloneDeterministic_address_bytes32")
               .withArgs(predicted);
           }
         });
@@ -159,7 +159,7 @@ describe('Clones', function () {
     });
   }
 
-  it('EIP-170 limit on immutable args', async function () {
+  it("EIP-170 limit on immutable args", async function () {
     // EIP-170 limits the contract code size to 0x6000
     // This limits the length of immutable args to 0x5fd3
     const args = generators.hexBytes(0x5fd4);
@@ -167,11 +167,11 @@ describe('Clones', function () {
 
     await expect(
       this.factory.$predictDeterministicAddressWithImmutableArgs(this.implementation, args, salt),
-    ).to.be.revertedWithCustomError(this.factory, 'CloneArgumentsTooLong');
+    ).to.be.revertedWithCustomError(this.factory, "CloneArgumentsTooLong");
 
     await expect(this.factory.$cloneWithImmutableArgs(this.implementation, args)).to.be.revertedWithCustomError(
       this.factory,
-      'CloneArgumentsTooLong',
+      "CloneArgumentsTooLong",
     );
   });
 });

@@ -1,16 +1,16 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-const { getDomain, ForwardRequest } = require('../helpers/eip712');
-const { sum } = require('../helpers/math');
-const time = require('../helpers/time');
+const { getDomain, ForwardRequest } = require("../helpers/eip712");
+const { sum } = require("../helpers/math");
+const time = require("../helpers/time");
 
 async function fixture() {
   const [sender, refundReceiver, another, ...accounts] = await ethers.getSigners();
 
-  const forwarder = await ethers.deployContract('ERC2771Forwarder', ['ERC2771Forwarder']);
-  const receiver = await ethers.deployContract('CallReceiverMockTrustingForwarder', [forwarder]);
+  const forwarder = await ethers.deployContract("ERC2771Forwarder", ["ERC2771Forwarder"]);
+  const receiver = await ethers.deployContract("CallReceiverMockTrustingForwarder", [forwarder]);
   const domain = await getDomain(forwarder);
   const types = { ForwardRequest };
 
@@ -19,7 +19,7 @@ async function fixture() {
       from: await signer.getAddress(),
       to: await receiver.getAddress(),
       value: 0n,
-      data: receiver.interface.encodeFunctionData('mockFunction'),
+      data: receiver.interface.encodeFunctionData("mockFunction"),
       gas: 100000n,
       deadline: (await time.clock.timestamp()) + 60n,
       nonce: await forwarder.nonces(sender),
@@ -33,7 +33,7 @@ async function fixture() {
     ethers.provider.estimateGas({
       from: forwarder,
       to: request.to,
-      data: ethers.solidityPacked(['bytes', 'address'], [request.data, request.from]),
+      data: ethers.solidityPacked(["bytes", "address"], [request.data, request.from]),
       value: request.value,
       gasLimit: request.gas,
     });
@@ -52,14 +52,14 @@ async function fixture() {
   };
 }
 
-describe('ERC2771Forwarder', function () {
+describe("ERC2771Forwarder", function () {
   beforeEach(async function () {
     Object.assign(this, await loadFixture(fixture));
   });
 
-  describe('verify', function () {
-    describe('with valid signature', function () {
-      it('returns true without altering the nonce', async function () {
+  describe("verify", function () {
+    describe("with valid signature", function () {
+      it("returns true without altering the nonce", async function () {
         const request = await this.forgeRequest();
         expect(await this.forwarder.nonces(request.from)).to.equal(request.nonce);
         expect(await this.forwarder.verify(request)).to.be.true;
@@ -67,45 +67,45 @@ describe('ERC2771Forwarder', function () {
       });
     });
 
-    describe('with tampered values', function () {
-      it('returns false with valid signature for non-current nonce', async function () {
+    describe("with tampered values", function () {
+      it("returns false with valid signature for non-current nonce", async function () {
         const request = await this.forgeRequest({ nonce: 1337n });
         expect(await this.forwarder.verify(request)).to.be.false;
       });
 
-      it('returns false with valid signature for expired deadline', async function () {
+      it("returns false with valid signature for expired deadline", async function () {
         const request = await this.forgeRequest({ deadline: (await time.clock.timestamp()) - 1n });
         expect(await this.forwarder.verify(request)).to.be.false;
       });
     });
   });
 
-  describe('execute', function () {
-    describe('with valid requests', function () {
-      it('emits an event and consumes nonce for a successful request', async function () {
+  describe("execute", function () {
+    describe("with valid requests", function () {
+      it("emits an event and consumes nonce for a successful request", async function () {
         const request = await this.forgeRequest();
 
         expect(await this.forwarder.nonces(request.from)).to.equal(request.nonce);
 
         await expect(this.forwarder.execute(request))
-          .to.emit(this.receiver, 'MockFunctionCalled')
-          .to.emit(this.forwarder, 'ExecutedForwardRequest')
+          .to.emit(this.receiver, "MockFunctionCalled")
+          .to.emit(this.forwarder, "ExecutedForwardRequest")
           .withArgs(request.from, request.nonce, true);
 
         expect(await this.forwarder.nonces(request.from)).to.equal(request.nonce + 1n);
       });
 
-      it('reverts with an unsuccessful request', async function () {
+      it("reverts with an unsuccessful request", async function () {
         const request = await this.forgeRequest({
-          data: this.receiver.interface.encodeFunctionData('mockFunctionRevertsNoReason'),
+          data: this.receiver.interface.encodeFunctionData("mockFunctionRevertsNoReason"),
         });
 
-        await expect(this.forwarder.execute(request)).to.be.revertedWithCustomError(this.forwarder, 'FailedCall');
+        await expect(this.forwarder.execute(request)).to.be.revertedWithCustomError(this.forwarder, "FailedCall");
       });
     });
 
-    describe('with tampered request', function () {
-      it('reverts with valid signature for non-current nonce', async function () {
+    describe("with tampered request", function () {
+      it("reverts with valid signature for non-current nonce", async function () {
         const request = await this.forgeRequest();
 
         // consume nonce
@@ -113,7 +113,7 @@ describe('ERC2771Forwarder', function () {
 
         // nonce has changed
         await expect(this.forwarder.execute(request))
-          .to.be.revertedWithCustomError(this.forwarder, 'ERC2771ForwarderInvalidSigner')
+          .to.be.revertedWithCustomError(this.forwarder, "ERC2771ForwarderInvalidSigner")
           .withArgs(
             ethers.verifyTypedData(
               this.domain,
@@ -125,26 +125,26 @@ describe('ERC2771Forwarder', function () {
           );
       });
 
-      it('reverts with valid signature for expired deadline', async function () {
+      it("reverts with valid signature for expired deadline", async function () {
         const request = await this.forgeRequest({ deadline: (await time.clock.timestamp()) - 1n });
 
         await expect(this.forwarder.execute(request))
-          .to.be.revertedWithCustomError(this.forwarder, 'ERC2771ForwarderExpiredRequest')
+          .to.be.revertedWithCustomError(this.forwarder, "ERC2771ForwarderExpiredRequest")
           .withArgs(request.deadline);
       });
 
-      it('reverts with valid signature but mismatched value', async function () {
+      it("reverts with valid signature but mismatched value", async function () {
         const request = await this.forgeRequest({ value: 100n });
 
         await expect(this.forwarder.execute(request))
-          .to.be.revertedWithCustomError(this.forwarder, 'ERC2771ForwarderMismatchedValue')
+          .to.be.revertedWithCustomError(this.forwarder, "ERC2771ForwarderMismatchedValue")
           .withArgs(request.value, 0n);
       });
     });
 
-    it('bubbles out of gas', async function () {
+    it("bubbles out of gas", async function () {
       const request = await this.forgeRequest({
-        data: this.receiver.interface.encodeFunctionData('mockFunctionOutOfGas'),
+        data: this.receiver.interface.encodeFunctionData("mockFunctionOutOfGas"),
         gas: 1_000_000n,
       });
 
@@ -152,14 +152,14 @@ describe('ERC2771Forwarder', function () {
       await expect(this.forwarder.execute(request, { gasLimit })).to.be.revertedWithoutReason();
 
       const { gasUsed } = await ethers.provider
-        .getBlock('latest')
+        .getBlock("latest")
         .then(block => block.getTransaction(0))
         .then(tx => ethers.provider.getTransactionReceipt(tx.hash));
 
       expect(gasUsed).to.equal(gasLimit);
     });
 
-    it('bubbles out of gas forced by the relayer', async function () {
+    it("bubbles out of gas forced by the relayer", async function () {
       const request = await this.forgeRequest();
 
       // If there's an incentive behind executing requests, a malicious relayer could grief
@@ -181,7 +181,7 @@ describe('ERC2771Forwarder', function () {
       await expect(this.forwarder.execute(request, { gasLimit })).to.be.revertedWithoutReason();
 
       const { gasUsed } = await ethers.provider
-        .getBlock('latest')
+        .getBlock("latest")
         .then(block => block.getTransaction(0))
         .then(tx => ethers.provider.getTransactionReceipt(tx.hash));
 
@@ -190,7 +190,7 @@ describe('ERC2771Forwarder', function () {
     });
   });
 
-  describe('executeBatch', function () {
+  describe("executeBatch", function () {
     const requestsValue = requests => sum(...requests.map(request => request.value));
     const requestCount = 3;
     const idx = 1; // index that will be tampered with
@@ -202,25 +202,25 @@ describe('ERC2771Forwarder', function () {
       this.value = requestsValue(this.requests);
     });
 
-    describe('with valid requests', function () {
-      it('sanity', async function () {
+    describe("with valid requests", function () {
+      it("sanity", async function () {
         for (const request of this.requests) {
           expect(await this.forwarder.verify(request)).to.be.true;
         }
       });
 
-      it('emits events', async function () {
+      it("emits events", async function () {
         const receipt = this.forwarder.executeBatch(this.requests, this.another, { value: this.value });
 
         for (const request of this.requests) {
           await expect(receipt)
-            .to.emit(this.receiver, 'MockFunctionCalled')
-            .to.emit(this.forwarder, 'ExecutedForwardRequest')
+            .to.emit(this.receiver, "MockFunctionCalled")
+            .to.emit(this.forwarder, "ExecutedForwardRequest")
             .withArgs(request.from, request.nonce, true);
         }
       });
 
-      it('increase nonces', async function () {
+      it("increase nonces", async function () {
         await this.forwarder.executeBatch(this.requests, this.another, { value: this.value });
 
         for (const request of this.requests) {
@@ -229,28 +229,28 @@ describe('ERC2771Forwarder', function () {
       });
     });
 
-    describe('with tampered requests', function () {
-      it('reverts with mismatched value', async function () {
+    describe("with tampered requests", function () {
+      it("reverts with mismatched value", async function () {
         // tamper value of one of the request + resign
         this.requests[idx] = await this.forgeRequest({ value: 100n }, this.accounts[1]);
 
         await expect(this.forwarder.executeBatch(this.requests, this.another, { value: this.value }))
-          .to.be.revertedWithCustomError(this.forwarder, 'ERC2771ForwarderMismatchedValue')
+          .to.be.revertedWithCustomError(this.forwarder, "ERC2771ForwarderMismatchedValue")
           .withArgs(requestsValue(this.requests), this.value);
       });
 
-      describe('when the refund receiver is the zero address', function () {
+      describe("when the refund receiver is the zero address", function () {
         beforeEach(function () {
           this.refundReceiver = ethers.ZeroAddress;
         });
 
-        it('reverts with at least one valid signature for non-current nonce', async function () {
+        it("reverts with at least one valid signature for non-current nonce", async function () {
           // Execute first a request
           await this.forwarder.execute(this.requests[idx], { value: this.requests[idx].value });
 
           // And then fail due to an already used nonce
           await expect(this.forwarder.executeBatch(this.requests, this.refundReceiver, { value: this.value }))
-            .to.be.revertedWithCustomError(this.forwarder, 'ERC2771ForwarderInvalidSigner')
+            .to.be.revertedWithCustomError(this.forwarder, "ERC2771ForwarderInvalidSigner")
             .withArgs(
               ethers.verifyTypedData(
                 this.domain,
@@ -262,25 +262,25 @@ describe('ERC2771Forwarder', function () {
             );
         });
 
-        it('reverts with at least one valid signature for expired deadline', async function () {
+        it("reverts with at least one valid signature for expired deadline", async function () {
           this.requests[idx] = await this.forgeRequest(
             { ...this.requests[idx], deadline: (await time.clock.timestamp()) - 1n },
             this.accounts[1],
           );
 
           await expect(this.forwarder.executeBatch(this.requests, this.refundReceiver, { value: this.amount }))
-            .to.be.revertedWithCustomError(this.forwarder, 'ERC2771ForwarderExpiredRequest')
+            .to.be.revertedWithCustomError(this.forwarder, "ERC2771ForwarderExpiredRequest")
             .withArgs(this.requests[idx].deadline);
         });
       });
 
-      describe('when the refund receiver is a known address', function () {
+      describe("when the refund receiver is a known address", function () {
         beforeEach(async function () {
           this.initialRefundReceiverBalance = await ethers.provider.getBalance(this.refundReceiver);
           this.initialTamperedRequestNonce = await this.forwarder.nonces(this.requests[idx].from);
         });
 
-        it('ignores a request with a valid signature for non-current nonce', async function () {
+        it("ignores a request with a valid signature for non-current nonce", async function () {
           // Execute first a request
           await this.forwarder.execute(this.requests[idx], { value: this.requests[idx].value });
           this.initialTamperedRequestNonce++; // Should be already incremented by the individual `execute`
@@ -291,14 +291,14 @@ describe('ERC2771Forwarder', function () {
             .then(tx => tx.wait())
             .then(receipt =>
               receipt.logs.filter(
-                log => log?.fragment?.type == 'event' && log?.fragment?.name == 'ExecutedForwardRequest',
+                log => log?.fragment?.type == "event" && log?.fragment?.name == "ExecutedForwardRequest",
               ),
             );
 
           expect(events).to.have.lengthOf(this.requests.length - 1);
         });
 
-        it('ignores a request with a valid signature for expired deadline', async function () {
+        it("ignores a request with a valid signature for expired deadline", async function () {
           this.requests[idx] = await this.forgeRequest(
             { ...this.requests[idx], deadline: (await time.clock.timestamp()) - 1n },
             this.accounts[1],
@@ -309,7 +309,7 @@ describe('ERC2771Forwarder', function () {
             .then(tx => tx.wait())
             .then(receipt =>
               receipt.logs.filter(
-                log => log?.fragment?.type == 'event' && log?.fragment?.name == 'ExecutedForwardRequest',
+                log => log?.fragment?.type == "event" && log?.fragment?.name == "ExecutedForwardRequest",
               ),
             );
 
@@ -327,9 +327,9 @@ describe('ERC2771Forwarder', function () {
         });
       });
 
-      it('bubbles out of gas', async function () {
+      it("bubbles out of gas", async function () {
         this.requests[idx] = await this.forgeRequest({
-          data: this.receiver.interface.encodeFunctionData('mockFunctionOutOfGas'),
+          data: this.receiver.interface.encodeFunctionData("mockFunctionOutOfGas"),
           gas: 1_000_000n,
         });
 
@@ -342,14 +342,14 @@ describe('ERC2771Forwarder', function () {
         ).to.be.revertedWithoutReason();
 
         const { gasUsed } = await ethers.provider
-          .getBlock('latest')
+          .getBlock("latest")
           .then(block => block.getTransaction(0))
           .then(tx => ethers.provider.getTransactionReceipt(tx.hash));
 
         expect(gasUsed).to.equal(gasLimit);
       });
 
-      it('bubbles out of gas forced by the relayer', async function () {
+      it("bubbles out of gas forced by the relayer", async function () {
         // Similarly to the single execute, a malicious relayer could grief requests.
 
         // We estimate until the selected request as if they were executed normally
@@ -372,7 +372,7 @@ describe('ERC2771Forwarder', function () {
         ).to.be.revertedWithoutReason();
 
         const { gasUsed } = await ethers.provider
-          .getBlock('latest')
+          .getBlock("latest")
           .then(block => block.getTransaction(0))
           .then(tx => ethers.provider.getTransactionReceipt(tx.hash));
 

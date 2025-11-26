@@ -1,23 +1,23 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const chalk = require('chalk');
+const fs = require("fs");
+const chalk = require("chalk");
 
-const { hideBin } = require('yargs/helpers');
-const { argv } = require('yargs/yargs')(hideBin(process.argv))
-  .env('')
+const { hideBin } = require("yargs/helpers");
+const { argv } = require("yargs/yargs")(hideBin(process.argv))
+  .env("")
   .options({
     style: {
-      type: 'string',
-      choices: ['shell', 'markdown'],
-      default: 'shell',
+      type: "string",
+      choices: ["shell", "markdown"],
+      default: "shell",
     },
     hideEqual: {
-      type: 'boolean',
+      type: "boolean",
       default: true,
     },
     strictTesting: {
-      type: 'boolean',
+      type: "boolean",
       default: false,
     },
   });
@@ -46,13 +46,13 @@ function variation(current, previous, offset = 0) {
 class Report {
   // Read report file
   static load(filepath) {
-    return JSON.parse(fs.readFileSync(filepath, 'utf8'));
+    return JSON.parse(fs.readFileSync(filepath, "utf8"));
   }
 
   // Compare two reports
   static compare(update, ref, opts = { hideEqual: true, strictTesting: false }) {
     if (JSON.stringify(update.options?.solcInfo) !== JSON.stringify(ref.options?.solcInfo)) {
-      console.warn('WARNING: Reports produced with non matching metadata');
+      console.warn("WARNING: Reports produced with non matching metadata");
     }
 
     // gasReporter 1.0.0 uses ".info", but 2.0.0 uses ".data"
@@ -67,12 +67,12 @@ class Report {
       .flatMap(contract => [
         {
           contract: contract.name,
-          method: '[bytecode length]',
+          method: "[bytecode length]",
           avg: variation(contract.bytecode.length / 2 - 1, contract.previousVersion.bytecode.length / 2 - 1),
         },
         {
           contract: contract.name,
-          method: '[construction cost]',
+          method: "[construction cost]",
           avg: variation(
             ...[contract.gasData, contract.previousVersion.gasData].map(x => Math.round(average(...x))),
             BASE_TX_COST,
@@ -108,15 +108,15 @@ function center(text, length) {
 }
 
 function plusSign(num) {
-  return num > 0 ? '+' : '';
+  return num > 0 ? "+" : "";
 }
 
 function formatCellShell(cell) {
-  const format = chalk[cell?.delta > 0 ? 'red' : cell?.delta < 0 ? 'green' : 'reset'];
+  const format = chalk[cell?.delta > 0 ? "red" : cell?.delta < 0 ? "green" : "reset"];
   return [
-    format((!isFinite(cell?.value) ? '-' : cell.value.toString()).padStart(8)),
-    format((!isFinite(cell?.delta) ? '-' : plusSign(cell.delta) + cell.delta.toString()).padStart(8)),
-    format((!isFinite(cell?.prcnt) ? '-' : plusSign(cell.prcnt) + cell.prcnt.toFixed(2) + '%').padStart(8)),
+    format((!isFinite(cell?.value) ? "-" : cell.value.toString()).padStart(8)),
+    format((!isFinite(cell?.delta) ? "-" : plusSign(cell.delta) + cell.delta.toString()).padStart(8)),
+    format((!isFinite(cell?.prcnt) ? "-" : plusSign(cell.prcnt) + cell.prcnt.toFixed(2) + "%").padStart(8)),
   ];
 }
 
@@ -125,38 +125,38 @@ function formatCmpShell(rows) {
   const methodLength = Math.max(7, ...rows.map(({ method }) => method.length));
 
   const COLS = [
-    { txt: '', length: 0 },
-    { txt: 'Contract', length: contractLength },
-    { txt: 'Method', length: methodLength },
-    { txt: 'Min', length: 30 },
-    { txt: 'Max', length: 30 },
-    { txt: 'Avg', length: 30 },
-    { txt: '', length: 0 },
+    { txt: "", length: 0 },
+    { txt: "Contract", length: contractLength },
+    { txt: "Method", length: methodLength },
+    { txt: "Min", length: 30 },
+    { txt: "Max", length: 30 },
+    { txt: "Avg", length: 30 },
+    { txt: "", length: 0 },
   ];
   const HEADER = COLS.map(entry => chalk.bold(center(entry.txt, entry.length || 0)))
-    .join(' | ')
+    .join(" | ")
     .trim();
-  const SEPARATOR = COLS.map(({ length }) => (length > 0 ? '-'.repeat(length + 2) : ''))
-    .join('|')
+  const SEPARATOR = COLS.map(({ length }) => (length > 0 ? "-".repeat(length + 2) : ""))
+    .join("|")
     .trim();
 
   return [
-    '',
+    "",
     HEADER,
     ...rows.map(entry =>
       [
-        '',
+        "",
         chalk.grey(entry.contract.padEnd(contractLength)),
         entry.method.padEnd(methodLength),
         ...formatCellShell(entry.min),
         ...formatCellShell(entry.max),
         ...formatCellShell(entry.avg),
-        '',
+        "",
       ]
-        .join(' | ')
+        .join(" | ")
         .trim(),
     ),
-    '',
+    "",
   ]
     .join(`\n${SEPARATOR}\n`)
     .trim();
@@ -164,74 +164,74 @@ function formatCmpShell(rows) {
 
 function alignPattern(align) {
   switch (align) {
-    case 'left':
+    case "left":
     case undefined:
-      return ':-';
-    case 'right':
-      return '-:';
-    case 'center':
-      return ':-:';
+      return ":-";
+    case "right":
+      return "-:";
+    case "center":
+      return ":-:";
   }
 }
 
 function trend(value) {
-  return value > 0 ? ':x:' : value < 0 ? ':heavy_check_mark:' : ':heavy_minus_sign:';
+  return value > 0 ? ":x:" : value < 0 ? ":heavy_check_mark:" : ":heavy_minus_sign:";
 }
 
 function formatCellMarkdown(cell) {
   return [
-    !isFinite(cell?.value) ? '-' : cell.value.toString(),
-    !isFinite(cell?.delta) ? '-' : plusSign(cell.delta) + cell.delta.toString(),
-    !isFinite(cell?.prcnt) ? '-' : plusSign(cell.prcnt) + cell.prcnt.toFixed(2) + '% ' + trend(cell.delta),
+    !isFinite(cell?.value) ? "-" : cell.value.toString(),
+    !isFinite(cell?.delta) ? "-" : plusSign(cell.delta) + cell.delta.toString(),
+    !isFinite(cell?.prcnt) ? "-" : plusSign(cell.prcnt) + cell.prcnt.toFixed(2) + "% " + trend(cell.delta),
   ];
 }
 
 function formatCmpMarkdown(rows) {
   const COLS = [
-    { txt: '' },
-    { txt: 'Contract', align: 'left' },
-    { txt: 'Method', align: 'left' },
-    { txt: 'Min', align: 'right' },
-    { txt: '(+/-)', align: 'right' },
-    { txt: '%', align: 'right' },
-    { txt: 'Max', align: 'right' },
-    { txt: '(+/-)', align: 'right' },
-    { txt: '%', align: 'right' },
-    { txt: 'Avg', align: 'right' },
-    { txt: '(+/-)', align: 'right' },
-    { txt: '%', align: 'right' },
-    { txt: '' },
+    { txt: "" },
+    { txt: "Contract", align: "left" },
+    { txt: "Method", align: "left" },
+    { txt: "Min", align: "right" },
+    { txt: "(+/-)", align: "right" },
+    { txt: "%", align: "right" },
+    { txt: "Max", align: "right" },
+    { txt: "(+/-)", align: "right" },
+    { txt: "%", align: "right" },
+    { txt: "Avg", align: "right" },
+    { txt: "(+/-)", align: "right" },
+    { txt: "%", align: "right" },
+    { txt: "" },
   ];
   const HEADER = COLS.map(entry => entry.txt)
-    .join(' | ')
+    .join(" | ")
     .trim();
-  const SEPARATOR = COLS.map(entry => (entry.txt ? alignPattern(entry.align) : ''))
-    .join('|')
+  const SEPARATOR = COLS.map(entry => (entry.txt ? alignPattern(entry.align) : ""))
+    .join("|")
     .trim();
 
   return [
-    '# Changes to gas costs',
-    '',
+    "# Changes to gas costs",
+    "",
     HEADER,
     SEPARATOR,
     rows
       .map(entry =>
         [
-          '',
+          "",
           entry.contract,
           entry.method,
           ...formatCellMarkdown(entry.min),
           ...formatCellMarkdown(entry.max),
           ...formatCellMarkdown(entry.avg),
-          '',
+          "",
         ]
-          .join(' | ')
+          .join(" | ")
           .trim(),
       )
-      .join('\n'),
-    '',
+      .join("\n"),
+    "",
   ]
-    .join('\n')
+    .join("\n")
     .trim();
 }
 
@@ -239,10 +239,10 @@ function formatCmpMarkdown(rows) {
 const report = Report.compare(Report.load(argv._[0]), Report.load(argv._[1]), argv);
 
 switch (argv.style) {
-  case 'markdown':
+  case "markdown":
     console.log(formatCmpMarkdown(report));
     break;
-  case 'shell':
+  case "shell":
   default:
     console.log(formatCmpShell(report));
     break;

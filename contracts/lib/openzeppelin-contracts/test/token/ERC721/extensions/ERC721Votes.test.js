@@ -1,22 +1,22 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { loadFixture, mine } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { loadFixture, mine } = require("@nomicfoundation/hardhat-network-helpers");
 
-const time = require('../../../helpers/time');
+const time = require("../../../helpers/time");
 
-const { shouldBehaveLikeVotes } = require('../../../governance/utils/Votes.behavior');
+const { shouldBehaveLikeVotes } = require("../../../governance/utils/Votes.behavior");
 
 const TOKENS = [
-  { Token: '$ERC721Votes', mode: 'blocknumber' },
+  { Token: "$ERC721Votes", mode: "blocknumber" },
   // no timestamp mode for ERC721Votes yet
 ];
 
-const name = 'My Vote';
-const symbol = 'MTKN';
-const version = '1';
-const tokens = [ethers.parseEther('10000000'), 10n, 20n, 30n];
+const name = "My Vote";
+const symbol = "MTKN";
+const version = "1";
+const tokens = [ethers.parseEther("10000000"), 10n, 20n, 30n];
 
-describe('ERC721Votes', function () {
+describe("ERC721Votes", function () {
   for (const { Token, mode } of TOKENS) {
     const fixture = async () => {
       // accounts is required by shouldBehaveLikeVotes
@@ -37,7 +37,7 @@ describe('ERC721Votes', function () {
       // includes ERC6372 behavior check
       shouldBehaveLikeVotes(tokens, { mode, fungible: false });
 
-      describe('balanceOf', function () {
+      describe("balanceOf", function () {
         beforeEach(async function () {
           await this.votes.$_mint(this.holder, tokens[0]);
           await this.votes.$_mint(this.holder, tokens[1]);
@@ -45,39 +45,39 @@ describe('ERC721Votes', function () {
           await this.votes.$_mint(this.holder, tokens[3]);
         });
 
-        it('grants to initial account', async function () {
+        it("grants to initial account", async function () {
           expect(await this.votes.balanceOf(this.holder)).to.equal(4n);
         });
       });
 
-      describe('transfers', function () {
+      describe("transfers", function () {
         beforeEach(async function () {
           await this.votes.$_mint(this.holder, tokens[0]);
         });
 
-        it('no delegation', async function () {
+        it("no delegation", async function () {
           await expect(this.votes.connect(this.holder).transferFrom(this.holder, this.recipient, tokens[0]))
-            .to.emit(this.token, 'Transfer')
+            .to.emit(this.token, "Transfer")
             .withArgs(this.holder, this.recipient, tokens[0])
-            .to.not.emit(this.token, 'DelegateVotesChanged');
+            .to.not.emit(this.token, "DelegateVotesChanged");
 
           this.holderVotes = 0n;
           this.recipientVotes = 0n;
         });
 
-        it('sender delegation', async function () {
+        it("sender delegation", async function () {
           await this.votes.connect(this.holder).delegate(this.holder);
 
           const tx = await this.votes.connect(this.holder).transferFrom(this.holder, this.recipient, tokens[0]);
           await expect(tx)
-            .to.emit(this.token, 'Transfer')
+            .to.emit(this.token, "Transfer")
             .withArgs(this.holder, this.recipient, tokens[0])
-            .to.emit(this.token, 'DelegateVotesChanged')
+            .to.emit(this.token, "DelegateVotesChanged")
             .withArgs(this.holder, 1n, 0n);
 
           const { logs } = await tx.wait();
-          const { index } = logs.find(event => event.fragment.name == 'DelegateVotesChanged');
-          for (const event of logs.filter(event => event.fragment.name == 'Transfer')) {
+          const { index } = logs.find(event => event.fragment.name == "DelegateVotesChanged");
+          for (const event of logs.filter(event => event.fragment.name == "Transfer")) {
             expect(event.index).to.lt(index);
           }
 
@@ -85,19 +85,19 @@ describe('ERC721Votes', function () {
           this.recipientVotes = 0n;
         });
 
-        it('receiver delegation', async function () {
+        it("receiver delegation", async function () {
           await this.votes.connect(this.recipient).delegate(this.recipient);
 
           const tx = await this.votes.connect(this.holder).transferFrom(this.holder, this.recipient, tokens[0]);
           await expect(tx)
-            .to.emit(this.token, 'Transfer')
+            .to.emit(this.token, "Transfer")
             .withArgs(this.holder, this.recipient, tokens[0])
-            .to.emit(this.token, 'DelegateVotesChanged')
+            .to.emit(this.token, "DelegateVotesChanged")
             .withArgs(this.recipient, 0n, 1n);
 
           const { logs } = await tx.wait();
-          const { index } = logs.find(event => event.fragment.name == 'DelegateVotesChanged');
-          for (const event of logs.filter(event => event.fragment.name == 'Transfer')) {
+          const { index } = logs.find(event => event.fragment.name == "DelegateVotesChanged");
+          for (const event of logs.filter(event => event.fragment.name == "Transfer")) {
             expect(event.index).to.lt(index);
           }
 
@@ -105,22 +105,22 @@ describe('ERC721Votes', function () {
           this.recipientVotes = 1n;
         });
 
-        it('full delegation', async function () {
+        it("full delegation", async function () {
           await this.votes.connect(this.holder).delegate(this.holder);
           await this.votes.connect(this.recipient).delegate(this.recipient);
 
           const tx = await this.votes.connect(this.holder).transferFrom(this.holder, this.recipient, tokens[0]);
           await expect(tx)
-            .to.emit(this.token, 'Transfer')
+            .to.emit(this.token, "Transfer")
             .withArgs(this.holder, this.recipient, tokens[0])
-            .to.emit(this.token, 'DelegateVotesChanged')
+            .to.emit(this.token, "DelegateVotesChanged")
             .withArgs(this.holder, 1n, 0n)
-            .to.emit(this.token, 'DelegateVotesChanged')
+            .to.emit(this.token, "DelegateVotesChanged")
             .withArgs(this.recipient, 0n, 1n);
 
           const { logs } = await tx.wait();
-          const { index } = logs.find(event => event.fragment.name == 'DelegateVotesChanged');
-          for (const event of logs.filter(event => event.fragment.name == 'Transfer')) {
+          const { index } = logs.find(event => event.fragment.name == "DelegateVotesChanged");
+          for (const event of logs.filter(event => event.fragment.name == "Transfer")) {
             expect(event.index).to.lt(index);
           }
 
@@ -128,7 +128,7 @@ describe('ERC721Votes', function () {
           this.recipientVotes = 1n;
         });
 
-        it('returns the same total supply on transfers', async function () {
+        it("returns the same total supply on transfers", async function () {
           await this.votes.connect(this.holder).delegate(this.holder);
 
           const tx = await this.votes.connect(this.holder).transferFrom(this.holder, this.recipient, tokens[0]);
@@ -143,7 +143,7 @@ describe('ERC721Votes', function () {
           this.recipientVotes = 0n;
         });
 
-        it('generally returns the voting balance at the appropriate checkpoint', async function () {
+        it("generally returns the voting balance at the appropriate checkpoint", async function () {
           await this.votes.$_mint(this.holder, tokens[1]);
           await this.votes.$_mint(this.holder, tokens[2]);
           await this.votes.$_mint(this.holder, tokens[3]);
@@ -171,7 +171,7 @@ describe('ERC721Votes', function () {
           expect(await this.votes.getPastVotes(this.other1, t2.timepoint + 1n)).to.equal(3n);
           expect(await this.votes.getPastVotes(this.other1, t3.timepoint)).to.equal(2n);
           expect(await this.votes.getPastVotes(this.other1, t3.timepoint + 1n)).to.equal(2n);
-          expect(await this.votes.getPastVotes(this.other1, t4.timepoint)).to.equal('3');
+          expect(await this.votes.getPastVotes(this.other1, t4.timepoint)).to.equal("3");
           expect(await this.votes.getPastVotes(this.other1, t4.timepoint + 1n)).to.equal(3n);
 
           this.holderVotes = 0n;

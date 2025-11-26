@@ -1,6 +1,5 @@
-import { readContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
+import { readContract, waitForTransactionReceipt } from "@wagmi/core";
 import type { Address } from "viem";
-import { MAIN_CHAIN_ID } from "../config/chains";
 import { INTRADAY_REPO_ABI, type RepoOffer } from "../contracts/intraday-repo";
 
 /**
@@ -10,7 +9,8 @@ export function useRepoContract() {
   const config = useWagmiConfig();
   const runtimeConfig = useRuntimeConfig();
   const toast = useToast();
-  const { ensureCorrectChain } = useChainSwitch();
+  const { ensureCorrectChain, getChainId } = useChainSwitch();
+  const { executeWrite } = usePrividiumWrite();
   const repoAddress = runtimeConfig.public.intradayRepoContractAddress as Address;
 
   /**
@@ -22,7 +22,7 @@ export function useRepoContract() {
         address: repoAddress,
         abi: INTRADAY_REPO_ABI,
         functionName: "getOpenOffers",
-        chainId: MAIN_CHAIN_ID,
+        chainId: getChainId(),
       });
       return offers as RepoOffer[];
     } catch (error) {
@@ -41,7 +41,7 @@ export function useRepoContract() {
         abi: INTRADAY_REPO_ABI,
         functionName: "getLenderOffers",
         args: [user],
-        chainId: MAIN_CHAIN_ID,
+        chainId: getChainId(),
       });
       return offers as RepoOffer[];
     } catch (error) {
@@ -60,7 +60,7 @@ export function useRepoContract() {
         abi: INTRADAY_REPO_ABI,
         functionName: "getBorrowerOffers",
         args: [user],
-        chainId: MAIN_CHAIN_ID,
+        chainId: getChainId(),
       });
       return offers as RepoOffer[];
     } catch (error) {
@@ -79,7 +79,7 @@ export function useRepoContract() {
         abi: INTRADAY_REPO_ABI,
         functionName: "calculateRepaymentAmount",
         args: [offerId],
-        chainId: MAIN_CHAIN_ID,
+        chainId: getChainId(),
       });
       return amount as bigint;
     } catch (error) {
@@ -97,7 +97,7 @@ export function useRepoContract() {
         address: repoAddress,
         abi: INTRADAY_REPO_ABI,
         functionName: "gracePeriod",
-        chainId: MAIN_CHAIN_ID,
+        chainId: getChainId(),
       });
       return gracePeriod as bigint;
     } catch (error) {
@@ -124,7 +124,7 @@ export function useRepoContract() {
     }
 
     try {
-      const hash = await writeContract(config, {
+      const hash = await executeWrite({
         address: repoAddress,
         abi: INTRADAY_REPO_ABI,
         functionName: "createOffer",
@@ -136,10 +136,10 @@ export function useRepoContract() {
           params.duration,
           params.lenderFee,
         ],
-        chainId: MAIN_CHAIN_ID,
+        chainId: getChainId(),
       });
 
-      await waitForTransactionReceipt(config, { hash, chainId: MAIN_CHAIN_ID });
+      await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
 
       toast.success("Offer created successfully");
 
@@ -163,15 +163,15 @@ export function useRepoContract() {
     }
 
     try {
-      const hash = await writeContract(config, {
+      const hash = await executeWrite({
         address: repoAddress,
         abi: INTRADAY_REPO_ABI,
         functionName: "acceptOffer",
         args: [offerId],
-        chainId: MAIN_CHAIN_ID,
+        chainId: getChainId(),
       });
 
-      await waitForTransactionReceipt(config, { hash, chainId: MAIN_CHAIN_ID });
+      await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
 
       toast.success("Offer accepted successfully");
       return true;
@@ -193,15 +193,15 @@ export function useRepoContract() {
     }
 
     try {
-      const hash = await writeContract(config, {
+      const hash = await executeWrite({
         address: repoAddress,
         abi: INTRADAY_REPO_ABI,
         functionName: "repayLoan",
         args: [offerId],
-        chainId: MAIN_CHAIN_ID,
+        chainId: getChainId(),
       });
 
-      await waitForTransactionReceipt(config, { hash, chainId: MAIN_CHAIN_ID });
+      await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
 
       toast.success("Loan repaid successfully");
       return true;
@@ -223,15 +223,15 @@ export function useRepoContract() {
     }
 
     try {
-      const hash = await writeContract(config, {
+      const hash = await executeWrite({
         address: repoAddress,
         abi: INTRADAY_REPO_ABI,
         functionName: "claimCollateral",
         args: [offerId],
-        chainId: MAIN_CHAIN_ID,
+        chainId: getChainId(),
       });
 
-      await waitForTransactionReceipt(config, { hash, chainId: MAIN_CHAIN_ID });
+      await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
 
       toast.success("Collateral claimed successfully");
       return true;
@@ -253,15 +253,15 @@ export function useRepoContract() {
     }
 
     try {
-      const hash = await writeContract(config, {
+      const hash = await executeWrite({
         address: repoAddress,
         abi: INTRADAY_REPO_ABI,
         functionName: "cancelOffer",
         args: [offerId],
-        chainId: MAIN_CHAIN_ID,
+        chainId: getChainId(),
       });
 
-      await waitForTransactionReceipt(config, { hash, chainId: MAIN_CHAIN_ID });
+      await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
 
       toast.success("Offer cancelled successfully");
       return true;

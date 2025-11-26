@@ -1,45 +1,45 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { loadFixture, mine } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { loadFixture, mine } = require("@nomicfoundation/hardhat-network-helpers");
 
-const { GovernorHelper } = require('../../helpers/governance');
-const { ProposalState, VoteType } = require('../../helpers/enums');
-const time = require('../../helpers/time');
+const { GovernorHelper } = require("../../helpers/governance");
+const { ProposalState, VoteType } = require("../../helpers/enums");
+const time = require("../../helpers/time");
 
 const TOKENS = [
-  { Token: '$ERC20Votes', mode: 'blocknumber' },
-  { Token: '$ERC20VotesTimestampMock', mode: 'timestamp' },
+  { Token: "$ERC20Votes", mode: "blocknumber" },
+  { Token: "$ERC20VotesTimestampMock", mode: "timestamp" },
 ];
 
-const name = 'OZ-Governor';
-const version = '1';
-const tokenName = 'MockToken';
-const tokenSymbol = 'MTKN';
-const tokenSupply = ethers.parseEther('100');
+const name = "OZ-Governor";
+const version = "1";
+const tokenName = "MockToken";
+const tokenSymbol = "MTKN";
+const tokenSupply = ethers.parseEther("100");
 const ratio = 8n; // percents
 const newRatio = 6n; // percents
 const votingDelay = 4n;
 const votingPeriod = 16n;
-const value = ethers.parseEther('1');
+const value = ethers.parseEther("1");
 
-describe('GovernorVotesQuorumFraction', function () {
+describe("GovernorVotesQuorumFraction", function () {
   for (const { Token, mode } of TOKENS) {
     const fixture = async () => {
       const [owner, voter1, voter2, voter3, voter4] = await ethers.getSigners();
 
-      const receiver = await ethers.deployContract('CallReceiverMock');
+      const receiver = await ethers.deployContract("CallReceiverMock");
 
       const token = await ethers.deployContract(Token, [tokenName, tokenSymbol, tokenName, version]);
-      const mock = await ethers.deployContract('$GovernorMock', [name, votingDelay, votingPeriod, 0n, token, ratio]);
+      const mock = await ethers.deployContract("$GovernorMock", [name, votingDelay, votingPeriod, 0n, token, ratio]);
 
       await owner.sendTransaction({ to: mock, value });
       await token.$_mint(owner, tokenSupply);
 
       const helper = new GovernorHelper(mock, mode);
-      await helper.connect(owner).delegate({ token, to: voter1, value: ethers.parseEther('10') });
-      await helper.connect(owner).delegate({ token, to: voter2, value: ethers.parseEther('7') });
-      await helper.connect(owner).delegate({ token, to: voter3, value: ethers.parseEther('5') });
-      await helper.connect(owner).delegate({ token, to: voter4, value: ethers.parseEther('2') });
+      await helper.connect(owner).delegate({ token, to: voter1, value: ethers.parseEther("10") });
+      await helper.connect(owner).delegate({ token, to: voter2, value: ethers.parseEther("7") });
+      await helper.connect(owner).delegate({ token, to: voter3, value: ethers.parseEther("5") });
+      await helper.connect(owner).delegate({ token, to: voter4, value: ethers.parseEther("2") });
 
       return { owner, voter1, voter2, voter3, voter4, receiver, token, mock, helper };
     };
@@ -54,14 +54,14 @@ describe('GovernorVotesQuorumFraction', function () {
             {
               target: this.receiver.target,
               value,
-              data: this.receiver.interface.encodeFunctionData('mockFunction'),
+              data: this.receiver.interface.encodeFunctionData("mockFunction"),
             },
           ],
-          '<proposal description>',
+          "<proposal description>",
         );
       });
 
-      it('deployment check', async function () {
+      it("deployment check", async function () {
         expect(await this.mock.name()).to.equal(name);
         expect(await this.mock.token()).to.equal(this.token);
         expect(await this.mock.votingDelay()).to.equal(votingDelay);
@@ -74,7 +74,7 @@ describe('GovernorVotesQuorumFraction', function () {
         );
       });
 
-      it('quorum reached', async function () {
+      it("quorum reached", async function () {
         await this.helper.propose();
         await this.helper.waitForSnapshot();
         await this.helper.connect(this.voter1).vote({ support: VoteType.For });
@@ -82,13 +82,13 @@ describe('GovernorVotesQuorumFraction', function () {
         await this.helper.execute();
       });
 
-      it('quorum not reached', async function () {
+      it("quorum not reached", async function () {
         await this.helper.propose();
         await this.helper.waitForSnapshot();
         await this.helper.connect(this.voter2).vote({ support: VoteType.For });
         await this.helper.waitForDeadline();
         await expect(this.helper.execute())
-          .to.be.revertedWithCustomError(this.mock, 'GovernorUnexpectedProposalState')
+          .to.be.revertedWithCustomError(this.mock, "GovernorUnexpectedProposalState")
           .withArgs(
             this.proposal.id,
             ProposalState.Defeated,
@@ -96,22 +96,22 @@ describe('GovernorVotesQuorumFraction', function () {
           );
       });
 
-      describe('onlyGovernance updates', function () {
-        it('updateQuorumNumerator is protected', async function () {
+      describe("onlyGovernance updates", function () {
+        it("updateQuorumNumerator is protected", async function () {
           await expect(this.mock.connect(this.owner).updateQuorumNumerator(newRatio))
-            .to.be.revertedWithCustomError(this.mock, 'GovernorOnlyExecutor')
+            .to.be.revertedWithCustomError(this.mock, "GovernorOnlyExecutor")
             .withArgs(this.owner);
         });
 
-        it('can updateQuorumNumerator through governance', async function () {
+        it("can updateQuorumNumerator through governance", async function () {
           this.helper.setProposal(
             [
               {
                 target: this.mock.target,
-                data: this.mock.interface.encodeFunctionData('updateQuorumNumerator', [newRatio]),
+                data: this.mock.interface.encodeFunctionData("updateQuorumNumerator", [newRatio]),
               },
             ],
-            '<proposal description>',
+            "<proposal description>",
           );
 
           await this.helper.propose();
@@ -119,7 +119,7 @@ describe('GovernorVotesQuorumFraction', function () {
           await this.helper.connect(this.voter1).vote({ support: VoteType.For });
           await this.helper.waitForDeadline();
 
-          await expect(this.helper.execute()).to.emit(this.mock, 'QuorumNumeratorUpdated').withArgs(ratio, newRatio);
+          await expect(this.helper.execute()).to.emit(this.mock, "QuorumNumeratorUpdated").withArgs(ratio, newRatio);
 
           expect(await this.mock.quorumNumerator()).to.equal(newRatio);
           expect(await this.mock.quorumDenominator()).to.equal(100n);
@@ -136,16 +136,16 @@ describe('GovernorVotesQuorumFraction', function () {
           );
         });
 
-        it('cannot updateQuorumNumerator over the maximum', async function () {
+        it("cannot updateQuorumNumerator over the maximum", async function () {
           const quorumNumerator = 101n;
           this.helper.setProposal(
             [
               {
                 target: this.mock.target,
-                data: this.mock.interface.encodeFunctionData('updateQuorumNumerator', [quorumNumerator]),
+                data: this.mock.interface.encodeFunctionData("updateQuorumNumerator", [quorumNumerator]),
               },
             ],
-            '<proposal description>',
+            "<proposal description>",
           );
 
           await this.helper.propose();
@@ -156,7 +156,7 @@ describe('GovernorVotesQuorumFraction', function () {
           const quorumDenominator = await this.mock.quorumDenominator();
 
           await expect(this.helper.execute())
-            .to.be.revertedWithCustomError(this.mock, 'GovernorInvalidQuorumFraction')
+            .to.be.revertedWithCustomError(this.mock, "GovernorInvalidQuorumFraction")
             .withArgs(quorumNumerator, quorumDenominator);
         });
       });

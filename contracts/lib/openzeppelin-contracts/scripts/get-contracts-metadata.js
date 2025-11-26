@@ -1,33 +1,33 @@
-const fs = require('fs');
-const glob = require('glob');
-const match = require('micromatch');
-const path = require('path');
-const { findAll } = require('solidity-ast/utils');
+const fs = require("fs");
+const glob = require("glob");
+const match = require("micromatch");
+const path = require("path");
+const { findAll } = require("solidity-ast/utils");
 
 module.exports = function (
-  pattern = 'contracts/**/*.sol',
-  skipPatterns = ['contracts/mocks/**/*.sol'],
+  pattern = "contracts/**/*.sol",
+  skipPatterns = ["contracts/mocks/**/*.sol"],
   artifacts = [],
 ) {
   // Use available hardhat artifacts. They reliably identify pragmas and the contracts, libraries and interfaces
   // definitions with minimal IO operations.
   const metadata = Object.fromEntries(
     artifacts.flatMap(artifact => {
-      const { output: solcOutput } = require(path.resolve(__dirname, '..', artifact));
+      const { output: solcOutput } = require(path.resolve(__dirname, "..", artifact));
       return Object.keys(solcOutput.contracts)
         .filter(source => match.all(source, pattern) && !match.any(source, skipPatterns))
         .map(source => [
           source,
           {
-            pragma: Array.from(findAll('PragmaDirective', solcOutput.sources[source].ast))
-              .find(({ literals }) => literals.at(0) == 'solidity')
+            pragma: Array.from(findAll("PragmaDirective", solcOutput.sources[source].ast))
+              .find(({ literals }) => literals.at(0) == "solidity")
               .literals.slice(1)
-              .join(''),
-            sources: Array.from(findAll('ImportDirective', solcOutput.sources[source].ast)).map(
+              .join(""),
+            sources: Array.from(findAll("ImportDirective", solcOutput.sources[source].ast)).map(
               ({ absolutePath }) => absolutePath,
             ),
-            interface: Array.from(findAll('ContractDefinition', solcOutput.sources[source].ast)).every(
-              ({ contractKind }) => contractKind === 'interface',
+            interface: Array.from(findAll("ContractDefinition", solcOutput.sources[source].ast)).every(
+              ({ contractKind }) => contractKind === "interface",
             ),
           },
         ]);
@@ -42,7 +42,7 @@ module.exports = function (
     .forEach(file => {
       const entries = glob.sync(`out/${path.basename(file)}/*`);
       metadata[file] = {
-        pragma: fs.readFileSync(file, 'utf-8').match(/pragma solidity (?<pragma>[<>=^]*[0-9]+\.[0-9]+\.[0-9]+);/)
+        pragma: fs.readFileSync(file, "utf-8").match(/pragma solidity (?<pragma>[<>=^]*[0-9]+\.[0-9]+\.[0-9]+);/)
           ?.groups.pragma,
         sources: entries
           .flatMap(entry => Object.keys(JSON.parse(fs.readFileSync(entry)).metadata.sources))

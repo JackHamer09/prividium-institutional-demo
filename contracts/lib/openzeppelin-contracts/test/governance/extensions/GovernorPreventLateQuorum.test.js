@@ -1,35 +1,35 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-const { GovernorHelper } = require('../../helpers/governance');
-const { ProposalState, VoteType } = require('../../helpers/enums');
-const time = require('../../helpers/time');
+const { GovernorHelper } = require("../../helpers/governance");
+const { ProposalState, VoteType } = require("../../helpers/enums");
+const time = require("../../helpers/time");
 
 const TOKENS = [
-  { Token: '$ERC20Votes', mode: 'blocknumber' },
-  { Token: '$ERC20VotesTimestampMock', mode: 'timestamp' },
+  { Token: "$ERC20Votes", mode: "blocknumber" },
+  { Token: "$ERC20VotesTimestampMock", mode: "timestamp" },
 ];
 
-const name = 'OZ-Governor';
-const version = '1';
-const tokenName = 'MockToken';
-const tokenSymbol = 'MTKN';
-const tokenSupply = ethers.parseEther('100');
+const name = "OZ-Governor";
+const version = "1";
+const tokenName = "MockToken";
+const tokenSymbol = "MTKN";
+const tokenSupply = ethers.parseEther("100");
 const votingDelay = 4n;
 const votingPeriod = 16n;
 const lateQuorumVoteExtension = 8n;
-const quorum = ethers.parseEther('1');
-const value = ethers.parseEther('1');
+const quorum = ethers.parseEther("1");
+const value = ethers.parseEther("1");
 
-describe('GovernorPreventLateQuorum', function () {
+describe("GovernorPreventLateQuorum", function () {
   for (const { Token, mode } of TOKENS) {
     const fixture = async () => {
       const [owner, proposer, voter1, voter2, voter3, voter4] = await ethers.getSigners();
-      const receiver = await ethers.deployContract('CallReceiverMock');
+      const receiver = await ethers.deployContract("CallReceiverMock");
 
       const token = await ethers.deployContract(Token, [tokenName, tokenSymbol, tokenName, version]);
-      const mock = await ethers.deployContract('$GovernorPreventLateQuorumMock', [
+      const mock = await ethers.deployContract("$GovernorPreventLateQuorumMock", [
         name, // name
         votingDelay, // initialVotingDelay
         votingPeriod, // initialVotingPeriod
@@ -43,10 +43,10 @@ describe('GovernorPreventLateQuorum', function () {
       await token.$_mint(owner, tokenSupply);
 
       const helper = new GovernorHelper(mock, mode);
-      await helper.connect(owner).delegate({ token, to: voter1, value: ethers.parseEther('10') });
-      await helper.connect(owner).delegate({ token, to: voter2, value: ethers.parseEther('7') });
-      await helper.connect(owner).delegate({ token, to: voter3, value: ethers.parseEther('5') });
-      await helper.connect(owner).delegate({ token, to: voter4, value: ethers.parseEther('2') });
+      await helper.connect(owner).delegate({ token, to: voter1, value: ethers.parseEther("10") });
+      await helper.connect(owner).delegate({ token, to: voter2, value: ethers.parseEther("7") });
+      await helper.connect(owner).delegate({ token, to: voter3, value: ethers.parseEther("5") });
+      await helper.connect(owner).delegate({ token, to: voter4, value: ethers.parseEther("2") });
 
       return { owner, proposer, voter1, voter2, voter3, voter4, receiver, token, mock, helper };
     };
@@ -59,15 +59,15 @@ describe('GovernorPreventLateQuorum', function () {
           [
             {
               target: this.receiver.target,
-              data: this.receiver.interface.encodeFunctionData('mockFunction'),
+              data: this.receiver.interface.encodeFunctionData("mockFunction"),
               value,
             },
           ],
-          '<proposal description>',
+          "<proposal description>",
         );
       });
 
-      it('deployment check', async function () {
+      it("deployment check", async function () {
         expect(await this.mock.name()).to.equal(name);
         expect(await this.mock.token()).to.equal(this.token);
         expect(await this.mock.votingDelay()).to.equal(votingDelay);
@@ -76,7 +76,7 @@ describe('GovernorPreventLateQuorum', function () {
         expect(await this.mock.lateQuorumVoteExtension()).to.equal(lateQuorumVoteExtension);
       });
 
-      it('nominal workflow unaffected', async function () {
+      it("nominal workflow unaffected", async function () {
         const txPropose = await this.helper.connect(this.proposer).propose();
         await this.helper.waitForSnapshot();
         await this.helper.connect(this.voter1).vote({ support: VoteType.For });
@@ -93,9 +93,9 @@ describe('GovernorPreventLateQuorum', function () {
         expect(await this.mock.hasVoted(this.proposal.id, this.voter4)).to.be.true;
 
         expect(await this.mock.proposalVotes(this.proposal.id)).to.deep.equal([
-          ethers.parseEther('5'), // againstVotes
-          ethers.parseEther('17'), // forVotes
-          ethers.parseEther('2'), // abstainVotes
+          ethers.parseEther("5"), // againstVotes
+          ethers.parseEther("17"), // forVotes
+          ethers.parseEther("2"), // abstainVotes
         ]);
 
         const voteStart = (await time.clockFromReceipt[mode](txPropose)) + votingDelay;
@@ -104,7 +104,7 @@ describe('GovernorPreventLateQuorum', function () {
         expect(await this.mock.proposalDeadline(this.proposal.id)).to.equal(voteEnd);
 
         await expect(txPropose)
-          .to.emit(this.mock, 'ProposalCreated')
+          .to.emit(this.mock, "ProposalCreated")
           .withArgs(
             this.proposal.id,
             this.proposer,
@@ -118,7 +118,7 @@ describe('GovernorPreventLateQuorum', function () {
           );
       });
 
-      it('Delay is extended to prevent last minute take-over', async function () {
+      it("Delay is extended to prevent last minute take-over", async function () {
         const txPropose = await this.helper.connect(this.proposer).propose();
 
         // compute original schedule
@@ -147,25 +147,25 @@ describe('GovernorPreventLateQuorum', function () {
         expect(await this.mock.state(this.proposal.id)).to.equal(ProposalState.Defeated);
 
         // check extension event
-        await expect(txVote).to.emit(this.mock, 'ProposalExtended').withArgs(this.proposal.id, extendedDeadline);
+        await expect(txVote).to.emit(this.mock, "ProposalExtended").withArgs(this.proposal.id, extendedDeadline);
       });
 
-      describe('onlyGovernance updates', function () {
-        it('setLateQuorumVoteExtension is protected', async function () {
+      describe("onlyGovernance updates", function () {
+        it("setLateQuorumVoteExtension is protected", async function () {
           await expect(this.mock.connect(this.owner).setLateQuorumVoteExtension(0n))
-            .to.be.revertedWithCustomError(this.mock, 'GovernorOnlyExecutor')
+            .to.be.revertedWithCustomError(this.mock, "GovernorOnlyExecutor")
             .withArgs(this.owner);
         });
 
-        it('can setLateQuorumVoteExtension through governance', async function () {
+        it("can setLateQuorumVoteExtension through governance", async function () {
           this.helper.setProposal(
             [
               {
                 target: this.mock.target,
-                data: this.mock.interface.encodeFunctionData('setLateQuorumVoteExtension', [0n]),
+                data: this.mock.interface.encodeFunctionData("setLateQuorumVoteExtension", [0n]),
               },
             ],
-            '<proposal description>',
+            "<proposal description>",
           );
 
           await this.helper.propose();
@@ -174,7 +174,7 @@ describe('GovernorPreventLateQuorum', function () {
           await this.helper.waitForDeadline();
 
           await expect(this.helper.execute())
-            .to.emit(this.mock, 'LateQuorumVoteExtensionSet')
+            .to.emit(this.mock, "LateQuorumVoteExtensionSet")
             .withArgs(lateQuorumVoteExtension, 0n);
 
           expect(await this.mock.lateQuorumVoteExtension()).to.equal(0n);

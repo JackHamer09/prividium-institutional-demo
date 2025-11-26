@@ -1,9 +1,9 @@
 // The following listing does not pretend to be exhaustive or even accurate. It SHOULD NOT be used in production.
 
-const { ethers } = require('hardhat');
-const { mapValues } = require('./iterate');
+const { ethers } = require("hardhat");
+const { mapValues } = require("./iterate");
 
-const { addressCoder } = require('interoperable-addresses');
+const { addressCoder } = require("interoperable-addresses");
 
 // EVM (https://axelarscan.io/resources/chains?type=evm)
 const ethereum = {
@@ -30,7 +30,7 @@ const ethereum = {
 };
 
 const solana = {
-  Mainnet: '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d',
+  Mainnet: "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
 };
 
 const format = ({ namespace, reference }) => ({
@@ -46,11 +46,11 @@ const format = ({ namespace, reference }) => ({
 module.exports = {
   CHAINS: mapValues(
     Object.assign(
-      mapValues(ethereum, reference => ({ namespace: 'eip155', reference })),
-      mapValues(solana, reference => ({ namespace: 'solana', reference })),
+      mapValues(ethereum, reference => ({ namespace: "eip155", reference })),
+      mapValues(solana, reference => ({ namespace: "solana", reference })),
     ),
     format,
   ),
   getLocalChain: () =>
-    ethers.provider.getNetwork().then(({ chainId }) => format({ namespace: 'eip155', reference: chainId })),
+    ethers.provider.getNetwork().then(({ chainId }) => format({ namespace: "eip155", reference: chainId })),
 };

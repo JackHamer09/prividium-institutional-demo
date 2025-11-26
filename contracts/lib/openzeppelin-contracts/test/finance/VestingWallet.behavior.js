@@ -1,6 +1,6 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const time = require('../helpers/time');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const time = require("../helpers/time");
 
 async function envSetup(mock, beneficiary, token) {
   return {
@@ -9,35 +9,35 @@ async function envSetup(mock, beneficiary, token) {
         await expect(tx).to.changeEtherBalances([mock, beneficiary], [-amount, amount]);
       },
       setupFailure: async () => {
-        const beneficiaryMock = await ethers.deployContract('EtherReceiverMock');
+        const beneficiaryMock = await ethers.deployContract("EtherReceiverMock");
         await beneficiaryMock.setAcceptEther(false);
         await mock.connect(beneficiary).transferOwnership(beneficiaryMock);
-        return { args: [], error: [mock, 'FailedCall'] };
+        return { args: [], error: [mock, "FailedCall"] };
       },
-      releasedEvent: 'EtherReleased',
+      releasedEvent: "EtherReleased",
       args: [],
     },
     token: {
       checkRelease: async (tx, amount) => {
-        await expect(tx).to.emit(token, 'Transfer').withArgs(mock, beneficiary, amount);
+        await expect(tx).to.emit(token, "Transfer").withArgs(mock, beneficiary, amount);
         await expect(tx).to.changeTokenBalances(token, [mock, beneficiary], [-amount, amount]);
       },
       setupFailure: async () => {
-        const pausableToken = await ethers.deployContract('$ERC20Pausable', ['Name', 'Symbol']);
+        const pausableToken = await ethers.deployContract("$ERC20Pausable", ["Name", "Symbol"]);
         await pausableToken.$_pause();
         return {
           args: [ethers.Typed.address(pausableToken)],
-          error: [pausableToken, 'EnforcedPause'],
+          error: [pausableToken, "EnforcedPause"],
         };
       },
-      releasedEvent: 'ERC20Released',
+      releasedEvent: "ERC20Released",
       args: [ethers.Typed.address(token)],
     },
   };
 }
 
 function shouldBehaveLikeVesting() {
-  it('check vesting schedule', async function () {
+  it("check vesting schedule", async function () {
     for (const timestamp of this.schedule) {
       await time.increaseTo.timestamp(timestamp);
       const vesting = this.vestingFn(timestamp);
@@ -47,7 +47,7 @@ function shouldBehaveLikeVesting() {
     }
   });
 
-  it('execute vesting schedule', async function () {
+  it("execute vesting schedule", async function () {
     let released = 0n;
     {
       const tx = await this.mock.release(...this.args);
@@ -70,7 +70,7 @@ function shouldBehaveLikeVesting() {
     }
   });
 
-  it('should revert on transaction failure', async function () {
+  it("should revert on transaction failure", async function () {
     const { args, error } = await this.setupFailure();
 
     for (const timestamp of this.schedule) {

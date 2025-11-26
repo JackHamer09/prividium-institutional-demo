@@ -1,13 +1,13 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { PANIC_CODES } = require('@nomicfoundation/hardhat-chai-matchers/panic');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
+const { PANIC_CODES } = require("@nomicfoundation/hardhat-chai-matchers/panic");
 
 async function fixture() {
-  return { mock: await ethers.deployContract('$Panic') };
+  return { mock: await ethers.deployContract("$Panic") };
 }
 
-describe('Panic', function () {
+describe("Panic", function () {
   beforeEach(async function () {
     Object.assign(this, await loadFixture(fixture));
   });
@@ -25,11 +25,11 @@ describe('Panic', function () {
     INVALID_INTERNAL_FUNCTION: PANIC_CODES.ZERO_INITIALIZED_VARIABLE,
   })) {
     describe(`${name} (${ethers.toBeHex(code)})`, function () {
-      it('exposes panic code as constant', async function () {
+      it("exposes panic code as constant", async function () {
         expect(await this.mock.getFunction(`$${name}`)()).to.equal(code);
       });
 
-      it('reverts with panic when called', async function () {
+      it("reverts with panic when called", async function () {
         await expect(this.mock.$panic(code)).to.be.revertedWithPanic(code);
       });
     });

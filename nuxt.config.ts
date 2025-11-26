@@ -34,6 +34,16 @@ export default defineNuxtConfig({
       usdcAddress: "",
       ttbillAddress: "",
       sgdAddress: "",
+      // Prividium Configuration
+      prividiumClientId: "",
+      prividiumRpcUrl: "",
+      prividiumAuthBaseUrl: "",
+      prividiumPermissionsApiBaseUrl: "",
+      // Prividium Chain Configuration
+      prividiumChainId: "",
+      prividiumChainName: "",
+      prividiumBlockExplorerUrl: "",
+      prividiumBlockExplorerName: "",
     },
   },
   vite: {

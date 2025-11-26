@@ -65,6 +65,7 @@ export default withNuxt(
       "node_modules",
       ".output",
       "*.config.*",
+      "contracts",
     ],
   },
 );

@@ -1,21 +1,21 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-const { sum } = require('../../helpers/math');
-const { zip } = require('../../helpers/iterate');
-const time = require('../../helpers/time');
+const { sum } = require("../../helpers/math");
+const { zip } = require("../../helpers/iterate");
+const time = require("../../helpers/time");
 
-const { shouldBehaveLikeVotes } = require('./Votes.behavior');
+const { shouldBehaveLikeVotes } = require("./Votes.behavior");
 
 const MODES = {
-  blocknumber: '$VotesMock',
-  timestamp: '$VotesTimestampMock',
+  blocknumber: "$VotesMock",
+  timestamp: "$VotesTimestampMock",
 };
 
-const AMOUNTS = [ethers.parseEther('10000000'), 10n, 20n];
+const AMOUNTS = [ethers.parseEther("10000000"), 10n, 20n];
 
-describe('Votes', function () {
+describe("Votes", function () {
   for (const [mode, artifact] of Object.entries(MODES)) {
     const fixture = async () => {
       const accounts = await ethers.getSigners();
@@ -27,8 +27,8 @@ describe('Votes', function () {
         ),
       );
 
-      const name = 'My Vote';
-      const version = '1';
+      const name = "My Vote";
+      const version = "1";
       const votes = await ethers.deployContract(artifact, [name, version]);
 
       return { accounts, amounts, votes, name, version };
@@ -41,11 +41,11 @@ describe('Votes', function () {
 
       shouldBehaveLikeVotes(AMOUNTS, { mode, fungible: true });
 
-      it('starts with zero votes', async function () {
+      it("starts with zero votes", async function () {
         expect(await this.votes.getTotalSupply()).to.equal(0n);
       });
 
-      describe('performs voting operations', function () {
+      describe("performs voting operations", function () {
         beforeEach(async function () {
           this.txs = [];
           for (const [account, amount] of Object.entries(this.amounts)) {
@@ -53,15 +53,15 @@ describe('Votes', function () {
           }
         });
 
-        it('reverts if block number >= current block', async function () {
+        it("reverts if block number >= current block", async function () {
           const lastTxTimepoint = await time.clockFromReceipt[mode](this.txs.at(-1));
           const clock = await this.votes.clock();
           await expect(this.votes.getPastTotalSupply(lastTxTimepoint))
-            .to.be.revertedWithCustomError(this.votes, 'ERC5805FutureLookup')
+            .to.be.revertedWithCustomError(this.votes, "ERC5805FutureLookup")
             .withArgs(lastTxTimepoint, clock);
         });
 
-        it('delegates', async function () {
+        it("delegates", async function () {
           expect(await this.votes.getVotes(this.accounts[0])).to.equal(0n);
           expect(await this.votes.getVotes(this.accounts[1])).to.equal(0n);
           expect(await this.votes.delegates(this.accounts[0])).to.equal(ethers.ZeroAddress);
@@ -84,7 +84,7 @@ describe('Votes', function () {
           expect(await this.votes.delegates(this.accounts[1])).to.equal(this.accounts[0]);
         });
 
-        it('cross delegates', async function () {
+        it("cross delegates", async function () {
           await this.votes.delegate(this.accounts[0], ethers.Typed.address(this.accounts[1]));
           await this.votes.delegate(this.accounts[1], ethers.Typed.address(this.accounts[0]));
 
@@ -92,7 +92,7 @@ describe('Votes', function () {
           expect(await this.votes.getVotes(this.accounts[1])).to.equal(this.amounts[this.accounts[0].address]);
         });
 
-        it('returns total amount of votes', async function () {
+        it("returns total amount of votes", async function () {
           const totalSupply = sum(...Object.values(this.amounts));
           expect(await this.votes.getTotalSupply()).to.equal(totalSupply);
         });

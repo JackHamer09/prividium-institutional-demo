@@ -1,11 +1,11 @@
-const { ethers } = require('hardhat');
-const types = require('./eip712-types');
+const { ethers } = require("hardhat");
+const types = require("./eip712-types");
 
 async function getDomain(contract) {
   const { fields, name, version, chainId, verifyingContract, salt, extensions } = await contract.eip712Domain();
 
   if (extensions.length > 0) {
-    throw Error('Extensions not implemented');
+    throw Error("Extensions not implemented");
   }
 
   const domain = {
@@ -31,8 +31,8 @@ function domainType(domain) {
 
 function hashTypedData(domain, structHash) {
   return ethers.solidityPackedKeccak256(
-    ['bytes', 'bytes32', 'bytes32'],
-    ['0x1901', ethers.TypedDataEncoder.hashDomain(domain), structHash],
+    ["bytes", "bytes32", "bytes32"],
+    ["0x1901", ethers.TypedDataEncoder.hashDomain(domain), structHash],
   );
 }
 

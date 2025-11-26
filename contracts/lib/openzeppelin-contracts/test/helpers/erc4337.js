@@ -1,23 +1,23 @@
-const { ethers, config, predeploy } = require('hardhat');
+const { ethers, config, predeploy } = require("hardhat");
 
-const SIG_VALIDATION_SUCCESS = '0x0000000000000000000000000000000000000000';
-const SIG_VALIDATION_FAILURE = '0x0000000000000000000000000000000000000001';
+const SIG_VALIDATION_SUCCESS = "0x0000000000000000000000000000000000000000";
+const SIG_VALIDATION_FAILURE = "0x0000000000000000000000000000000000000001";
 
 function getAddress(account) {
   return account.target ?? account.address ?? account;
 }
 
 function pack(left, right) {
-  return ethers.solidityPacked(['uint128', 'uint128'], [left, right]);
+  return ethers.solidityPacked(["uint128", "uint128"], [left, right]);
 }
 
 function packValidationData(validAfter, validUntil, authorizer) {
   return ethers.solidityPacked(
-    ['uint48', 'uint48', 'address'],
+    ["uint48", "uint48", "address"],
     [
       validAfter,
       validUntil,
-      typeof authorizer == 'boolean'
+      typeof authorizer === "boolean"
         ? authorizer
           ? SIG_VALIDATION_SUCCESS
           : SIG_VALIDATION_FAILURE
@@ -27,12 +27,12 @@ function packValidationData(validAfter, validUntil, authorizer) {
 }
 
 function packInitCode(factory, factoryData) {
-  return ethers.solidityPacked(['address', 'bytes'], [getAddress(factory), factoryData]);
+  return ethers.solidityPacked(["address", "bytes"], [getAddress(factory), factoryData]);
 }
 
 function packPaymasterAndData(paymaster, paymasterVerificationGasLimit, paymasterPostOpGasLimit, paymasterData) {
   return ethers.solidityPacked(
-    ['address', 'uint128', 'uint128', 'bytes'],
+    ["address", "uint128", "uint128", "bytes"],
     [getAddress(paymaster), paymasterVerificationGasLimit, paymasterPostOpGasLimit, paymasterData],
   );
 }
@@ -43,8 +43,8 @@ class UserOperation {
     this.sender = getAddress(params.sender);
     this.nonce = params.nonce;
     this.factory = params.factory ?? undefined;
-    this.factoryData = params.factoryData ?? '0x';
-    this.callData = params.callData ?? '0x';
+    this.factoryData = params.factoryData ?? "0x";
+    this.callData = params.callData ?? "0x";
     this.verificationGas = params.verificationGas ?? 10_000_000n;
     this.callGas = params.callGas ?? 100_000n;
     this.preVerificationGas = params.preVerificationGas ?? 100_000n;
@@ -53,15 +53,15 @@ class UserOperation {
     this.paymaster = params.paymaster ?? undefined;
     this.paymasterVerificationGasLimit = params.paymasterVerificationGasLimit ?? 0n;
     this.paymasterPostOpGasLimit = params.paymasterPostOpGasLimit ?? 0n;
-    this.paymasterData = params.paymasterData ?? '0x';
-    this.signature = params.signature ?? '0x';
+    this.paymasterData = params.paymasterData ?? "0x";
+    this.signature = params.signature ?? "0x";
   }
 
   get packed() {
     return {
       sender: this.sender,
       nonce: this.nonce,
-      initCode: this.factory ? packInitCode(this.factory, this.factoryData) : '0x',
+      initCode: this.factory ? packInitCode(this.factory, this.factoryData) : "0x",
       callData: this.callData,
       accountGasLimits: pack(this.verificationGas, this.callGas),
       preVerificationGas: this.preVerificationGas,
@@ -73,7 +73,7 @@ class UserOperation {
             this.paymasterPostOpGasLimit,
             this.paymasterData,
           )
-        : '0x',
+        : "0x",
       signature: this.signature,
     };
   }
@@ -84,14 +84,14 @@ class UserOperation {
 }
 
 const parseInitCode = initCode => ({
-  factory: '0x' + initCode.replace(/0x/, '').slice(0, 40),
-  factoryData: '0x' + initCode.replace(/0x/, '').slice(40),
+  factory: "0x" + initCode.replace(/0x/, "").slice(0, 40),
+  factoryData: "0x" + initCode.replace(/0x/, "").slice(40),
 });
 
 /// Global ERC-4337 environment helper.
 class ERC4337Helper {
   constructor() {
-    this.factoryAsPromise = ethers.deployContract('$Create2');
+    this.factoryAsPromise = ethers.deployContract("$Create2");
   }
 
   async wait() {
@@ -118,7 +118,7 @@ class ERC4337Helper {
       const initCode = await accountFactory
         .getDeployTransaction(...extraArgs)
         .then(tx =>
-          factory.interface.encodeFunctionData('$deploy', [0, params.salt ?? ethers.randomBytes(32), tx.data]),
+          factory.interface.encodeFunctionData("$deploy", [0, params.salt ?? ethers.randomBytes(32), tx.data]),
         )
         .then(deployCode => ethers.concat([factory.target, deployCode]));
 
@@ -126,7 +126,7 @@ class ERC4337Helper {
         .call({
           from: env.entrypoint,
           to: env.senderCreator,
-          data: env.senderCreator.interface.encodeFunctionData('createSender', [initCode]),
+          data: env.senderCreator.interface.encodeFunctionData("createSender", [initCode]),
         })
         .then(result => ethers.getAddress(ethers.hexlify(ethers.getBytes(result).slice(-20))))
         .then(address => accountFactory.attach(address));
@@ -192,13 +192,13 @@ class UserOperationWithContext extends UserOperation {
   addInitCode() {
     if (this._sender?.initCode) {
       return Object.assign(this, parseInitCode(this._sender.initCode));
-    } else throw new Error('No init code available for the sender of this user operation');
+    } else {throw new Error("No init code available for the sender of this user operation");}
   }
 
   getAuthorization() {
     if (this._sender?.authorization) {
       return this._sender.authorization;
-    } else throw new Error('No EIP-7702 authorization available for the sender of this user operation');
+    } else {throw new Error("No EIP-7702 authorization available for the sender of this user operation");}
   }
 
   hash() {

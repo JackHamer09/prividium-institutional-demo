@@ -1,13 +1,13 @@
-const { ethers } = require('hardhat');
-const { ProposalState } = require('./enums');
-const { unique } = require('./iterate');
-const time = require('./time');
+const { ethers } = require("hardhat");
+const { ProposalState } = require("./enums");
+const { unique } = require("./iterate");
+const time = require("./time");
 
 const timelockSalt = (address, descriptionHash) =>
   ethers.toBeHex((ethers.toBigInt(address) << 96n) ^ ethers.toBigInt(descriptionHash), 32);
 
 class GovernorHelper {
-  constructor(governor, mode = 'blocknumber') {
+  constructor(governor, mode = "blocknumber") {
     this.governor = governor;
     this.mode = mode;
   }
@@ -27,7 +27,7 @@ class GovernorHelper {
     if (Array.isArray(actions)) {
       this.targets = actions.map(a => a.target);
       this.values = actions.map(a => a.value || 0n);
-      this.data = actions.map(a => a.data || '0x');
+      this.data = actions.map(a => a.data || "0x");
     } else {
       ({ targets: this.targets, values: this.values, data: this.data } = actions);
     }
@@ -37,7 +37,7 @@ class GovernorHelper {
 
   get hash() {
     return ethers.keccak256(
-      ethers.AbiCoder.defaultAbiCoder().encode(['address[]', 'uint256[]', 'bytes[]', 'bytes32'], this.shortProposal),
+      ethers.AbiCoder.defaultAbiCoder().encode(["address[]", "uint256[]", "bytes[]", "bytes32"], this.shortProposal),
     );
   }
 
@@ -47,7 +47,7 @@ class GovernorHelper {
 
   // used for checking events
   get signatures() {
-    return this.data.map(() => '');
+    return this.data.map(() => "");
   }
 
   get descriptionHash() {
@@ -95,12 +95,12 @@ class GovernorHelper {
     return this.governor.execute(...this.shortProposal);
   }
 
-  cancel(visibility = 'external') {
+  cancel(visibility = "external") {
     switch (visibility) {
-      case 'external':
+      case "external":
         return this.governor.cancel(...this.shortProposal);
 
-      case 'internal':
+      case "internal":
         return this.governor.$_cancel(...this.shortProposal);
 
       default:
@@ -109,23 +109,23 @@ class GovernorHelper {
   }
 
   async vote(vote = {}) {
-    let method = 'castVote'; // default
-    let args = [await this.id, vote.support]; // base
+    let method = "castVote"; // default
+    const args = [await this.id, vote.support]; // base
 
     if (vote.signature) {
       const sign = await this.forgeMessage(vote).then(msg => vote.signature(this.governor, msg));
       if (vote.params || vote.reason) {
-        method = 'castVoteWithReasonAndParamsBySig';
-        args.push(vote.voter, vote.reason ?? '', vote.params ?? '0x', sign);
+        method = "castVoteWithReasonAndParamsBySig";
+        args.push(vote.voter, vote.reason ?? "", vote.params ?? "0x", sign);
       } else {
-        method = 'castVoteBySig';
+        method = "castVoteBySig";
         args.push(vote.voter, sign);
       }
     } else if (vote.params) {
-      method = 'castVoteWithReasonAndParams';
-      args.push(vote.reason ?? '', vote.params);
+      method = "castVoteWithReasonAndParams";
+      args.push(vote.reason ?? "", vote.params);
     } else if (vote.reason) {
-      method = 'castVoteWithReason';
+      method = "castVoteWithReason";
       args.push(vote.reason);
     }
 
@@ -133,15 +133,15 @@ class GovernorHelper {
   }
 
   async overrideVote(vote = {}) {
-    let method = 'castOverrideVote';
-    let args = [await this.id, vote.support];
+    let method = "castOverrideVote";
+    const args = [await this.id, vote.support];
 
-    vote.reason = vote.reason ?? '';
+    vote.reason = vote.reason ?? "";
 
     if (vote.signature) {
-      const sign = await this.forgeMessage(vote).then(msg => vote.signature(this.governor, { reason: '', ...msg }));
-      method = 'castOverrideVoteBySig';
-      args.push(vote.voter, vote.reason ?? '', sign);
+      const sign = await this.forgeMessage(vote).then(msg => vote.signature(this.governor, { reason: "", ...msg }));
+      method = "castOverrideVoteBySig";
+      args.push(vote.voter, vote.reason ?? "", sign);
     }
 
     return await this.governor[method](...args);
@@ -168,8 +168,8 @@ class GovernorHelper {
     const message = { proposalId: await this.id, support: vote.support, voter: vote.voter, nonce: vote.nonce };
 
     if (vote.params || vote.reason) {
-      message.reason = vote.reason ?? '';
-      message.params = vote.params ?? '0x';
+      message.reason = vote.reason ?? "";
+      message.params = vote.params ?? "0x";
     }
 
     return message;

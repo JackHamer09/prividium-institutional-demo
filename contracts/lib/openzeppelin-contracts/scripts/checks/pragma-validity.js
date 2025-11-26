@@ -1,23 +1,23 @@
 #!/usr/bin/env node
 
-const semver = require('semver');
-const pLimit = require('p-limit').default;
+const semver = require("semver");
+const pLimit = require("p-limit").default;
 
-const { hideBin } = require('yargs/helpers');
-const yargs = require('yargs/yargs');
+const { hideBin } = require("yargs/helpers");
+const yargs = require("yargs/yargs");
 
-const getContractsMetadata = require('../get-contracts-metadata');
-const { compile } = require('../solc-versions');
+const getContractsMetadata = require("../get-contracts-metadata");
+const { compile } = require("../solc-versions");
 
 const {
   argv: { pattern, skipPatterns, verbose, concurrency, _: artifacts },
 } = yargs(hideBin(process.argv))
-  .env('')
+  .env("")
   .options({
-    pattern: { alias: 'p', type: 'string', default: 'contracts/**/*.sol' },
-    skipPatterns: { alias: 's', type: 'string', default: 'contracts/mocks/**/*.sol' },
-    concurrency: { alias: 'c', type: 'number', default: 8 },
-    verbose: { alias: 'v', type: 'count' },
+    pattern: { alias: "p", type: "string", default: "contracts/**/*.sol" },
+    skipPatterns: { alias: "s", type: "string", default: "contracts/mocks/**/*.sol" },
+    concurrency: { alias: "c", type: "number", default: 8 },
+    verbose: { alias: "v", type: "count" },
   });
 
 const limit = pLimit(concurrency);
@@ -40,6 +40,6 @@ Promise.all(
   ),
 ).finally(() => {
   if (!process.exitCode) {
-    console.log('All files can be compiled with the specified pragma.');
+    console.log("All files can be compiled with the specified pragma.");
   }
 });

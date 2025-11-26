@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const { getStorageUpgradeReport } = require('@openzeppelin/upgrades-core/dist/storage');
+const fs = require("fs");
+const { getStorageUpgradeReport } = require("@openzeppelin/upgrades-core/dist/storage");
 
-const { hideBin } = require('yargs/helpers');
-const { argv } = require('yargs/yargs')(hideBin(process.argv))
-  .env('')
+const { hideBin } = require("yargs/helpers");
+const { argv } = require("yargs/yargs")(hideBin(process.argv))
+  .env("")
   .options({
-    ref: { type: 'string', required: true },
-    head: { type: 'string', required: true },
+    ref: { type: "string", required: true },
+    head: { type: "string", required: true },
   });
 
 const oldLayout = JSON.parse(fs.readFileSync(argv.ref));

@@ -1,21 +1,21 @@
-const { ethers } = require('hardhat');
-const { expect } = require('chai');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-const { forceDeployCode } = require('../helpers/deploy');
-const { product } = require('../helpers/iterate');
-const { SIZES } = require('../../scripts/generate/templates/Packing.opts');
+const { forceDeployCode } = require("../helpers/deploy");
+const { product } = require("../helpers/iterate");
+const { SIZES } = require("../../scripts/generate/templates/Packing.opts");
 
 async function fixture() {
-  return { mock: await forceDeployCode('$Packing') };
+  return { mock: await forceDeployCode("$Packing") };
 }
 
-describe('Packing', function () {
+describe("Packing", function () {
   beforeEach(async function () {
     Object.assign(this, await loadFixture(fixture));
   });
 
-  describe('pack', function () {
+  describe("pack", function () {
     for (const [size1, size2] of product(SIZES, SIZES).filter(([size1, size2]) => SIZES.includes(size1 + size2))) {
       const value1 = ethers.hexlify(ethers.randomBytes(size1));
       const value2 = ethers.hexlify(ethers.randomBytes(size2));
@@ -29,7 +29,7 @@ describe('Packing', function () {
     }
   });
 
-  describe('extract / replace', function () {
+  describe("extract / replace", function () {
     for (const [size1, size2] of product(SIZES, SIZES).filter(([size1, size2]) => size1 > size2)) {
       const MAX_OFFSET = size1 - size2;
       const offset = ethers.toNumber(ethers.randomBytes(1)) % (MAX_OFFSET + 1);
@@ -43,12 +43,12 @@ describe('Packing', function () {
 
         await expect(this.mock[`$extract_${size1}_${size2}`](outer, MAX_OFFSET)).to.not.be.revertedWithCustomError(
           this.mock,
-          'OutOfRangeAccess',
+          "OutOfRangeAccess",
         );
 
         await expect(this.mock[`$extract_${size1}_${size2}`](outer, MAX_OFFSET + 1)).to.be.revertedWithCustomError(
           this.mock,
-          'OutOfRangeAccess',
+          "OutOfRangeAccess",
         );
       });
 
@@ -59,11 +59,11 @@ describe('Packing', function () {
 
         await expect(
           this.mock[`$replace_${size1}_${size2}`](outer, value, MAX_OFFSET),
-        ).to.not.be.revertedWithCustomError(this.mock, 'OutOfRangeAccess');
+        ).to.not.be.revertedWithCustomError(this.mock, "OutOfRangeAccess");
 
         await expect(
           this.mock[`$replace_${size1}_${size2}`](outer, value, MAX_OFFSET + 1),
-        ).to.be.revertedWithCustomError(this.mock, 'OutOfRangeAccess');
+        ).to.be.revertedWithCustomError(this.mock, "OutOfRangeAccess");
       });
     }
   });

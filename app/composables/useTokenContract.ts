@@ -1,6 +1,5 @@
-import { readContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
+import { readContract, waitForTransactionReceipt } from "@wagmi/core";
 import { type Address, erc20Abi } from "viem";
-import { MAIN_CHAIN_ID } from "../config/chains";
 
 /**
  * ERC20 token contract interactions
@@ -8,7 +7,8 @@ import { MAIN_CHAIN_ID } from "../config/chains";
 export function useTokenContract() {
   const config = useWagmiConfig();
   const toast = useToast();
-  const { ensureCorrectChain } = useChainSwitch();
+  const { ensureCorrectChain, getChainId } = useChainSwitch();
+  const { executeWrite } = usePrividiumWrite();
 
   /**
    * Get token balance for an address
@@ -20,7 +20,7 @@ export function useTokenContract() {
         abi: erc20Abi,
         functionName: "balanceOf",
         args: [account],
-        chainId: MAIN_CHAIN_ID,
+        chainId: getChainId(),
       });
       return balance as bigint;
     } catch (error) {
@@ -43,7 +43,7 @@ export function useTokenContract() {
         abi: erc20Abi,
         functionName: "allowance",
         args: [owner, spender],
-        chainId: MAIN_CHAIN_ID,
+        chainId: getChainId(),
       });
       return allowance as bigint;
     } catch (error) {
@@ -63,17 +63,17 @@ export function useTokenContract() {
     }
 
     try {
-      const hash = await writeContract(config, {
+      const hash = await executeWrite({
         address: tokenAddress,
         abi: erc20Abi,
         functionName: "approve",
         args: [spender, amount],
-        chainId: MAIN_CHAIN_ID,
+        chainId: getChainId(),
       });
 
       toast.loading("Approving token...");
 
-      await waitForTransactionReceipt(config, { hash, chainId: MAIN_CHAIN_ID });
+      await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
 
       toast.success("Token approved successfully");
       return true;

@@ -1,30 +1,30 @@
-const { ethers, predeploy } = require('hardhat');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers, predeploy } = require("hardhat");
+const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-const { getDomain } = require('../helpers/eip712');
-const { ERC4337Helper } = require('../helpers/erc4337');
-const { NonNativeSigner, P256SigningKey } = require('../helpers/signers');
-const { PackedUserOperation } = require('../helpers/eip712-types');
+const { getDomain } = require("../helpers/eip712");
+const { ERC4337Helper } = require("../helpers/erc4337");
+const { NonNativeSigner, P256SigningKey } = require("../helpers/signers");
+const { PackedUserOperation } = require("../helpers/eip712-types");
 
-const { shouldBehaveLikeAccountCore, shouldBehaveLikeAccountHolder } = require('./Account.behavior');
-const { shouldBehaveLikeERC1271 } = require('../utils/cryptography/ERC1271.behavior');
-const { shouldBehaveLikeERC7821 } = require('./extensions/ERC7821.behavior');
+const { shouldBehaveLikeAccountCore, shouldBehaveLikeAccountHolder } = require("./Account.behavior");
+const { shouldBehaveLikeERC1271 } = require("../utils/cryptography/ERC1271.behavior");
+const { shouldBehaveLikeERC7821 } = require("./extensions/ERC7821.behavior");
 
 async function fixture() {
   // EOAs and environment
   const [beneficiary, other] = await ethers.getSigners();
-  const target = await ethers.deployContract('CallReceiverMock');
+  const target = await ethers.deployContract("CallReceiverMock");
 
   // ERC-4337 signer
   const signer = new NonNativeSigner(P256SigningKey.random());
 
   // ERC-4337 account
   const helper = new ERC4337Helper();
-  const mock = await helper.newAccount('$AccountP256Mock', [
+  const mock = await helper.newAccount("$AccountP256Mock", [
     signer.signingKey.publicKey.qx,
     signer.signingKey.publicKey.qy,
-    'AccountP256',
-    '1',
+    "AccountP256",
+    "1",
   ]);
 
   // ERC-4337 Entrypoint domain
@@ -32,8 +32,8 @@ async function fixture() {
 
   // domain cannot be fetched using getDomain(mock) before the mock is deployed
   const domain = {
-    name: 'AccountP256',
-    version: '1',
+    name: "AccountP256",
+    version: "1",
     chainId: entrypointDomain.chainId,
     verifyingContract: mock.address,
   };
@@ -46,7 +46,7 @@ async function fixture() {
   return { helper, mock, domain, signer, target, beneficiary, other, signUserOp };
 }
 
-describe('AccountP256', function () {
+describe("AccountP256", function () {
   beforeEach(async function () {
     Object.assign(this, await loadFixture(fixture));
   });

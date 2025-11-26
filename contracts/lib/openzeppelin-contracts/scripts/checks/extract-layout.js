@@ -1,12 +1,12 @@
-const fs = require('fs');
-const { findAll, astDereferencer, srcDecoder } = require('solidity-ast/utils');
-const { extractStorageLayout } = require('@openzeppelin/upgrades-core/dist/storage/extract');
+const fs = require("fs");
+const { findAll, astDereferencer, srcDecoder } = require("solidity-ast/utils");
+const { extractStorageLayout } = require("@openzeppelin/upgrades-core/dist/storage/extract");
 
-const { hideBin } = require('yargs/helpers');
-const { argv } = require('yargs/yargs')(hideBin(process.argv));
+const { hideBin } = require("yargs/helpers");
+const { argv } = require("yargs/yargs")(hideBin(process.argv));
 
-const skipPath = ['contracts/mocks/', 'contracts-exposed/'];
-const skipKind = ['interface', 'library'];
+const skipPath = ["contracts/mocks/", "contracts-exposed/"];
+const skipKind = ["interface", "library"];
 
 function extractLayouts(path) {
   const layout = {};
@@ -20,7 +20,7 @@ function extractLayouts(path) {
       continue;
     }
 
-    for (const contractDef of findAll('ContractDefinition', output.sources[src].ast)) {
+    for (const contractDef of findAll("ContractDefinition", output.sources[src].ast)) {
       if (skipKind.includes(contractDef.contractKind)) {
         continue;
       }

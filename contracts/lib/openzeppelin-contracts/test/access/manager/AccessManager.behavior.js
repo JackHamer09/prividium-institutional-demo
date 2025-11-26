@@ -1,4 +1,4 @@
-const { expect } = require('chai');
+const { expect } = require("chai");
 
 const {
   LIKE_COMMON_IS_EXECUTING,
@@ -9,7 +9,7 @@ const {
   testAsDelayedOperation,
   testAsCanCall,
   testAsHasRole,
-} = require('./AccessManager.predicate');
+} = require("./AccessManager.predicate");
 
 // ============ ADMIN OPERATION ============
 
@@ -22,13 +22,13 @@ function shouldBehaveLikeDelayedAdminOperation() {
   getAccessPath.requiredRoleIsGranted.roleGrantingIsDelayed.callerHasAnExecutionDelay.afterGrantDelay =
     testAsDelayedOperation;
   getAccessPath.requiredRoleIsGranted.roleGrantingIsNotDelayed.callerHasAnExecutionDelay = function () {
-    beforeEach('set execution delay', async function () {
+    beforeEach("set execution delay", async function () {
       this.scheduleIn = this.executionDelay; // For testAsDelayedOperation
     });
     testAsSchedulableOperation(LIKE_COMMON_SCHEDULABLE);
   };
 
-  beforeEach('set target as manager', function () {
+  beforeEach("set target as manager", function () {
     this.target = this.manager;
   });
 
@@ -37,9 +37,9 @@ function shouldBehaveLikeDelayedAdminOperation() {
     callerIsNotTheManager() {
       testAsHasRole({
         publicRoleIsRequired() {
-          it('reverts as AccessManagerUnauthorizedAccount', async function () {
+          it("reverts as AccessManagerUnauthorizedAccount", async function () {
             await expect(this.caller.sendTransaction({ to: this.target, data: this.calldata }))
-              .to.be.revertedWithCustomError(this.target, 'AccessManagerUnauthorizedAccount')
+              .to.be.revertedWithCustomError(this.target, "AccessManagerUnauthorizedAccount")
               .withArgs(
                 this.caller,
                 this.roles.ADMIN.id, // Although PUBLIC_ROLE is required, target function role doesn't apply to admin ops
@@ -61,7 +61,7 @@ function shouldBehaveLikeNotDelayedAdminOperation() {
   function testScheduleOperation(mineDelay) {
     return function self() {
       self.mineDelay = mineDelay;
-      beforeEach('set execution delay', async function () {
+      beforeEach("set execution delay", async function () {
         this.scheduleIn = this.executionDelay; // For testAsSchedulableOperation
       });
       testAsSchedulableOperation(LIKE_COMMON_SCHEDULABLE);
@@ -72,7 +72,7 @@ function shouldBehaveLikeNotDelayedAdminOperation() {
     testScheduleOperation(true);
   getAccessPath.requiredRoleIsGranted.roleGrantingIsNotDelayed.callerHasAnExecutionDelay = testScheduleOperation(false);
 
-  beforeEach('set target as manager', function () {
+  beforeEach("set target as manager", function () {
     this.target = this.manager;
   });
 
@@ -81,9 +81,9 @@ function shouldBehaveLikeNotDelayedAdminOperation() {
     callerIsNotTheManager() {
       testAsHasRole({
         publicRoleIsRequired() {
-          it('reverts as AccessManagerUnauthorizedAccount', async function () {
+          it("reverts as AccessManagerUnauthorizedAccount", async function () {
             await expect(this.caller.sendTransaction({ to: this.target, data: this.calldata }))
-              .to.be.revertedWithCustomError(this.target, 'AccessManagerUnauthorizedAccount')
+              .to.be.revertedWithCustomError(this.target, "AccessManagerUnauthorizedAccount")
               .withArgs(
                 this.caller,
                 this.roles.ADMIN.id, // Although PUBLIC_ROLE is required, admin ops are not subject to target function roles
@@ -104,7 +104,7 @@ function shouldBehaveLikeRoleAdminOperation(roleAdmin) {
 
   function afterGrantDelay() {
     afterGrantDelay.mineDelay = true;
-    beforeEach('set execution delay', async function () {
+    beforeEach("set execution delay", async function () {
       this.scheduleIn = this.executionDelay; // For testAsSchedulableOperation
     });
     testAsSchedulableOperation(LIKE_COMMON_SCHEDULABLE);
@@ -113,7 +113,7 @@ function shouldBehaveLikeRoleAdminOperation(roleAdmin) {
   getAccessPath.requiredRoleIsGranted.roleGrantingIsDelayed.callerHasAnExecutionDelay.afterGrantDelay = afterGrantDelay;
   getAccessPath.requiredRoleIsGranted.roleGrantingIsNotDelayed.callerHasAnExecutionDelay = afterGrantDelay;
 
-  beforeEach('set target as manager', function () {
+  beforeEach("set target as manager", function () {
     this.target = this.manager;
   });
 
@@ -122,9 +122,9 @@ function shouldBehaveLikeRoleAdminOperation(roleAdmin) {
     callerIsNotTheManager() {
       testAsHasRole({
         publicRoleIsRequired() {
-          it('reverts as AccessManagerUnauthorizedAccount', async function () {
+          it("reverts as AccessManagerUnauthorizedAccount", async function () {
             await expect(this.caller.sendTransaction({ to: this.target, data: this.calldata }))
-              .to.be.revertedWithCustomError(this.target, 'AccessManagerUnauthorizedAccount')
+              .to.be.revertedWithCustomError(this.target, "AccessManagerUnauthorizedAccount")
               .withArgs(this.caller, roleAdmin);
           });
         },
@@ -141,9 +141,9 @@ function shouldBehaveLikeRoleAdminOperation(roleAdmin) {
  */
 function shouldBehaveLikeAManagedRestrictedOperation() {
   function revertUnauthorized() {
-    it('reverts as AccessManagedUnauthorized', async function () {
+    it("reverts as AccessManagedUnauthorized", async function () {
       await expect(this.caller.sendTransaction({ to: this.target, data: this.calldata }))
-        .to.be.revertedWithCustomError(this.target, 'AccessManagedUnauthorized')
+        .to.be.revertedWithCustomError(this.target, "AccessManagedUnauthorized")
         .withArgs(this.caller);
     });
   }
@@ -159,7 +159,7 @@ function shouldBehaveLikeAManagedRestrictedOperation() {
   function testScheduleOperation(mineDelay) {
     return function self() {
       self.mineDelay = mineDelay;
-      beforeEach('sets execution delay', async function () {
+      beforeEach("sets execution delay", async function () {
         this.scheduleIn = this.executionDelay; // For testAsSchedulableOperation
       });
       testAsSchedulableOperation(LIKE_COMMON_SCHEDULABLE);
@@ -179,11 +179,11 @@ function shouldBehaveLikeAManagedRestrictedOperation() {
       callerIsTheManager: isExecutingPath,
       callerIsNotTheManager: {
         publicRoleIsRequired() {
-          it('succeeds called directly', async function () {
+          it("succeeds called directly", async function () {
             await this.caller.sendTransaction({ to: this.target, data: this.calldata });
           });
 
-          it('succeeds via execute', async function () {
+          it("succeeds via execute", async function () {
             await this.manager.connect(this.caller).execute(this.target, this.calldata);
           });
         },
@@ -198,9 +198,9 @@ function shouldBehaveLikeAManagedRestrictedOperation() {
  */
 function shouldBehaveLikeASelfRestrictedOperation() {
   function revertUnauthorized() {
-    it('reverts as AccessManagerUnauthorizedAccount', async function () {
+    it("reverts as AccessManagerUnauthorizedAccount", async function () {
       await expect(this.caller.sendTransaction({ to: this.target, data: this.calldata }))
-        .to.be.revertedWithCustomError(this.manager, 'AccessManagerUnauthorizedAccount')
+        .to.be.revertedWithCustomError(this.manager, "AccessManagerUnauthorizedAccount")
         .withArgs(this.caller, this.role?.id ?? 0n);
     });
   }
@@ -210,7 +210,7 @@ function shouldBehaveLikeASelfRestrictedOperation() {
   function testScheduleOperation(mineDelay) {
     return function self() {
       self.mineDelay = mineDelay;
-      beforeEach('sets execution delay', async function () {
+      beforeEach("sets execution delay", async function () {
         this.scheduleIn = this.executionDelay; // For testAsSchedulableOperation
       });
       testAsSchedulableOperation(LIKE_COMMON_SCHEDULABLE);
@@ -221,7 +221,7 @@ function shouldBehaveLikeASelfRestrictedOperation() {
     testScheduleOperation(true);
   getAccessPath.requiredRoleIsGranted.roleGrantingIsNotDelayed.callerHasAnExecutionDelay = testScheduleOperation(false);
 
-  beforeEach('set target as manager', function () {
+  beforeEach("set target as manager", function () {
     this.target = this.manager;
   });
 
@@ -234,11 +234,11 @@ function shouldBehaveLikeASelfRestrictedOperation() {
       callerIsTheManager: isExecutingPath,
       callerIsNotTheManager: {
         publicRoleIsRequired() {
-          it('succeeds called directly', async function () {
+          it("succeeds called directly", async function () {
             await this.caller.sendTransaction({ to: this.target, data: this.calldata });
           });
 
-          it('succeeds via execute', async function () {
+          it("succeeds via execute", async function () {
             await this.manager.connect(this.caller).execute(this.target, this.calldata);
           });
         },
