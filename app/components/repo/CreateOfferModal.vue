@@ -244,10 +244,10 @@ async function handleSubmit() {
   isSubmitting.value = true;
 
   try {
-    // Parse amounts
-    const lendAmount = parseUnits(form.lendAmount.toString(), selectedLendToken.value.decimals);
+    // Parse amounts (validated by isFormValid)
+    const lendAmount = parseUnits(form.lendAmount!.toString(), selectedLendToken.value.decimals);
     const collateralAmount = parseUnits(
-      form.collateralAmount.toString(),
+      form.collateralAmount!.toString(),
       selectedCollateralToken.decimals,
     );
 
@@ -264,17 +264,17 @@ async function handleSubmit() {
       return;
     }
 
-    // Convert duration to seconds
-    const durationInSeconds = convertDurationToSeconds(form.durationValue, form.durationUnit);
+    // Convert duration to seconds (validated by isFormValid)
+    const durationInSeconds = convertDurationToSeconds(form.durationValue!, form.durationUnit);
 
-    // Create offer
+    // Create offer (validated by isFormValid)
     const result = await createOffer({
       lendToken: form.lendToken as Address,
       lendAmount,
       collateralToken: form.collateralToken as Address,
       collateralAmount,
       duration: BigInt(durationInSeconds),
-      lenderFee: BigInt(form.lenderFee),
+      lenderFee: BigInt(form.lenderFee!),
     });
 
     if (result !== null) {

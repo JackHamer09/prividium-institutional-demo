@@ -116,7 +116,7 @@ alt="" />
         variant="primary"
         size="sm"
         class="flex-1"
-        @click="$emit('accept', offer.offerId)"
+        @click="emit('accept', offer.offerId)"
       >
         Borrow
       </CommonButton>
@@ -126,7 +126,7 @@ alt="" />
         variant="danger"
         size="sm"
         class="flex-1"
-        @click="$emit('cancel', offer.offerId)"
+        @click="emit('cancel', offer.offerId)"
       >
         Cancel
       </CommonButton>
@@ -136,7 +136,7 @@ alt="" />
         variant="primary"
         size="sm"
         class="flex-1"
-        @click="$emit('repay', offer.offerId)"
+        @click="emit('repay', offer.offerId)"
       >
         Repay
       </CommonButton>
@@ -146,7 +146,7 @@ alt="" />
         variant="primary"
         size="sm"
         class="flex-1"
-        @click="$emit('claim', offer.offerId)"
+        @click="emit('claim', offer.offerId)"
       >
         Claim
       </CommonButton>

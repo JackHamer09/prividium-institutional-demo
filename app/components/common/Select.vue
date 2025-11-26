@@ -4,7 +4,7 @@
       {{ label }}
       <span v-if="required" class="text-red-600">*</span>
     </label>
-    <Listbox :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
+    <Listbox :model-value="modelValue" @update:model-value="emit('update:modelValue', $event as SelectValue)">
       <div class="relative">
         <ListboxButton
           class="relative w-full cursor-pointer rounded-lg bg-white py-2 pl-3 pr-10 text-left border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -25,7 +25,7 @@
           >
             <ListboxOption
               v-for="option in options"
-              :key="option.value"
+              :key="String(option.value)"
               v-slot="{ active, selected }"
               :value="option.value"
               as="template"
@@ -60,13 +60,15 @@
 import { Listbox, ListboxButton, ListboxOptions, ListboxOption } from "@headlessui/vue";
 import { ChevronDownIcon, CheckIcon } from "@heroicons/vue/20/solid";
 
-export interface SelectOption<T = unknown> {
+export interface SelectOption<T = string | number | boolean | object | null> {
   label: string;
   value: T;
 }
 
+type SelectValue = string | number | boolean | object | null | undefined;
+
 interface Props {
-  modelValue: unknown;
+  modelValue: SelectValue;
   options: SelectOption[];
   label?: string;
   required?: boolean;
@@ -80,7 +82,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  "update:modelValue": [value: unknown];
+  "update:modelValue": [value: SelectValue];
 }>();
 
 const displayValue = computed(() => {

@@ -1,7 +1,10 @@
 {
-  "name": "new",
+  "name": "prividium-institutional-demo",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
@@ -25,11 +28,12 @@
     "eslint": "^9.39.1",
     "nuxt": "^4.2.1",
     "pinia": "^3.0.4",
+    "prividium": "^0.1.2",
     "tailwindcss": "^4.1.17",
-    "vue-toastification": "^2.0.0-rc.5",
     "viem": "^2.40.2",
     "vue": "^3.5.25",
     "vue-router": "^4.6.3",
+    "vue-toastification": "^2.0.0-rc.5",
     "web3-avatar-vue": "^1.0.5",
     "zod": "^4.1.13"
   },

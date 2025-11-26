@@ -1,5 +1,5 @@
 import { getBlockNumber } from "@wagmi/core";
-import { MAIN_CHAIN_ID } from "~/config/chains";
+import { getMainChainId } from "~/config/chains";
 import { RPC_CHECK_INTERVAL_MS } from "~/config/repo";
 
 /**
@@ -18,7 +18,7 @@ export function useRpcStatus() {
     isChecking.value = true;
 
     try {
-      await getBlockNumber(config, { chainId: MAIN_CHAIN_ID });
+      await getBlockNumber(config, { chainId: getMainChainId() });
       isConnected.value = true;
       lastChecked.value = new Date();
       return true;
