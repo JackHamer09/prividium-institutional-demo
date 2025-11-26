@@ -1,0 +1,17 @@
+{
+  "../../contracts/lib/era-contracts": {
+    "rev": "37e3ba45f43d4df65016195f1659978e9b7f3f52"
+  },
+  "../../contracts/lib/forge-std": {
+    "rev": "6abf66980050ab03a35b52bdab814f55001d6929"
+  },
+  "../../contracts/lib/openzeppelin-contracts": {
+    "rev": "21c8312b022f495ebe3621d5daeed20552b43ff9"
+  },
+  "lib/openzeppelin-contracts": {
+    "tag": {
+      "name": "v5.5.0",
+      "rev": "fcbae5394ae8ad52d8e580a3477db99814b9d565"
+    }
+  }
+}

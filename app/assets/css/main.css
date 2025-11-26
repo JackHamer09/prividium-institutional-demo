@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    @apply border-slate-200;
+  }
+
+  body {
+    @apply bg-white text-slate-900 antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Onest', sans-serif;
+  }
+}
+
+.font-display {
+  font-family: 'Onest', sans-serif;
+}
+
+.font-sans {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Toast customization - smaller size and subtle colors */
+.Vue-Toastification__toast {
+  @apply text-sm py-2 px-3 shadow-sm rounded-lg;
+  min-height: auto !important;
+  padding: 0.625rem 0.875rem !important;
+  font-size: 0.875rem !important;
+}
+
+.Vue-Toastification__toast--success {
+  @apply bg-white border-2 border-green-200 text-slate-900;
+  background-color: #ffffff !important;
+  border-color: rgb(187 247 208) !important;
+  color: rgb(15 23 42) !important;
+}
+
+.Vue-Toastification__toast--error {
+  @apply bg-white border-2 border-red-200 text-slate-900;
+  background-color: #ffffff !important;
+  border-color: rgb(254 202 202) !important;
+  color: rgb(15 23 42) !important;
+}
+
+.Vue-Toastification__toast--info {
+  @apply bg-white border-2 border-blue-200 text-slate-900;
+  background-color: #ffffff !important;
+  border-color: rgb(191 219 254) !important;
+  color: rgb(15 23 42) !important;
+}
+
+.Vue-Toastification__toast-icon {
+  @apply text-lg;
+  width: 1.25rem !important;
+  margin-right: 0.75rem !important;
+}
+
+.Vue-Toastification__toast--success .Vue-Toastification__toast-icon {
+  @apply text-green-600;
+  color: rgb(22 163 74) !important;
+}
+
+.Vue-Toastification__toast--error .Vue-Toastification__toast-icon {
+  @apply text-red-600;
+  color: rgb(220 38 38) !important;
+}
+
+.Vue-Toastification__toast--info .Vue-Toastification__toast-icon {
+  @apply text-blue-600;
+  color: rgb(37 99 235) !important;
+}
+
+.Vue-Toastification__toast-body {
+  @apply text-sm;
+  padding: 0 !important;
+}
+
+.Vue-Toastification__progress-bar {
+  height: 2px !important;
+}
+
+.Vue-Toastification__toast--success .Vue-Toastification__progress-bar {
+  @apply bg-green-500;
+}
+
+.Vue-Toastification__toast--error .Vue-Toastification__progress-bar {
+  @apply bg-red-500;
+}
+
+.Vue-Toastification__toast--info .Vue-Toastification__progress-bar {
+  @apply bg-blue-500;
+}
