@@ -26,7 +26,8 @@ export const usePrividiumStore = defineStore("prividium", () => {
 
     try {
       await prividium.authorize({
-        scopes: ["wallet:required", "network:required"],
+        // scopes: ["wallet:required", "network:required"],
+        scopes: ["wallet:required"],
       });
       isAuthorized.value = true;
     } catch (error) {
