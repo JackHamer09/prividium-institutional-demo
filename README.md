@@ -8,8 +8,15 @@ Lenders create offers specifying loan terms (amount, collateral, duration, fee).
 
 ### 1. Prividium Environment
 
-Set up the Prividium environment following instructions at:
-https://github.com/matter-labs/zksync-prividium
+Set up the [Prividium](https://github.com/matter-labs/zksync-prividium) environment.
+
+### 1.1 Register App in Admin Panel
+
+In the Prividium admin panel, create an App Integration with:
+- **Whitelisted Origin**: `[app-domain]` (e.g., `http://localhost:3000`)
+- **Whitelisted Callback URL**: `[app-domain]/auth/callback` (e.g., `http://localhost:3000/auth/callback`)
+
+Note the generated OAuth Client ID for use in `.env` configuration.
 
 ### 2. Deploy Contracts
 
