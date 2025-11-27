@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "prettier": "^3.6.2",
+    "sass-embedded": "^1.93.3",
     "typescript": "^5.9.3"
   }
 }

@@ -1,24 +1,21 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-white px-4">
     <div class="max-w-md w-full text-center">
-      <h1 class="text-4xl font-display font-bold text-slate-900 mb-2">
+      <h1 class="z-10 text-4xl font-display font-bold text-slate-900 mb-2">
         Intraday Repo
       </h1>
-      <p class="text-slate-600 mb-8">
+      <p class="z-10 text-slate-600 mb-8">
         Short-term collateralized lending market
       </p>
 
       <!-- Step 1: Prividium Login -->
       <div v-if="!prividiumStore.isAuthorized" class="space-y-4">
-        <CommonButton
-          variant="primary"
-          size="lg"
-          full-width
+        <CommonSparkleButton
           :loading="prividiumStore.isAuthorizing"
           @click="handleAuthorize"
         >
           Login with Prividium
-        </CommonButton>
+        </CommonSparkleButton>
 
         <p v-if="prividiumStore.authError" class="text-sm text-red-600 mt-2">
           {{ prividiumStore.authError }}
