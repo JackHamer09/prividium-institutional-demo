@@ -1,5 +1,19 @@
+import { waitForTransactionReceipt } from "@wagmi/core";
 import type { Address } from "viem";
 import { getTokensConfig } from "../config/tokens";
+
+const mintAbi = [
+  {
+    name: "mint",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+] as const;
 
 /**
  * Token balance management
@@ -10,6 +24,10 @@ export function useBalances() {
   const balancesStore = useBalancesStore();
   const walletStore = useWalletStore();
   const { getBalance } = useTokenContract();
+  const { executeWrite } = usePrividiumWrite();
+  const { ensureCorrectChain, getChainId } = useChainSwitch();
+  const config = useWagmiConfig();
+  const toast = useToast();
 
   /**
    * Fetch balance for a single token
@@ -62,19 +80,33 @@ export function useBalances() {
   }
 
   /**
-   * Dummy mint function (simulates minting with a delay)
-   * Supports minting multiple tokens in a single operation
+   * Mint 100 of each token via contract calls
    */
   async function mintTokens(): Promise<void> {
-    const toast = useToast();
+    if (!walletStore.address) {
+      toast.error("Wallet not connected");
+      return;
+    }
+
+    const chainOk = await ensureCorrectChain();
+    if (!chainOk) {return;}
 
     try {
-      // Simulate mint with 2-second delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      for (const token of tokens) {
+        const mintAmount = BigInt(100) * BigInt(10 ** token.decimals);
+
+        const hash = await executeWrite({
+          address: token.address,
+          abi: mintAbi,
+          functionName: "mint",
+          args: [walletStore.address, mintAmount],
+          chainId: getChainId(),
+        });
+
+        await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+      }
 
       toast.success("Tokens minted successfully!");
-
-      // Refresh balances after mint
       await fetchAllBalances();
     } catch (error) {
       console.error("Failed to mint tokens:", error);

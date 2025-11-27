@@ -1,4 +1,4 @@
-import { getTransactionCount, sendTransaction } from "@wagmi/core";
+import { estimateGas, getGasPrice, getTransactionCount, sendTransaction } from "@wagmi/core";
 import { type Abi, type Address, encodeFunctionData, type Hex } from "viem";
 import type { PrividiumChain } from "prividium";
 
@@ -44,6 +44,18 @@ export function usePrividiumWrite() {
       chainId: params.chainId,
     });
 
+    // Estimate gas for the transaction
+    const gas = await estimateGas(config, {
+      to: params.address,
+      data: calldata,
+      chainId: params.chainId,
+    });
+
+    // Get current gas price
+    const gasPrice = await getGasPrice(config, {
+      chainId: params.chainId,
+    });
+
     // Enable wallet token before transaction
     await prividium.enableWalletToken({
       walletAddress: walletStore.address,
@@ -52,12 +64,13 @@ export function usePrividiumWrite() {
       calldata,
     });
 
-    // Send transaction through wallet with the same params used for enableWalletToken
     const hash = await sendTransaction(config, {
       to: params.address,
       data: calldata,
       chainId: params.chainId,
       nonce,
+      gas: gas,
+      gasPrice,
     });
 
     return hash;

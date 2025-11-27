@@ -30,7 +30,7 @@ After deployment, note the addresses for:
 
 In the Prividium admin panel, whitelist the following contracts and their functions:
 
-- **IntradayRepo Contract** (ABI: [app/contracts/intraday-repo.ts](./app/contracts/intraday-repo.ts))
+- **IntradayRepo Contract** (ABI: [app/abi/IntradayRepo.ts](./app/abi/IntradayRepo.ts))
 - **3 Token Contracts** (standard ERC20)
 
 ### 4. Configure Environment

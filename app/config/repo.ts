@@ -20,17 +20,17 @@ export function convertDurationToSeconds(value: number, unit: string): number {
 /**
  * Offers refresh interval in milliseconds (2 seconds)
  */
-export const OFFERS_REFRESH_INTERVAL_MS = 2_000;
+export const OFFERS_REFRESH_INTERVAL_MS = 5_000;
 
 /**
  * Balance refresh interval in milliseconds (2 seconds)
  */
-export const BALANCE_REFRESH_INTERVAL_MS = 2_000;
+export const BALANCE_REFRESH_INTERVAL_MS = 5_000;
 
 /**
  * RPC status check interval in milliseconds (2 seconds)
  */
-export const RPC_CHECK_INTERVAL_MS = 2_000;
+export const RPC_CHECK_INTERVAL_MS = 5_000;
 
 /**
  * Calculate fee amount from basis points
