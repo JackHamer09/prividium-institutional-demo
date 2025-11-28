@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@dutterbutter/zksync-sdk':
+        specifier: 0.0.12-alpha
+        version: 0.0.12-alpha(viem@2.40.2(typescript@5.9.3)(zod@4.1.13))
       '@headlessui/vue':
         specifier: ^1.7.23
         version: 1.7.23(vue@3.5.25(typescript@5.9.3))
@@ -226,6 +229,20 @@ packages:
   '@cloudflare/kv-asset-handler@0.4.0':
     resolution: {integrity: sha512-+tv3z+SPp+gqTIcImN9o0hqE9xyfQjI1XD9pL6NuKjua9B1y7mNYv0S9cP+QEbA4ppVgGZEmKOvHX5G5Ei1CVA==}
     engines: {node: '>=18.0.0'}
+
+  '@dutterbutter/zksync-sdk@0.0.12-alpha':
+    resolution: {integrity: sha512-yfwxPSiXvGWc0Tj/vt6aKllE9jhiZ8kRAiSK9GzpzblOqdzVzCXqO25JbbLQAsRZVb7HffQbJsCxSB9VNmmirQ==}
+    peerDependencies:
+      '@typechain/ethers-v6': ^0.5.0
+      ethers: ^6.15.0
+      viem: '>=2.0.0 <3'
+    peerDependenciesMeta:
+      '@typechain/ethers-v6':
+        optional: true
+      ethers:
+        optional: true
+      viem:
+        optional: true
 
   '@dxup/nuxt@0.2.2':
     resolution: {integrity: sha512-RNpJjDZs9+JcT9N87AnOuHsNM75DEd58itADNd/s1LIF6BZbTLZV0xxilJZb55lntn4TYvscTaXLCBX2fq9CXg==}
@@ -5100,6 +5117,12 @@ snapshots:
   '@cloudflare/kv-asset-handler@0.4.0':
     dependencies:
       mime: 3.0.0
+
+  '@dutterbutter/zksync-sdk@0.0.12-alpha(viem@2.40.2(typescript@5.9.3)(zod@4.1.13))':
+    dependencies:
+      '@noble/hashes': 1.8.0
+    optionalDependencies:
+      viem: 2.40.2(typescript@5.9.3)(zod@4.1.13)
 
   '@dxup/nuxt@0.2.2(magicast@0.5.1)':
     dependencies:

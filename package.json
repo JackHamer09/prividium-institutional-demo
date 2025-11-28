@@ -16,6 +16,7 @@
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
+    "@dutterbutter/zksync-sdk": "0.0.12-alpha",
     "@headlessui/vue": "^1.7.23",
     "@heroicons/vue": "^2.2.0",
     "@nuxt/eslint": "1.10.0",

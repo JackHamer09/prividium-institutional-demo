@@ -5,6 +5,26 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   ssr: false,
   devtools: { enabled: true },
+
+  app: {
+    head: {
+      title: "Intraday Repo",
+      htmlAttrs: {
+        lang: "en",
+      },
+      meta: [
+        { charset: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        {
+          name: "description",
+          content:
+            "Short-term collateralized lending market for institutional investors",
+        },
+        { name: "theme-color", content: "#0f172a" },
+      ],
+      link: [{ rel: "icon", type: "image/svg+xml", href: "/logo.svg" }],
+    },
+  },
   css: [
     "./app/assets/css/main.css",
     "web3-avatar-vue/dist/style.css",
