@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.28;
+
+import {InteropLibrary} from "era-contracts/l1-contracts/contracts/interop/InteropLibrary.sol";
+import {L2_NATIVE_TOKEN_VAULT_ADDR} from "era-contracts/l1-contracts/contracts/common/l2-helpers/L2ContractAddresses.sol";
 
 /**
  * @title RepoContract
- * @dev This contract implements a native Ethereum intraday repo system.
+ * @dev This contract implements a cross-chain intraday repo system.
  *
  * The repo system allows:
  * 1. Users to create lending offers by specifying a token they want to lend,
- *    the collateral they require, the amounts, duration, and fee.
+ *    the collateral they require, the amounts, duration, and chains.
  * 2. Other users to borrow these tokens by providing the required collateral.
  * 3. Borrowers to repay the loan within the specified duration to retrieve their collateral.
  * 4. Lenders to claim the collateral if the loan is not repaid within the duration plus grace period.
@@ -18,16 +21,18 @@ pragma solidity ^0.8.24;
  * - Lender fee in basis points
  * - Full collateralization
  * - Lender protection through collateral claiming mechanism
+ * - Cross-chain functionality using ZKSync's interop system
  */
 
 /// @notice Minimal ERC20 interface needed for transfers.
 interface IERC20 {
     function transferFrom(address from, address to, uint256 value) external returns (bool);
     function transfer(address to, uint256 value) external returns (bool);
+    function approve(address spender, uint256 amount) external returns (bool);
 }
 
 /// @title RepoContract
-/// @notice A native Ethereum intraday repo contract that allows users to lend and borrow tokens
+/// @notice A cross-chain intraday repo contract that allows users to lend and borrow tokens
 ///         with collateral for specified durations.
 contract RepoContract {
     /// @notice Repo offer status values.
@@ -38,6 +43,10 @@ contract RepoContract {
         uint256 offerId;
         address lender;          // User who creates the offer and lends tokens
         address borrower;        // User who accepts the offer and provides collateral
+        address lenderRefundAddress; // Address to refund lend tokens to (on lender's chain)
+        address borrowerRefundAddress; // Address to refund collateral to (on borrower's chain)
+        uint256 lenderChainId;   // Chain ID of the lender
+        uint256 borrowerChainId; // Chain ID of the borrower (filled when offer is accepted)
         address lendToken;       // Token that lender is offering
         uint256 lendAmount;      // Amount of lendToken
         address collateralToken; // Token required as collateral
@@ -62,6 +71,9 @@ contract RepoContract {
     // Grace period for repayment (in seconds, default 2 minutes)
     uint256 public gracePeriod = 2 minutes;
 
+    // Unbundler address for cross-chain interop calls
+    address public unbundlerAddress;
+
     // Modifiers
     modifier onlyAdmin() {
         require(msg.sender == admin, "Only admin can perform this action");
@@ -76,14 +88,16 @@ contract RepoContract {
     }
 
     // --- Events ---
-    event OfferCreated(uint256 indexed offerId, address indexed lender);
-    event OfferAccepted(uint256 indexed offerId, address indexed borrower);
+    event OfferCreated(uint256 indexed offerId, address indexed lender, uint256 lenderChainId);
+    event OfferAccepted(uint256 indexed offerId, address indexed borrower, uint256 borrowerChainId);
     event LoanRepaid(uint256 indexed offerId);
     event OfferCancelled(uint256 indexed offerId);
     event CollateralReleased(uint256 indexed offerId);
     event CollateralClaimed(uint256 indexed offerId);
     event GracePeriodUpdated(uint256 newGracePeriod);
     event AdminChanged(address indexed oldAdmin, address indexed newAdmin);
+    event CrossChainTransferInitiated(address token, uint256 amount, address recipient, uint256 chainId);
+    event UnbundlerAddressUpdated(address newUnbundlerAddress);
 
     // --- Offer Creation ---
 
@@ -93,6 +107,8 @@ contract RepoContract {
     /// @param _collateralToken The token address required as collateral.
     /// @param _collateralAmount The amount of collateral required.
     /// @param _duration The duration in seconds for which the funds can be borrowed.
+    /// @param _lenderChainId The chain ID of the lender.
+    /// @param _lenderRefundAddress The address to refund lend tokens to (on lender's chain).
     /// @param _lenderFee The fee percentage in basis points (e.g., 30 = 0.3%).
     /// @return offerId The unique identifier for the created offer.
     function createOffer(
@@ -101,6 +117,8 @@ contract RepoContract {
         address _collateralToken,
         uint256 _collateralAmount,
         uint256 _duration,
+        uint256 _lenderChainId,
+        address _lenderRefundAddress,
         uint256 _lenderFee
     ) external returns (uint256 offerId) {
         require(_lendToken != address(0), "Invalid lend token");
@@ -108,7 +126,17 @@ contract RepoContract {
         require(_lendAmount > 0, "Lend amount must be greater than 0");
         require(_collateralAmount > 0, "Collateral amount must be greater than 0");
         require(_duration > 0, "Duration must be greater than 0");
+        require(_lenderChainId > 0, "Invalid lender chain ID");
+        require(_lenderRefundAddress != address(0), "Invalid lender refund address");
         require(_lenderFee <= 10000, "Lender fee cannot exceed 100%");
+
+        // Verify that msg.sender is the correct caller based on chain
+        if (_lenderChainId == block.chainid) {
+            require(msg.sender == _lenderRefundAddress, "RepoContract: msg.sender must be lender refund address");
+        } else {
+            address expectedSender = InteropLibrary.getShadowAccountAddress(_lenderChainId, _lenderRefundAddress);
+            require(msg.sender == expectedSender, "RepoContract: msg.sender must be shadow account of lender refund address");
+        }
 
         // Create the offer
         offerCounter++;
@@ -118,6 +146,10 @@ contract RepoContract {
             offerId: offerId,
             lender: msg.sender,
             borrower: address(0),
+            lenderRefundAddress: _lenderRefundAddress,
+            borrowerRefundAddress: address(0),
+            lenderChainId: _lenderChainId,
+            borrowerChainId: 0,
             lendToken: _lendToken,
             lendAmount: _lendAmount,
             collateralToken: _collateralToken,
@@ -130,7 +162,7 @@ contract RepoContract {
         });
 
         // Record this offer for the lender
-        userLenderOffers[msg.sender].push(offerId);
+        userLenderOffers[_lenderRefundAddress].push(offerId);
 
         // Transfer lend tokens from lender to contract
         require(
@@ -138,7 +170,7 @@ contract RepoContract {
             "Lend token transfer failed"
         );
 
-        emit OfferCreated(offerId, msg.sender);
+        emit OfferCreated(offerId, _lenderRefundAddress, _lenderChainId);
     }
 
     /// @notice Cancels an open offer and returns funds to the lender.
@@ -146,15 +178,24 @@ contract RepoContract {
     function cancelOffer(uint256 _offerId) external {
         RepoOffer storage offer = offers[_offerId];
         require(offer.status == OfferStatus.Open, "Offer is not open");
-        require(msg.sender == offer.lender, "Only lender can cancel offer");
+
+        // Verify that msg.sender is the correct caller based on chain
+        if (offer.lenderChainId == block.chainid) {
+            require(msg.sender == offer.lenderRefundAddress, "RepoContract: msg.sender must be lender refund address");
+        } else {
+            address expectedSender = InteropLibrary.getShadowAccountAddress(offer.lenderChainId, offer.lenderRefundAddress);
+            require(msg.sender == expectedSender, "RepoContract: msg.sender must be shadow account of lender refund address");
+        }
 
         // Update status
         offer.status = OfferStatus.Cancelled;
 
         // Return lend tokens to lender
-        require(
-            IERC20(offer.lendToken).transfer(offer.lender, offer.lendAmount),
-            "Token transfer failed"
+        _transferTokens(
+            offer.lendToken,
+            offer.lendAmount,
+            offer.lenderRefundAddress,
+            offer.lenderChainId
         );
 
         emit OfferCancelled(_offerId);
@@ -162,19 +203,37 @@ contract RepoContract {
 
     /// @notice Accepts an offer, deposits collateral, and receives lend tokens.
     /// @param _offerId The identifier of the offer to accept.
-    function acceptOffer(uint256 _offerId) external {
+    /// @param _borrowerChainId The chain ID of the borrower.
+    /// @param _borrowerRefundAddress The address to refund collateral to (on borrower's chain).
+    function acceptOffer(
+        uint256 _offerId,
+        uint256 _borrowerChainId,
+        address _borrowerRefundAddress
+    ) external {
         RepoOffer storage offer = offers[_offerId];
         require(offer.status == OfferStatus.Open, "Offer is not open");
         require(msg.sender != offer.lender, "Lender cannot borrow own offer");
+        require(_borrowerChainId > 0, "Invalid borrower chain ID");
+        require(_borrowerRefundAddress != address(0), "Invalid borrower refund address");
+
+        // Verify that msg.sender is the correct caller based on chain
+        if (_borrowerChainId == block.chainid) {
+            require(msg.sender == _borrowerRefundAddress, "RepoContract: msg.sender must be borrower refund address");
+        } else {
+            address expectedSender = InteropLibrary.getShadowAccountAddress(_borrowerChainId, _borrowerRefundAddress);
+            require(msg.sender == expectedSender, "RepoContract: msg.sender must be shadow account of borrower refund address");
+        }
 
         // Update offer details
         offer.borrower = msg.sender;
+        offer.borrowerRefundAddress = _borrowerRefundAddress;
+        offer.borrowerChainId = _borrowerChainId;
         offer.status = OfferStatus.Active;
         offer.startTime = block.timestamp;
         offer.endTime = block.timestamp + offer.duration;
 
         // Add to borrower's offers
-        userBorrowerOffers[msg.sender].push(_offerId);
+        userBorrowerOffers[_borrowerRefundAddress].push(_offerId);
 
         // Transfer collateral from borrower to contract
         require(
@@ -183,12 +242,14 @@ contract RepoContract {
         );
 
         // Transfer lend tokens from contract to borrower
-        require(
-            IERC20(offer.lendToken).transfer(msg.sender, offer.lendAmount),
-            "Token transfer failed"
+        _transferTokens(
+            offer.lendToken,
+            offer.lendAmount,
+            _borrowerRefundAddress,
+            _borrowerChainId
         );
 
-        emit OfferAccepted(_offerId, msg.sender);
+        emit OfferAccepted(_offerId, _borrowerRefundAddress, _borrowerChainId);
     }
 
     /// @notice Repays the loan and releases collateral.
@@ -196,7 +257,14 @@ contract RepoContract {
     function repayLoan(uint256 _offerId) external {
         RepoOffer storage offer = offers[_offerId];
         require(offer.status == OfferStatus.Active, "Loan is not active");
-        require(msg.sender == offer.borrower, "Only borrower can repay");
+
+        // Verify that msg.sender is the correct caller based on chain
+        if (offer.borrowerChainId == block.chainid) {
+            require(msg.sender == offer.borrowerRefundAddress, "RepoContract: msg.sender must be borrower refund address");
+        } else {
+            address expectedSender = InteropLibrary.getShadowAccountAddress(offer.borrowerChainId, offer.borrowerRefundAddress);
+            require(msg.sender == expectedSender, "RepoContract: msg.sender must be shadow account of borrower refund address");
+        }
 
         // Calculate the total repayment amount (lend amount + fee)
         uint256 feeAmount = (offer.lendAmount * offer.lenderFee) / 10000;
@@ -212,15 +280,19 @@ contract RepoContract {
         offer.status = OfferStatus.Completed;
 
         // Return collateral to borrower
-        require(
-            IERC20(offer.collateralToken).transfer(offer.borrower, offer.collateralAmount),
-            "Token transfer failed"
+        _transferTokens(
+            offer.collateralToken,
+            offer.collateralAmount,
+            offer.borrowerRefundAddress,
+            offer.borrowerChainId
         );
 
         // Return lend tokens + fee to lender
-        require(
-            IERC20(offer.lendToken).transfer(offer.lender, totalRepaymentAmount),
-            "Token transfer failed"
+        _transferTokens(
+            offer.lendToken,
+            totalRepaymentAmount,
+            offer.lenderRefundAddress,
+            offer.lenderChainId
         );
 
         emit LoanRepaid(_offerId);
@@ -233,15 +305,24 @@ contract RepoContract {
         RepoOffer storage offer = offers[_offerId];
         require(offer.status == OfferStatus.Active, "Loan is not active");
         require(block.timestamp > offer.endTime + gracePeriod, "Loan still in grace period");
-        require(msg.sender == offer.lender, "Only lender can claim collateral");
+
+        // Verify that msg.sender is the correct caller based on chain
+        if (offer.lenderChainId == block.chainid) {
+            require(msg.sender == offer.lenderRefundAddress, "RepoContract: msg.sender must be lender refund address");
+        } else {
+            address expectedSender = InteropLibrary.getShadowAccountAddress(offer.lenderChainId, offer.lenderRefundAddress);
+            require(msg.sender == expectedSender, "RepoContract: msg.sender must be shadow account of lender refund address");
+        }
 
         // Update status
         offer.status = OfferStatus.Defaulted;
 
         // Transfer collateral to lender
-        require(
-            IERC20(offer.collateralToken).transfer(offer.lender, offer.collateralAmount),
-            "Token transfer failed"
+        _transferTokens(
+            offer.collateralToken,
+            offer.collateralAmount,
+            offer.lenderRefundAddress,
+            offer.lenderChainId
         );
 
         emit CollateralClaimed(_offerId);
@@ -324,4 +405,50 @@ contract RepoContract {
         admin = _newAdmin;
         emit AdminChanged(oldAdmin, _newAdmin);
     }
+
+    /// @notice Sets the unbundler address for cross-chain interop calls.
+    /// @param _unbundlerAddress The new unbundler address.
+    function setUnbundlerAddress(address _unbundlerAddress) external onlyAdmin {
+        require(_unbundlerAddress != address(0), "Unbundler address cannot be zero");
+        unbundlerAddress = _unbundlerAddress;
+        emit UnbundlerAddressUpdated(_unbundlerAddress);
+    }
+
+    /// @notice Private function to transfer tokens to the recipient
+    /// @param _tokenAddress The address of the token to transfer
+    /// @param _amount The amount of tokens to transfer
+    /// @param _recipient The recipient address
+    /// @param _recipientChainId The chain ID of the recipient
+    function _transferTokens(
+        address _tokenAddress,
+        uint256 _amount,
+        address _recipient,
+        uint256 _recipientChainId
+    ) private {
+        // If same chain, do a normal transfer
+        if (block.chainid == _recipientChainId) {
+            require(
+                IERC20(_tokenAddress).transfer(_recipient, _amount),
+                "Token transfer failed"
+            );
+            return;
+        }
+
+        // Approve the L2 Native Token Vault to spend the tokens for cross-chain transfer
+        IERC20(_tokenAddress).approve(L2_NATIVE_TOKEN_VAULT_ADDR, _amount);
+
+        // Cross-chain transfer using InteropLibrary
+        InteropLibrary.sendToken(
+            _recipientChainId,
+            _tokenAddress,
+            _amount,
+            _recipient,
+            unbundlerAddress
+        );
+
+        emit CrossChainTransferInitiated(_tokenAddress, _amount, _recipient, _recipientChainId);
+    }
+
+    // Function to receive ETH for cross-chain fees
+    receive() external payable {}
 }
