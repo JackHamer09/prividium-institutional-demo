@@ -1,0 +1,19 @@
+{
+  "name": "repo-contract-demo",
+  "version": "1.0.0",
+  "description": "Demo of cross-chain repo contract using interop SDK with shadow accounts",
+  "main": "index.ts",
+  "scripts": {
+    "start": "npx ts-node index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "ethers": "^6.0.0",
+    "interop-sdk": "file:../sdk"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
+  },
+  "license": "MIT"
+}
