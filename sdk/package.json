@@ -1,0 +1,35 @@
+{
+  "name": "interop-sdk",
+  "version": "1.0.0",
+  "description": "zkSync Interop SDK for cross-chain communication",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "ethers": "^6.0.0",
+    "zksync-ethers": "^6.0.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "ethers": "^6.0.0",
+    "zksync-ethers": "^6.0.0"
+  },
+  "keywords": [
+    "zksync",
+    "interop",
+    "cross-chain",
+    "ethereum",
+    "sdk"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=16"
+  }
+}
