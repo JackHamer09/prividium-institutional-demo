@@ -11,6 +11,7 @@ export const AttributeSelectors = {
   indirectCall: ethers.id('indirectCall(uint256)').substring(0, 10),
   executionAddress: ethers.id('executionAddress(bytes)').substring(0, 10),
   unbundlerAddress: ethers.id('unbundlerAddress(bytes)').substring(0, 10),
+  shadowAccount: ethers.id('shadowAccount()').substring(0, 10),
 };
 
 /**
@@ -50,6 +51,18 @@ export class CallBuilder {
   asIndirectCall(messageValue: bigint = 0n): CallBuilder {
     const encoded = ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], [messageValue]);
     this._attributes.push(AttributeSelectors.indirectCall + encoded.substring(2));
+    return this;
+  }
+
+  /**
+   * Mark this call to be executed via a shadow account on the destination chain.
+   * Shadow accounts are deterministic contracts that represent the sender's cross-chain identity,
+   * enabling execution on contracts that don't natively support ERC-7786.
+   * @returns this for chaining
+   */
+  withShadowAccount(): CallBuilder {
+    // shadowAccount() takes no parameters - it's just the selector
+    this._attributes.push(AttributeSelectors.shadowAccount);
     return this;
   }
 
@@ -112,6 +125,23 @@ export class BundleBuilder {
    */
   addCallWithValue(to: string, data: string, value: bigint): BundleBuilder {
     this._calls.push(new CallBuilder(to, data).withValue(value).build());
+    return this;
+  }
+
+  /**
+   * Add a call that executes via shadow account on the destination chain.
+   * Shadow accounts enable calling contracts that don't support ERC-7786 natively.
+   * @param to - Target address
+   * @param data - Calldata
+   * @param value - Optional value to send
+   * @returns this for chaining
+   */
+  addShadowAccountCall(to: string, data: string, value?: bigint): BundleBuilder {
+    const builder = new CallBuilder(to, data).withShadowAccount();
+    if (value !== undefined && value > 0n) {
+      builder.withValue(value);
+    }
+    this._calls.push(builder.build());
     return this;
   }
 
