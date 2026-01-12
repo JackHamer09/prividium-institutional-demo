@@ -11,6 +11,7 @@ export function useRepoContract() {
   const toast = useToast();
   const { ensureCorrectChain, getChainId } = useChainSwitch();
   const { executeWrite } = usePrividiumWrite();
+  const { address } = storeToRefs(useWalletStore());
   const repoAddress = runtimeConfig.public.intradayRepoContractAddress as Address;
 
   /**
@@ -19,6 +20,7 @@ export function useRepoContract() {
   async function getOpenOffers(): Promise<RepoOffer[]> {
     try {
       const offers = await readContract(config, {
+        account: address.value,
         address: repoAddress,
         abi: INTRADAY_REPO_ABI,
         functionName: "getOpenOffers",
@@ -37,6 +39,7 @@ export function useRepoContract() {
   async function getLenderOffers(user: Address): Promise<RepoOffer[]> {
     try {
       const offers = await readContract(config, {
+        account: address.value,
         address: repoAddress,
         abi: INTRADAY_REPO_ABI,
         functionName: "getLenderOffers",
@@ -56,6 +59,7 @@ export function useRepoContract() {
   async function getBorrowerOffers(user: Address): Promise<RepoOffer[]> {
     try {
       const offers = await readContract(config, {
+        account: address.value,
         address: repoAddress,
         abi: INTRADAY_REPO_ABI,
         functionName: "getBorrowerOffers",
@@ -75,6 +79,7 @@ export function useRepoContract() {
   async function calculateRepaymentAmount(offerId: bigint): Promise<bigint> {
     try {
       const amount = await readContract(config, {
+        account: address.value,
         address: repoAddress,
         abi: INTRADAY_REPO_ABI,
         functionName: "calculateRepaymentAmount",
@@ -94,6 +99,7 @@ export function useRepoContract() {
   async function getGracePeriod(): Promise<bigint> {
     try {
       const gracePeriod = await readContract(config, {
+        account: address.value,
         address: repoAddress,
         abi: INTRADAY_REPO_ABI,
         functionName: "gracePeriod",

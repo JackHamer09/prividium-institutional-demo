@@ -9,6 +9,7 @@ export function useTokenContract() {
   const toast = useToast();
   const { ensureCorrectChain, getChainId } = useChainSwitch();
   const { executeWrite } = usePrividiumWrite();
+  const { address } = storeToRefs(useWalletStore());
 
   /**
    * Get token balance for an address
@@ -16,6 +17,7 @@ export function useTokenContract() {
   async function getBalance(tokenAddress: Address, account: Address): Promise<bigint> {
     try {
       const balance = await readContract(config, {
+        account: address.value,
         address: tokenAddress,
         abi: erc20Abi,
         functionName: "balanceOf",
@@ -39,6 +41,7 @@ export function useTokenContract() {
   ): Promise<bigint> {
     try {
       const allowance = await readContract(config, {
+        account: address.value,
         address: tokenAddress,
         abi: erc20Abi,
         functionName: "allowance",

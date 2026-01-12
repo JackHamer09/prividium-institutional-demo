@@ -22,6 +22,8 @@
     "@nuxt/eslint": "1.10.0",
     "@nuxt/fonts": "0.12.1",
     "@pinia/nuxt": "0.11.3",
+    "@simplewebauthn/browser": "^13.2.2",
+    "@simplewebauthn/server": "^13.2.2",
     "@tailwindcss/vite": "^4.1.17",
     "@vueuse/nuxt": "14.0.0",
     "@wagmi/core": "^3.0.0",
@@ -36,11 +38,14 @@
     "vue-router": "^4.6.3",
     "vue-toastification": "^2.0.0-rc.5",
     "web3-avatar-vue": "^1.0.5",
+    "zksync-sso": "link:../../../../Library/pnpm/global/5/node_modules/zksync-sso",
     "zod": "^4.1.13"
   },
   "devDependencies": {
     "prettier": "^3.6.2",
     "sass-embedded": "^1.93.3",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0"
   }
 }

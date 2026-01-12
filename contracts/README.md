@@ -42,7 +42,7 @@ forge build
 ## Deploy
 
 ```bash
-forge script script/Deploy.s.sol:DeployScript --rpc-url sepolia --broadcast
+forge script script/Deploy.s.sol:DeployScript --rpc-url [PRIVIDIUM_SEQUENCER_RPC_URL] --broadcast
 ```
 
 The script will output deployed contract addresses. Copy these addresses to your app's `.env` file:

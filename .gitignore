@@ -25,3 +25,6 @@ logs
 
 # AI
 .claude/
+
+# Temp
+local-packages/

@@ -41,6 +41,14 @@ cp .env.example .env
 
 Update `.env` with your deployed contract addresses and Prividium configuration.
 
+#### ZKsync SSO (Optional)
+
+To enable ZKsync SSO authentication alongside browser wallets, set the SSO auth server URL:
+
+```bash
+NUXT_PUBLIC_ZKSYNC_SSO_AUTH_SERVER_URL=http://localhost:3002/confirm
+```
+
 ### 5. Run Frontend
 
 ```bash

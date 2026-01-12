@@ -4,6 +4,7 @@ import type { PrividiumChain } from "prividium";
 
 /**
  * Wrapper for contract write operations that enables Prividium wallet token before each transaction
+ * For ZKsync SSO connections, sends transactions directly without nonce/gas management
  */
 export function usePrividiumWrite() {
   const config = useWagmiConfig();
@@ -14,6 +15,7 @@ export function usePrividiumWrite() {
 
   /**
    * Execute a write transaction with Prividium wallet token authorization
+   * For ZKsync SSO, sends transaction directly with just to and data
    */
   async function executeWrite<TAbi extends Abi>(params: {
     address: Address;
@@ -38,25 +40,35 @@ export function usePrividiumWrite() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
-    // Get current nonce for the wallet
+    const isZksyncSso = walletStore.connectorType === "zksync-sso";
+
+    // For ZKsync SSO, just send transaction with to and data
+    if (isZksyncSso) {
+      const hash = await sendTransaction(config, {
+        to: params.address,
+        data: calldata,
+        chainId: params.chainId,
+      });
+
+      return hash;
+    }
+
+    // For injected wallets, use full Prividium flow with nonce, gas, and enableWalletToken
     const nonce = await getTransactionCount(config, {
       address: walletStore.address,
       chainId: params.chainId,
     });
 
-    // Estimate gas for the transaction
     const gas = await estimateGas(config, {
       to: params.address,
       data: calldata,
       chainId: params.chainId,
     });
 
-    // Get current gas price
     const gasPrice = await getGasPrice(config, {
       chainId: params.chainId,
     });
 
-    // Enable wallet token before transaction
     await prividium.enableWalletToken({
       walletAddress: walletStore.address,
       contractAddress: params.address,
@@ -67,10 +79,10 @@ export function usePrividiumWrite() {
     const hash = await sendTransaction(config, {
       to: params.address,
       data: calldata,
-      chainId: params.chainId,
       nonce,
       gas: gas,
       gasPrice,
+      chainId: params.chainId,
     });
 
     return hash;
