@@ -32,6 +32,9 @@ import {
   L2_INTEROP_HANDLER_ADDRESS,
   NativeTokenVaultAbi,
   ERC20Abi,
+  extractBundlesFromReceipt,
+  finalizeAndExecuteBridgeBundle,
+  getBridgedTokenAddress,
 } from 'interop-sdk';
 
 // SimpleERC20 bytecode (constructor takes uint256 initialSupply)
@@ -235,7 +238,8 @@ async function main() {
   const lendAmount = ethers.parseUnits('100', 18);
   const collateralAmount = ethers.parseUnits('150', 18);
   const duration = 3600n; // 1 hour
-  const lenderFee = 100n; // 1% fee (100 basis points)
+  // TODO: use non-zero fee.
+  const lenderFee = 0n; // 1% fee (100 basis points)
 
   // Approve lend token to repo contract
   console.log('Approving lend token to RepoContract...');
@@ -324,7 +328,7 @@ async function main() {
     .addShadowAccountCall(repoContractAddress, acceptOfferCalldata)
     .withUnbundler(walletA.address);
 
-  await sendAndExecuteBundle(
+  const acceptExecReceipt = await sendAndExecuteBundle(
     walletB,
     providerB,
     walletA,
@@ -337,20 +341,103 @@ async function main() {
   const offerAfterAccept = await repoContract.offers(offerId);
   console.log('Offer status after accept:', offerAfterAccept.status); // 1 = Active
 
-  // Check borrower received lend tokens
-  const borrowerLendBalance = await lendToken.balanceOf(borrowerShadowAccount);
-  console.log('Borrower shadow account lend token balance:', ethers.formatUnits(borrowerLendBalance, 18));
+  // =================================================================
+  // STEP 5b: FINALIZE TOKEN BRIDGE TO CHAIN B
+  // =================================================================
+  console.log('\n--- Finalizing token bridge to Chain B ---');
+
+  // The acceptOffer execution on chain A triggers a token transfer to chain B
+  // This creates a new bundle that needs to be finalized and executed on chain B
+  const bridgeBundles = extractBundlesFromReceipt(acceptExecReceipt, chainAId);
+  console.log(`Found ${bridgeBundles.length} bridge bundle(s) to finalize`);
+
+  if (bridgeBundles.length > 0) {
+    for (const bundleInfo of bridgeBundles) {
+      console.log(`Finalizing bridge bundle: ${bundleInfo.bundleHandle.bundleHash}`);
+      const bridgeReceipt = await finalizeAndExecuteBridgeBundle(
+        providerA,
+        walletB,
+        bundleInfo,
+        {
+          // gasLimit: 10_000_000n,
+          // gasPrice: 1_000_000_000n,
+        }
+      );
+      console.log(`Bridge bundle executed on chain B, tx: ${bridgeReceipt.hash}`);
+    }
+  }
+
+  // Get the bridged lend token address on chain B
+  const lendTokenAddressOnB = await getBridgedTokenAddress(chainAId, lendTokenAddress, providerB);
+  console.log('Lend token address on Chain B:', lendTokenAddressOnB);
+
+  // Check borrower received lend tokens on chain B
+  const lendTokenOnB = new ethers.Contract(lendTokenAddressOnB, ERC20Abi, providerB);
+  const borrowerLendBalance = await lendTokenOnB.balanceOf(walletB.address);
+  console.log('Borrower lend token balance on Chain B:', ethers.formatUnits(borrowerLendBalance, 18));
 
   // =================================================================
-  // STEP 6: Borrower Repays Loan Using Shadow Account
+  // STEP 6: Bridge Lend Tokens Back to Chain A for Repayment
   // =================================================================
   console.log('\n========================================');
-  console.log('STEP 6: BORROWER REPAYS LOAN (SHADOW ACCOUNT)');
+  console.log('STEP 6: BRIDGE LEND TOKENS BACK TO CHAIN A');
   console.log('========================================');
 
   // Calculate repayment amount
   const repaymentAmount = await repoContract.calculateRepaymentAmount(offerId);
   console.log('Repayment amount:', ethers.formatUnits(repaymentAmount, 18));
+
+  // Get asset ID of lend token (computed from chain A origin)
+  const lendTokenAssetId = computeAssetId(chainAId, L2_NATIVE_TOKEN_VAULT_ADDRESS, lendTokenAddress);
+  console.log('Lend token asset ID:', lendTokenAssetId);
+
+  // The borrower needs to bridge lend tokens from chain B to chain A (to their shadow account)
+  // First approve the NTV on chain B to spend the tokens
+  console.log('Approving NTV on chain B to spend lend tokens...');
+  const lendTokenOnBWithSigner = new ethers.Contract(lendTokenAddressOnB, ERC20Abi, walletB);
+  const approveNtvTx = await lendTokenOnBWithSigner.approve(L2_NATIVE_TOKEN_VAULT_ADDRESS, repaymentAmount, {
+    gasLimit: 100_000n,
+    gasPrice: 1_000_000_000n,
+  });
+  await approveNtvTx.wait();
+  console.log('NTV approved');
+
+  // Build calldata for bridging tokens via asset router
+  const bridgeBackCalldata = buildBridgeCalldata(
+    lendTokenAssetId,
+    repaymentAmount,
+    borrowerShadowAccount, // Send to borrower's shadow account on chain A
+    ethers.ZeroAddress
+  );
+
+  // Create bundle to bridge tokens from B to A
+  const bridgeBackBundle = new BundleBuilder(chainAId)
+    .addCall(
+      new CallBuilder(L2_ASSET_ROUTER_ADDRESS, bridgeBackCalldata)
+        .asIndirectCall(0n)
+        .build()
+    )
+    .withUnbundler(walletA.address);
+
+  await sendAndExecuteBundle(
+    walletB,
+    providerB,
+    walletA,
+    providerA,
+    bridgeBackBundle,
+    'Bridge Lend Tokens Back'
+  );
+
+  // Check shadow account balance after bridge
+  const shadowLendBalance = await lendToken.balanceOf(borrowerShadowAccount);
+  console.log('Shadow account lend token balance on Chain A:', ethers.formatUnits(shadowLendBalance, 18));
+
+  // =================================================================
+  // STEP 7: Borrower Repays Loan Using Shadow Account
+  // =================================================================
+  console.log('\n========================================');
+  console.log('STEP 7: BORROWER REPAYS LOAN (SHADOW ACCOUNT)');
+  console.log('========================================');
 
   // Build approve calldata for repayment
   const approveRepayCalldata = lendToken.interface.encodeFunctionData('approve', [
@@ -369,11 +456,44 @@ async function main() {
     .addShadowAccountCall(repoContractAddress, repayLoanCalldata)
     .withUnbundler(walletA.address);
 
-  await sendAndExecuteBundle(walletB, providerB, walletA, providerA, repayBundle, 'Repay Loan Bundle');
+  const repayExecReceipt = await sendAndExecuteBundle(walletB, providerB, walletA, providerA, repayBundle, 'Repay Loan Bundle');
 
   // Check final offer status
   const offerAfterRepay = await repoContract.offers(offerId);
   console.log('Offer status after repay:', offerAfterRepay.status); // 2 = Completed
+
+  // =================================================================
+  // STEP 7b: FINALIZE COLLATERAL BRIDGE BACK TO CHAIN B
+  // =================================================================
+  console.log('\n--- Finalizing collateral bridge back to Chain B ---');
+
+  // The repayLoan execution on chain A triggers a collateral transfer back to chain B
+  const collateralBridgeBundles = extractBundlesFromReceipt(repayExecReceipt, chainAId);
+  console.log(`Found ${collateralBridgeBundles.length} collateral bridge bundle(s) to finalize`);
+
+  if (collateralBridgeBundles.length > 0) {
+    for (const bundleInfo of collateralBridgeBundles) {
+      console.log(`Finalizing collateral bridge bundle: ${bundleInfo.bundleHandle.bundleHash}`);
+      const collateralBridgeReceipt = await finalizeAndExecuteBridgeBundle(
+        providerA,
+        walletB,
+        bundleInfo,
+        {
+          gasLimit: 10_000_000n,
+          gasPrice: 1_000_000_000n,
+        }
+      );
+      console.log(`Collateral bridge bundle executed on chain B, tx: ${collateralBridgeReceipt.hash}`);
+    }
+  }
+
+  // Get the bridged collateral token address on chain B and check balance
+  const collateralTokenAddressOnB = await getBridgedTokenAddress(chainAId, collateralTokenAddress, providerB);
+  console.log('Collateral token address on Chain B:', collateralTokenAddressOnB);
+
+  const collateralTokenOnB = new ethers.Contract(collateralTokenAddressOnB, ERC20Abi, providerB);
+  const borrowerCollateralBalance = await collateralTokenOnB.balanceOf(walletB.address);
+  console.log('Borrower collateral token balance on Chain B:', ethers.formatUnits(borrowerCollateralBalance, 18));
 
   // =================================================================
   // SUMMARY
@@ -383,15 +503,20 @@ async function main() {
   console.log('========================================');
   console.log('Summary:');
   console.log('- RepoContract deployed on Chain A:', repoContractAddress);
-  console.log('- Lend Token:', lendTokenAddress);
-  console.log('- Collateral Token:', collateralTokenAddress);
+  console.log('- Lend Token on Chain A:', lendTokenAddress);
+  console.log('- Lend Token on Chain B:', lendTokenAddressOnB);
+  console.log('- Collateral Token on Chain A:', collateralTokenAddress);
+  console.log('- Collateral Token on Chain B:', collateralTokenAddressOnB);
   console.log('- Offer ID:', offerId.toString());
-  console.log('- Final status: Completed');
+  console.log('- Final status:', offerAfterRepay.status === 2n ? 'Completed' : offerAfterRepay.status);
   console.log('\nThe demo successfully demonstrated:');
   console.log('1. Deploying RepoContract and ERC20 tokens on Chain A');
   console.log('2. Lender creating an offer on Chain A');
   console.log('3. Borrower from Chain B accepting offer using shadow account');
-  console.log('4. Borrower repaying loan using shadow account');
+  console.log('4. Finalizing token bridge to deliver lend tokens on Chain B');
+  console.log('5. Bridging lend tokens back from Chain B to Chain A for repayment');
+  console.log('6. Borrower repaying loan using shadow account');
+  console.log('7. Finalizing collateral bridge back to Chain B');
 }
 
 main().catch((err) => {
