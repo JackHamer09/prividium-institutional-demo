@@ -258,7 +258,7 @@ async function waitForBridgeBundleExternalExecution(
   );
 
   // Wait for external executor to execute the bundle and return the receipt
-  return await waitForBundleExecution(destProvider, bundleHash);
+  return await waitForBundleExecution(destProvider, bundleInfo.bundleHandle.bundleHash);
 }
 
 async function sendAndExecuteBundle(
