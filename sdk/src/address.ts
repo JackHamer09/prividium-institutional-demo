@@ -1,4 +1,6 @@
 import { ethers } from 'ethers';
+import { InteropHandlerAbi } from './abis';
+import { L2_INTEROP_HANDLER_ADDRESS } from './constants';
 
 /**
  * ERC-7930 interoperable address encoding utilities
@@ -119,4 +121,25 @@ export function computeAssetId(
       [chainId, ntvAddress, tokenAddress]
     )
   );
+}
+
+/**
+ * Get the shadow account address for a user on a destination chain
+ * Shadow accounts allow users from one chain to interact with contracts on another chain
+ * @param provider - The provider for the chain where the shadow account exists
+ * @param ownerChainId - The chain ID where the owner's account exists
+ * @param ownerAddress - The owner's address on their origin chain
+ * @returns The shadow account address on the destination chain
+ */
+export async function getShadowAccountAddress(
+  provider: ethers.Provider,
+  ownerChainId: bigint,
+  ownerAddress: string
+): Promise<string> {
+  const interopHandler = new ethers.Contract(
+    L2_INTEROP_HANDLER_ADDRESS,
+    InteropHandlerAbi,
+    provider
+  );
+  return await interopHandler.getShadowAccountAddress(ownerChainId, ownerAddress);
 }

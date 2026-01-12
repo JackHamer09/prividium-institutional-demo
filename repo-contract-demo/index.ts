@@ -22,28 +22,22 @@
 
 import { ethers } from 'ethers';
 import {
-  sendBundle,
-  waitForBundleFinalization,
-  waitUntilRootAvailable,
-  executeBundle,
   BundleBuilder,
   CallBuilder,
   computeAssetId,
   buildBridgeCalldata,
   L2_ASSET_ROUTER_ADDRESS,
   L2_NATIVE_TOKEN_VAULT_ADDRESS,
-  L2_INTEROP_HANDLER_ADDRESS,
   NativeTokenVaultAbi,
   ERC20Abi,
   extractBundlesFromReceipt,
   finalizeAndExecuteBridgeBundle,
   getBridgedTokenAddress,
-  getBundleOnChainStatus,
-  BundleStatus,
-  waitForBridgeBundleFinalization,
-  calculateBundleHash,
-  InteropMessageFinalizationInfo,
   BridgeBundleInfo,
+  // New SDK functions
+  getShadowAccountAddress,
+  sendAndExecuteBundle,
+  waitForBridgeBundleExternalExecution,
 } from 'interop-sdk';
 
 // SimpleERC20 bytecode (constructor takes uint256 initialSupply)
@@ -66,11 +60,6 @@ const RepoContractAbi = [
   'event OfferCreated(uint256 indexed offerId, address indexed lender, uint256 lenderChainId)',
   'event OfferAccepted(uint256 indexed offerId, address indexed borrower, uint256 borrowerChainId)',
   'event LoanRepaid(uint256 indexed offerId)',
-];
-
-// InteropHandler ABI for getting shadow account address
-const InteropHandlerAbi = [
-  'function getShadowAccountAddress(uint256 _ownerChainId, address _ownerAddress) view returns (address)',
 ];
 
 function requireEnv(name: string): string {
@@ -122,146 +111,10 @@ async function registerToken(wallet: ethers.Wallet, tokenAddress: string): Promi
   console.log('Token registered successfully');
 }
 
-async function getShadowAccountAddress(
-  provider: ethers.Provider,
-  ownerChainId: bigint,
-  ownerAddress: string
-): Promise<string> {
-  const interopHandler = new ethers.Contract(L2_INTEROP_HANDLER_ADDRESS, InteropHandlerAbi, provider);
-  return await interopHandler.getShadowAccountAddress(ownerChainId, ownerAddress);
-}
-
-// BundleExecuted event signature: keccak256("BundleExecuted(bytes32)")
-const BUNDLE_EXECUTED_TOPIC = ethers.id('BundleExecuted(bytes32)');
-
-interface EventSearchOptions {
-  /** Number of blocks to search per chunk (default: 1000) */
-  chunkSize?: number;
-  /** Maximum number of blocks to search backwards (default: 50000) */
-  maxBlocksBack?: number;
-}
-
 /**
- * Search for an event in chunks, going backwards from the current block
- * Returns the matching logs or empty array if not found
+ * Wrapper around the SDK's sendAndExecuteBundle that adds description logging
  */
-async function searchEventInChunks(
-  provider: ethers.Provider,
-  address: string,
-  topics: (string | null)[],
-  options: EventSearchOptions = {}
-): Promise<ethers.Log[]> {
-  const chunkSize = options.chunkSize ?? 1000;
-  const maxBlocksBack = options.maxBlocksBack ?? 50000;
-
-  const currentBlock = await provider.getBlockNumber();
-  const minBlock = Math.max(0, currentBlock - maxBlocksBack);
-
-  let toBlock = currentBlock;
-
-  while (toBlock >= minBlock) {
-    const fromBlock = Math.max(minBlock, toBlock - chunkSize + 1);
-
-    try {
-      const logs = await provider.getLogs({
-        address,
-        topics,
-        fromBlock,
-        toBlock,
-      });
-
-      if (logs.length > 0) {
-        return logs;
-      }
-    } catch (error) {
-      // Some providers have limits on block ranges, try smaller chunks
-      console.warn(`Error fetching logs for blocks ${fromBlock}-${toBlock}, continuing...`);
-    }
-
-    toBlock = fromBlock - 1;
-  }
-
-  return [];
-}
-
-/**
- * Wait for a bundle to be executed by an external executor
- * Polls the destination chain until the bundle status is FullyExecuted
- * Returns the transaction receipt of the execution
- */
-async function waitForBundleExecution(
-  destProvider: ethers.Provider,
-  bundleHash: string,
-  pollInterval: number = 2000,
-  timeout: number = 300000
-): Promise<ethers.TransactionReceipt> {
-  console.log(`Waiting for external executor to execute bundle ${bundleHash}...`);
-  const startTime = Date.now();
-
-  while (Date.now() - startTime < timeout) {
-    const status = await getBundleOnChainStatus(destProvider, bundleHash);
-
-    if (status === BundleStatus.FullyExecuted || status === BundleStatus.Unbundled) {
-      console.log(`Bundle has been ${status === BundleStatus.FullyExecuted ? 'executed' : 'unbundled'} by external executor!`);
-
-      // Search for the BundleExecuted event in chunks (up to 50000 blocks back by default)
-      console.log('Searching for BundleExecuted event...');
-      const logs = await searchEventInChunks(
-        destProvider,
-        L2_INTEROP_HANDLER_ADDRESS,
-        [BUNDLE_EXECUTED_TOPIC, bundleHash]
-      );
-
-      if (logs.length > 0) {
-        // Get the transaction receipt from the most recent matching log
-        const log = logs[logs.length - 1];
-        const receipt = await destProvider.getTransactionReceipt(log.transactionHash);
-        if (receipt) {
-          console.log(`Found execution tx: ${receipt.hash}`);
-          return receipt;
-        }
-      }
-
-      throw new Error(`Bundle ${bundleHash} was executed but could not find the BundleExecuted event`);
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, pollInterval));
-  }
-
-  throw new Error(`Timeout waiting for bundle ${bundleHash} to be executed`);
-}
-
-/**
- * Wait for a bridge bundle to be executed by an external executor
- * Waits for finalization and then polls for execution status
- * Returns the transaction receipt of the execution
- */
-async function waitForBridgeBundleExternalExecution(
-  sourceProvider: ethers.Provider,
-  destProvider: ethers.Provider,
-  bundleInfo: BridgeBundleInfo
-): Promise<ethers.TransactionReceipt> {
-  console.log(`Waiting for external execution of bridge bundle: ${bundleInfo.bundleHandle.bundleHash}`);
-
-  // Wait for finalization
-  const finalizationInfo = await waitForBridgeBundleFinalization(sourceProvider, bundleInfo);
-  console.log('Bridge bundle finalized! Batch:', finalizationInfo.expectedRoot.batchNumber);
-
-  // Wait for root availability on destination
-  await waitUntilRootAvailable(destProvider, finalizationInfo.expectedRoot);
-  console.log('Root available on destination!');
-
-  // Calculate bundle hash for destination chain
-  const bundleHash = calculateBundleHash(
-    bundleInfo.bundleHandle.sourceChainId,
-    finalizationInfo.encodedData
-  );
-
-  // Wait for external executor to execute the bundle and return the receipt
-  return await waitForBundleExecution(destProvider, bundleInfo.bundleHandle.bundleHash);
-}
-
-async function sendAndExecuteBundle(
+async function sendAndExecuteBundleWithDescription(
   sourceWallet: ethers.Wallet,
   sourceProvider: ethers.Provider,
   destWallet: ethers.Wallet,
@@ -272,38 +125,14 @@ async function sendAndExecuteBundle(
 ): Promise<ethers.TransactionReceipt> {
   console.log(`\n--- ${description} ---`);
 
-  // Send bundle
-  console.log('Sending bundle...');
-  const handle = await sendBundle(sourceWallet, bundle);
-  console.log('Bundle hash:', handle.bundleHash);
-  console.log('Tx hash:', handle.txHash);
-
-  // Wait for finalization
-  console.log('Waiting for finalization...');
-  const finalizationInfo = await waitForBundleFinalization(sourceProvider, handle);
-  console.log('Bundle finalized! Batch:', finalizationInfo.expectedRoot.batchNumber);
-
-  // Wait for root availability
-  console.log('Waiting for root availability on destination...');
-  await waitUntilRootAvailable(destProvider, finalizationInfo.expectedRoot);
-  console.log('Root available!');
-
-  if (executeBundles) {
-    // Execute bundle
-    console.log('Executing bundle...');
-    const receipt = await executeBundle(destWallet, finalizationInfo, {
-      gasLimit: 10_000_000n,
-      gasPrice: 1_000_000_000n,
-    });
-    console.log('Execute tx hash:', receipt.hash);
-    console.log('Execute status:', receipt.status === 1 ? 'Success' : 'Failed');
-    return receipt;
-  } else {
-    // Wait for external executor and get the execution receipt
-    const receipt = await waitForBundleExecution(destProvider, handle.bundleHash);
-    console.log('Execute status:', receipt.status === 1 ? 'Success' : 'Failed');
-    return receipt;
-  }
+  return sendAndExecuteBundle(
+    sourceWallet,
+    sourceProvider,
+    destWallet,
+    destProvider,
+    bundle,
+    { waitForExternalExecution: !executeBundles }
+  );
 }
 
 async function main() {
@@ -478,7 +307,7 @@ async function main() {
     .addShadowAccountCall(repoContractAddress, acceptOfferCalldata)
     .withUnbundler(walletA.address);
 
-  const acceptExecReceipt = await sendAndExecuteBundle(
+  const acceptExecReceipt = await sendAndExecuteBundleWithDescription(
     walletB,
     providerB,
     walletA,
@@ -573,7 +402,7 @@ async function main() {
     )
     .withUnbundler(walletA.address);
 
-  await sendAndExecuteBundle(
+  await sendAndExecuteBundleWithDescription(
     walletB,
     providerB,
     walletA,
@@ -611,7 +440,7 @@ async function main() {
     .addShadowAccountCall(repoContractAddress, repayLoanCalldata)
     .withUnbundler(walletA.address);
 
-  const repayExecReceipt = await sendAndExecuteBundle(walletB, providerB, walletA, providerA, repayBundle, 'Repay Loan Bundle', executeBundles);
+  const repayExecReceipt = await sendAndExecuteBundleWithDescription(walletB, providerB, walletA, providerA, repayBundle, 'Repay Loan Bundle', executeBundles);
 
   // Check final offer status
   const offerAfterRepay = await repoContract.offers(offerId);

@@ -96,6 +96,19 @@ export interface BundleHandle {
 }
 
 /**
+ * Information about a bridge bundle extracted from a transaction
+ * Used for tracking and executing bridge bundles that move tokens across chains
+ */
+export interface BridgeBundleInfo {
+  /** Bundle handle for tracking */
+  bundleHandle: BundleHandle;
+  /** L1 message hash from L1MessageSent event */
+  l1MessageHash: string;
+  /** Log index of the InteropBundleSent event */
+  l1LogIndex: number;
+}
+
+/**
  * Handle to track a message
  */
 export interface MessageHandle {
@@ -187,6 +200,16 @@ export interface WaitOptions {
   pollInterval?: number;
   /** Timeout in milliseconds */
   timeout?: number;
+}
+
+/**
+ * Options for event searching operations
+ */
+export interface EventSearchOptions {
+  /** Number of blocks to search per chunk (default: 1000) */
+  chunkSize?: number;
+  /** Maximum number of blocks to search backwards (default: 50000) */
+  maxBlocksBack?: number;
 }
 
 /**

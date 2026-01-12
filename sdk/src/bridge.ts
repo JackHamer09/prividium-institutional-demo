@@ -1,96 +1,42 @@
+/**
+ * Bridge bundle utilities
+ *
+ * This module provides functions for extracting and processing bridge bundles
+ * from transaction receipts, and high-level finalization/execution helpers.
+ */
+
 import { ethers } from 'ethers';
-import { NativeTokenVaultAbi, InteropCenterAbi, L1MessengerAbi, l1MessengerInterface, interopBundleSentInterface } from './abis';
+import { l1MessengerInterface, interopBundleSentInterface } from './abis';
 import {
-  L2_NATIVE_TOKEN_VAULT_ADDRESS,
   L2_INTEROP_CENTER_ADDRESS,
-  DEFAULT_POLL_INTERVAL,
-  DEFAULT_TIMEOUT,
   L2_TO_L1_MESSENGER_ADDRESS,
 } from './constants';
-import { computeAssetId } from './address';
 import {
-  BundleHandle,
-  InteropMessageFinalizationInfo,
+  BridgeBundleInfo,
   WaitOptions,
   ExecuteBundleOptions,
+  InteropMessageFinalizationInfo,
 } from './types';
-import { getBundleFinalizationInfo, waitForLogProof, getLogProof } from './source-chain';
+import { getBundleFinalizationInfo } from './source-chain';
 import { waitUntilRootAvailable } from './destination-chain';
 import { executeBundle } from './bundle-executor';
-import { verifyMessageInclusion } from './message';
 
+// Re-export asset functions from assets.ts for backwards compatibility
+export {
+  getAssetId,
+  getTokenAddress,
+  computeTokenAssetId,
+  getBridgedTokenAddress,
+} from './assets';
 
-/**
- * Get the asset ID for a token on a specific chain
- * @param provider - The provider for the chain where the token exists
- * @param tokenAddress - The token address
- * @returns The asset ID (bytes32)
- */
-export async function getAssetId(
-  provider: ethers.Provider,
-  tokenAddress: string
-): Promise<string> {
-  const ntvContract = new ethers.Contract(
-    L2_NATIVE_TOKEN_VAULT_ADDRESS,
-    NativeTokenVaultAbi,
-    provider
-  );
-
-  return await ntvContract.assetId(tokenAddress);
-}
-
-/**
- * Get the token address for an asset ID on a specific chain
- * @param provider - The provider for the chain where to look up the token
- * @param assetId - The asset ID (bytes32)
- * @returns The token address (zero address if not registered)
- */
-export async function getTokenAddress(
-  provider: ethers.Provider,
-  assetId: string
-): Promise<string> {
-  const ntvContract = new ethers.Contract(
-    L2_NATIVE_TOKEN_VAULT_ADDRESS,
-    NativeTokenVaultAbi,
-    provider
-  );
-
-  return await ntvContract.tokenAddress(assetId);
-}
-
-/**
- * Compute the asset ID for a token given its origin chain and NTV address
- * This is useful when the token hasn't been queried from the chain yet
- * @param originChainId - The chain ID where the token originates
- * @param tokenAddress - The token address on the origin chain
- * @param ntvAddress - The NativeTokenVault address (defaults to standard address)
- * @returns The computed asset ID
- */
-export function computeTokenAssetId(
-  originChainId: bigint | number,
-  tokenAddress: string,
-  ntvAddress: string = L2_NATIVE_TOKEN_VAULT_ADDRESS
-): string {
-  return computeAssetId(originChainId, ntvAddress, tokenAddress);
-}
-
-/**
- * Information about a bridge bundle extracted from a transaction
- */
-export interface BridgeBundleInfo {
-  /** Bundle handle for tracking */
-  bundleHandle: BundleHandle;
-  /** L1 message hash from L1MessageSent event */
-  l1MessageHash: string;
-  /** Log index of the InteropBundleSent event. */
-  l1LogIndex: number;
-}
+// Re-export BridgeBundleInfo type
+export type { BridgeBundleInfo } from './types';
 
 /**
  * Extract InteropBundleSent events from a transaction receipt
  * @param receipt - The transaction receipt
  * @param sourceChainId - The source chain ID
- * @returns Array of bundle handles found in the transaction
+ * @returns Array of bundle info found in the transaction
  */
 export function extractBundlesFromReceipt(
   receipt: ethers.TransactionReceipt,
@@ -286,22 +232,4 @@ export async function finalizeAndExecuteAllBridgeBundles(
   }
 
   return receipts;
-}
-
-/**
- * Get the bridged token address on a destination chain
- * For tokens bridged via the Native Token Vault, this computes the expected
- * asset ID and looks up the corresponding token address on the destination chain.
- * @param originChainId - The chain ID where the token originates
- * @param originTokenAddress - The token address on the origin chain
- * @param destProvider - The provider for the destination chain
- * @returns The token address on the destination chain (zero address if not yet deployed)
- */
-export async function getBridgedTokenAddress(
-  originChainId: bigint | number,
-  originTokenAddress: string,
-  destProvider: ethers.Provider
-): Promise<string> {
-  const assetId = computeTokenAssetId(originChainId, originTokenAddress);
-  return getTokenAddress(destProvider, assetId);
 }

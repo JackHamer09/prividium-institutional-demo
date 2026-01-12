@@ -15,6 +15,7 @@ export const InteropHandlerAbi = [
   'function verifyBundle(bytes memory _bundle, tuple(uint256 chainId, uint256 l1BatchNumber, uint256 l2MessageIndex, tuple(uint16 txNumberInBatch, address sender, bytes data) message, bytes32[] proof) memory _proof) external',
   'function unbundleBundle(uint256 _sourceChainId, bytes memory _bundle, uint8[] calldata _providedCallStatus) external',
   'function bundleStatus(bytes32 bundleHash) view returns (uint8)',
+  'function getShadowAccountAddress(uint256 _ownerChainId, address _ownerAddress) view returns (address)',
   'event BundleExecuted(bytes32 indexed bundleHash)',
   'event BundleVerified(bytes32 indexed bundleHash)',
   'event BundleUnbundled(bytes32 indexed bundleHash)',
