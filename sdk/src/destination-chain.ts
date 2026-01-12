@@ -4,6 +4,7 @@ import {
   BundleStatus,
   ExpectedRoot,
   WaitOptions,
+  EventSearchOptions,
 } from './types';
 import { InteropHandlerAbi, InteropRootStorageAbi } from './abis';
 import {
@@ -12,6 +13,9 @@ import {
   DEFAULT_POLL_INTERVAL,
   DEFAULT_TIMEOUT,
 } from './constants';
+
+// BundleExecuted event signature: keccak256("BundleExecuted(bytes32)")
+const BUNDLE_EXECUTED_TOPIC = ethers.id('BundleExecuted(bytes32)');
 
 /**
  * Check if the interop root is available on the destination chain
@@ -208,4 +212,106 @@ export async function waitForMessageVerifiability(
   options: WaitOptions = {}
 ): Promise<void> {
   await waitUntilRootAvailable(provider, expectedRoot, options);
+}
+
+/**
+ * Search for events in chunks, going backwards from the current block
+ * This is useful when searching for events that may be far back in history
+ * while respecting provider block range limits
+ * @param provider - The provider to search on
+ * @param address - The contract address to search
+ * @param topics - The event topics to search for
+ * @param options - Search options
+ * @returns The matching logs or empty array if not found
+ */
+export async function searchEventInChunks(
+  provider: ethers.Provider,
+  address: string,
+  topics: (string | null)[],
+  options: EventSearchOptions = {}
+): Promise<ethers.Log[]> {
+  const chunkSize = options.chunkSize ?? 1000;
+  const maxBlocksBack = options.maxBlocksBack ?? 50000;
+
+  const currentBlock = await provider.getBlockNumber();
+  const minBlock = Math.max(0, currentBlock - maxBlocksBack);
+
+  let toBlock = currentBlock;
+
+  while (toBlock >= minBlock) {
+    const fromBlock = Math.max(minBlock, toBlock - chunkSize + 1);
+
+    try {
+      const logs = await provider.getLogs({
+        address,
+        topics,
+        fromBlock,
+        toBlock,
+      });
+
+      if (logs.length > 0) {
+        return logs;
+      }
+    } catch {
+      // Some providers have limits on block ranges, try smaller chunks
+      console.warn(`Error fetching logs for blocks ${fromBlock}-${toBlock}, continuing...`);
+    }
+
+    toBlock = fromBlock - 1;
+  }
+
+  return [];
+}
+
+/**
+ * Wait for a bundle to be executed by an external executor
+ * Polls the destination chain until the bundle status is FullyExecuted or Unbundled
+ * Returns the transaction receipt of the execution
+ * @param provider - The provider for the destination chain
+ * @param bundleHash - The bundle hash to wait for
+ * @param options - Wait options (pollInterval and timeout)
+ * @returns The transaction receipt of the execution
+ */
+export async function waitForBundleExecution(
+  provider: ethers.Provider,
+  bundleHash: string,
+  options: WaitOptions = {}
+): Promise<ethers.TransactionReceipt> {
+  const pollInterval = options.pollInterval ?? DEFAULT_POLL_INTERVAL;
+  const timeout = options.timeout ?? DEFAULT_TIMEOUT;
+
+  console.log(`Waiting for external executor to execute bundle ${bundleHash}...`);
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    const status = await getBundleOnChainStatus(provider, bundleHash);
+
+    if (status === BundleStatus.FullyExecuted || status === BundleStatus.Unbundled) {
+      console.log(`Bundle has been ${status === BundleStatus.FullyExecuted ? 'executed' : 'unbundled'} by external executor!`);
+
+      // Search for the BundleExecuted event in chunks (up to 50000 blocks back by default)
+      console.log('Searching for BundleExecuted event...');
+      const logs = await searchEventInChunks(
+        provider,
+        L2_INTEROP_HANDLER_ADDRESS,
+        [BUNDLE_EXECUTED_TOPIC, bundleHash]
+      );
+
+      if (logs.length > 0) {
+        // Get the transaction receipt from the most recent matching log
+        const log = logs[logs.length - 1];
+        const receipt = await provider.getTransactionReceipt(log.transactionHash);
+        if (receipt) {
+          console.log(`Found execution tx: ${receipt.hash}`);
+          return receipt;
+        }
+      }
+
+      throw new Error(`Bundle ${bundleHash} was executed but could not find the BundleExecuted event`);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollInterval));
+  }
+
+  throw new Error(`Timeout waiting for bundle ${bundleHash} to be executed`);
 }

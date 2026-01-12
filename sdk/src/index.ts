@@ -10,6 +10,7 @@
  * - destination-chain: Check root availability and bundle status on destination chain
  * - bundle-executor: Execute/verify bundles on destination chain
  * - message: Send and verify L1Messenger messages
+ * - assets: Token/asset utilities for bridged tokens
  *
  * @example Using standalone functions (recommended for granular control):
  * ```typescript
@@ -44,6 +45,17 @@
  * const receipt = await executeBundle(destSigner, finalizationInfo);
  * ```
  *
+ * @example Using high-level sendAndExecuteBundle:
+ * ```typescript
+ * import { sendAndExecuteBundle, BundleBuilder, CallBuilder } from 'interop-sdk';
+ *
+ * const receipt = await sendAndExecuteBundle(
+ *   sourceSigner, sourceProvider,
+ *   destSigner, destProvider,
+ *   bundle
+ * );
+ * ```
+ *
  * @example Using InteropSDK convenience class:
  * ```typescript
  * import { createInteropSDK, BundleBuilder, CallBuilder } from 'interop-sdk';
@@ -72,7 +84,7 @@ export {
   createTokenTransferBundle,
 } from './bundle-builder';
 
-// Address encoding
+// Address encoding and shadow accounts
 export {
   toChainReference,
   formatEvmV1,
@@ -80,7 +92,16 @@ export {
   formatEvmV1AddressOnly,
   parseEvmV1,
   computeAssetId,
+  getShadowAccountAddress,
 } from './address';
+
+// Asset/Token utilities
+export {
+  getAssetId,
+  getTokenAddress,
+  computeTokenAssetId,
+  getBridgedTokenAddress,
+} from './assets';
 
 // Source chain operations
 export {
@@ -103,6 +124,8 @@ export {
   waitForBundleAvailability,
   canVerifyMessage,
   waitForMessageVerifiability,
+  searchEventInChunks,
+  waitForBundleExecution,
 } from './destination-chain';
 
 // Bundle execution
@@ -110,8 +133,10 @@ export {
   executeBundle,
   verifyBundle,
   waitAndExecuteBundle,
-  calculateBundleHash,
+  sendAndExecuteBundle,
+  waitForBridgeBundleExternalExecution,
 } from './bundle-executor';
+export type { SendAndExecuteBundleOptions } from './bundle-executor';
 
 // Message operations
 export {
@@ -122,19 +147,14 @@ export {
   waitAndVerifyMessage,
 } from './message';
 
-// Bridge operations
+// Bridge bundle operations
 export {
-  getAssetId,
-  getTokenAddress,
-  computeTokenAssetId,
   extractBundlesFromReceipt,
   extractL1MessagesFromReceipt,
   waitForBridgeBundleFinalization,
   finalizeAndExecuteBridgeBundle,
   finalizeAndExecuteAllBridgeBundles,
-  getBridgedTokenAddress,
 } from './bridge';
-export type { BridgeBundleInfo } from './bridge';
 
 // Types
 export {
@@ -154,7 +174,9 @@ export {
   SendBundleOptions,
   ExecuteBundleOptions,
   WaitOptions,
+  EventSearchOptions,
   ExtendedLogProof,
+  BridgeBundleInfo,
 } from './types';
 
 // Constants
