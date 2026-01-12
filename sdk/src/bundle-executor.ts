@@ -73,11 +73,7 @@ export async function executeBundle(
   // Send the transaction
   const tx = await interopHandler.executeBundle(
     finalizationInfo.encodedData,
-    messageInclusionProof,
-    {
-      gasLimit: options.gasLimit ?? 10_000_000n,
-      gasPrice: options.gasPrice ?? 1_000_000_000n,
-    }
+    messageInclusionProof
   );
 
   const receipt = await tx.wait();

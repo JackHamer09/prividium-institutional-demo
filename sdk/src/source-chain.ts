@@ -8,7 +8,7 @@ import {
   WaitOptions,
   ExtendedLogProof,
 } from './types';
-import { InteropCenterAbi } from './abis';
+import { InteropCenterAbi, l1MessengerInterface } from './abis';
 import {
   L2_INTEROP_CENTER_ADDRESS,
   L2_TO_L1_MESSENGER_ADDRESS,
@@ -282,9 +282,28 @@ export async function getBundleFinalizationInfo(
     throw new Error(`Transaction ${handle.txHash} not found`);
   }
 
-  // Extract the InteropBundle from the receipt logs
+  // Extract the InteropBundle from the receipt logs (start from -1 as we count L1MessageSent logs from 0)
+  let l1LogIndex = -1;
   let interopBundle: InteropBundle | null = null;
   for (const log of receipt.logs) {
+    if (log.address.toLowerCase() == L2_TO_L1_MESSENGER_ADDRESS.toLowerCase()) {
+      try {
+        const parsed = l1MessengerInterface.parseLog({
+          topics: log.topics as string[],
+          data: log.data,
+        });
+        if (parsed && parsed.name === 'L1MessageSent') {
+          l1LogIndex++;
+          continue;
+        }
+      }
+      catch {
+        // Skip logs that don't match
+      }
+      continue;
+    }
+
+
     try {
       const parsed = interopBundleSentInterface.parseLog({
         topics: log.topics as string[],
@@ -306,7 +325,7 @@ export async function getBundleFinalizationInfo(
   }
 
   // Wait for log proof
-  const logProof = await waitForLogProof(provider, handle.txHash, 0);
+  const logProof = await waitForLogProof(provider, handle.txHash, l1LogIndex);
 
   // Encode the bundle
   const encodedBundle = ethers.AbiCoder.defaultAbiCoder().encode(

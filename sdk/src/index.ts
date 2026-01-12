@@ -122,6 +122,20 @@ export {
   waitAndVerifyMessage,
 } from './message';
 
+// Bridge operations
+export {
+  getAssetId,
+  getTokenAddress,
+  computeTokenAssetId,
+  extractBundlesFromReceipt,
+  extractL1MessagesFromReceipt,
+  waitForBridgeBundleFinalization,
+  finalizeAndExecuteBridgeBundle,
+  finalizeAndExecuteAllBridgeBundles,
+  getBridgedTokenAddress,
+} from './bridge';
+export type { BridgeBundleInfo } from './bridge';
+
 // Types
 export {
   SourceChainStatus,

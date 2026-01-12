@@ -2,6 +2,8 @@
  * ABI definitions for interop contracts
  */
 
+import { ethers } from "ethers";
+
 export const InteropCenterAbi = [
   'function sendBundle(bytes calldata _destinationChainId, tuple(bytes to, bytes data, bytes[] callAttributes)[] calldata _callStarters, bytes[] calldata _bundleAttributes) external payable returns (bytes32)',
   'function sendMessage(bytes calldata recipient, bytes calldata payload, bytes[] calldata attributes) external payable returns (bytes32)',
@@ -45,3 +47,6 @@ export const ERC20Abi = [
   'function symbol() view returns (string)',
   'function decimals() view returns (uint8)',
 ];
+
+export const interopBundleSentInterface = new ethers.Interface(InteropCenterAbi);
+export const l1MessengerInterface = new ethers.Interface(L1MessengerAbi);
