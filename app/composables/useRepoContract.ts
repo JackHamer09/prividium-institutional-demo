@@ -1,6 +1,7 @@
 import { readContract, waitForTransactionReceipt } from "@wagmi/core";
 import type { Address } from "viem";
-import { INTRADAY_REPO_ABI, type RepoOffer } from "../contracts/intraday-repo";
+
+import { INTRADAY_REPO_ABI, type RepoOffer } from "@/contracts/intraday-repo";
 
 /**
  * Intraday Repo contract interactions

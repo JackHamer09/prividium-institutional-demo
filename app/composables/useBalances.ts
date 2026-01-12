@@ -1,19 +1,6 @@
 import { waitForTransactionReceipt } from "@wagmi/core";
 import type { Address } from "viem";
-import { getTokensConfig } from "../config/tokens";
-
-const mintAbi = [
-  {
-    name: "mint",
-    type: "function",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "to", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    outputs: [],
-  },
-] as const;
+import { getTokensConfig, mintAbi } from "../config/tokens";
 
 /**
  * Token balance management
