@@ -197,13 +197,13 @@ const status = await getBundleSourceStatus(provider, handle);
 
 Waits until the interop root is available on the destination chain.
 
-#### `getBundleOnChainStatus(provider, bundleHash)`
+#### `getBundleDestinationStatus(provider, bundleHash, expectedRoot)`
 
-Gets the on-chain status of a bundle on the destination chain.
+Gets the status of a bundle on the destination chain, including root availability.
 
 ```typescript
-const status = await getBundleOnChainStatus(provider, bundleHash);
-// Returns: BundleStatus.Unreceived | Verified | FullyExecuted | Unbundled
+const status = await getBundleDestinationStatus(provider, bundleHash, expectedRoot);
+// Returns: DestinationChainStatus.RootNotYetAvailable | RootAvailable | Verified | Executed
 ```
 
 #### `waitForBundleExecution(provider, bundleHash, options?)`
