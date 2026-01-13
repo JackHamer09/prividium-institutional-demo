@@ -4,7 +4,7 @@
 
     <div v-else class="min-h-screen flex flex-col bg-white">
       <LayoutHeader />
-      <main class="flex-1 container mx-auto px-4 py-8">
+      <main class="flex-1 w-full max-w-[min(95%,1200px)] mx-auto px-4 py-8">
         <slot />
       </main>
     </div>

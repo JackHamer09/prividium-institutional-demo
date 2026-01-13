@@ -1,4 +1,6 @@
 import tailwindcss from "@tailwindcss/vite";
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -64,10 +66,12 @@ export default defineNuxtConfig({
       prividiumChainName: "",
       prividiumBlockExplorerUrl: "",
       prividiumBlockExplorerName: "",
+      // ZKsync SSO Configuration
+      zksyncSsoAuthServerUrl: "",
     },
   },
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss(), wasm(), topLevelAwait()],
     optimizeDeps: {
       exclude: ["web3-avatar-vue"],
     },

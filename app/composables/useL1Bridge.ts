@@ -53,7 +53,7 @@ export function useL1Bridge() {
 
       const l2PublicClient = createPublicClient({
         chain: prividium.chain,
-        transport: http(prividium.chain.rpcUrls.default.http[0]),
+        transport: prividium.transport,
       });
 
       const balance = await l2PublicClient.getBalance({

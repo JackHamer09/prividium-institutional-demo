@@ -43,25 +43,38 @@
           </div>
         </div>
 
-        <CommonButton
-          variant="primary"
-          size="lg"
-          full-width
-          :loading="walletStore.isConnecting"
-          @click="handleConnect"
-        >
-          Connect Wallet
-        </CommonButton>
+        <!-- Wallet Connection Options -->
+        <div class="space-y-3">        
+          <!-- ZKsync SSO Option (Primary) -->
+          <CommonButton
+            variant="primary"
+            size="lg"
+            full-width
+            :loading="walletStore.isConnecting && connectingType === 'zksync-sso'"
+            :disabled="walletStore.isConnecting && connectingType !== 'zksync-sso'"
+            @click="handleConnect('zksync-sso')"
+          >
+            Continue with ZKsync SSO
+          </CommonButton>
 
-        <p class="text-xs text-slate-500 mt-4">
-          Only browser wallet providers are supported
-        </p>
+          <!-- Browser Wallet Option -->
+          <CommonButton
+            variant="secondary"
+            size="lg"
+            full-width
+            :loading="walletStore.isConnecting && connectingType === 'injected'"
+            :disabled="walletStore.isConnecting && connectingType !== 'injected'"
+            @click="handleConnect('injected')"
+          >
+            Browser Wallet
+          </CommonButton>
+        </div>
 
         <button
           class="text-sm text-slate-500 hover:text-slate-700 mt-4 underline"
           @click="handleLogout"
         >
-          Use different account
+          Use different Prividium account
         </button>
       </div>
     </div>
@@ -69,9 +82,14 @@
 </template>
 
 <script lang="ts" setup>
+import type { WalletConnectorType } from "~/stores/wallet";
+
 const walletStore = useWalletStore();
 const prividiumStore = usePrividiumStore();
 const toast = useToast();
+
+// Track which button was clicked for loading state
+const connectingType = ref<WalletConnectorType | null>(null);
 
 async function handleAuthorize() {
   try {
@@ -83,13 +101,16 @@ async function handleAuthorize() {
   }
 }
 
-async function handleConnect() {
+async function handleConnect(type: WalletConnectorType) {
+  connectingType.value = type;
   try {
-    await walletStore.connectWallet();
+    await walletStore.connectWallet(type);
   } catch (error) {
     console.error("Connection error:", error);
     const message = error instanceof Error ? error.message : "Failed to connect wallet";
     toast.error(message);
+  } finally {
+    connectingType.value = null;
   }
 }
 

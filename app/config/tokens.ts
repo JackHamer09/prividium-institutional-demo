@@ -59,3 +59,16 @@ export function getTokenByAddress(address: Address, tokens: TokenConfig[]): Toke
 export function getTokenBySymbol(symbol: string, tokens: TokenConfig[]): TokenConfig | undefined {
   return tokens.find((token) => token.symbol === symbol);
 }
+
+export const mintAbi = [
+  {
+    name: "mint",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+] as const;

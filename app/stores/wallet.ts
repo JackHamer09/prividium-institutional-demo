@@ -2,6 +2,8 @@ import { defineStore } from "pinia";
 import { connect, disconnect, getConnections, watchConnections } from "@wagmi/core";
 import type { Address } from "viem";
 
+export type WalletConnectorType = "injected" | "zksync-sso";
+
 export const useWalletStore = defineStore("wallet", () => {
   const config = useWagmiConfig();
 
@@ -9,6 +11,7 @@ export const useWalletStore = defineStore("wallet", () => {
   const isConnected = ref(false);
   const isConnecting = ref(false);
   const chainId = ref<number | undefined>(undefined);
+  const connectorType = ref<WalletConnectorType | undefined>(undefined);
 
   let unwatchConnections: (() => void) | undefined;
 
@@ -23,10 +26,15 @@ export const useWalletStore = defineStore("wallet", () => {
       address.value = connection.accounts[0];
       isConnected.value = true;
       chainId.value = connection.chainId;
+      // Track which connector type is connected
+      connectorType.value = connection.connector.id === "zksync-sso"
+        ? "zksync-sso"
+        : "injected";
     } else {
       address.value = undefined;
       isConnected.value = false;
       chainId.value = undefined;
+      connectorType.value = undefined;
     }
   }
 
@@ -46,16 +54,32 @@ export const useWalletStore = defineStore("wallet", () => {
   }
 
   /**
-   * Connect to wallet
+   * Get connector by type
    */
-  async function connectWallet() {
+  function getConnectorByType(type: WalletConnectorType) {
+    return config.connectors.find((c) => {
+      if (type === "zksync-sso") {
+        return c.id === "zksync-sso";
+      }
+      // For injected, match any connector that is not zksync-sso
+      return c.id !== "zksync-sso";
+    });
+  }
+
+  /**
+   * Connect to wallet with specified connector type
+   */
+  async function connectWallet(type: WalletConnectorType = "injected") {
     isConnecting.value = true;
     try {
-      const connector = config.connectors[0];
+      const connector = getConnectorByType(type);
       if (!connector) {
-        throw new Error("No connector available");
+        throw new Error(`No ${type} connector available`);
       }
-      await connect(config, { connector });
+      await connect(config, {
+        connector,
+        chainId: config.chains[0].id,
+      });
     } catch (error) {
       console.error("Failed to connect wallet:", error);
       throw error;
@@ -78,6 +102,7 @@ export const useWalletStore = defineStore("wallet", () => {
       address.value = undefined;
       isConnected.value = false;
       chainId.value = undefined;
+      connectorType.value = undefined;
     } catch (error) {
       console.error("Failed to disconnect wallet:", error);
       throw error;
@@ -98,6 +123,7 @@ export const useWalletStore = defineStore("wallet", () => {
     isConnected,
     isConnecting,
     chainId,
+    connectorType,
     initialize,
     connectWallet,
     disconnectWallet,

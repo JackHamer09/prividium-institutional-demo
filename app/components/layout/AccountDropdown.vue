@@ -154,7 +154,6 @@ async function copyAddress() {
 async function handleDisconnect() {
   try {
     await walletStore.disconnectWallet();
-    toast.info("Wallet disconnected");
   } catch (error) {
     console.error("Failed to disconnect:", error);
     toast.error("Failed to disconnect wallet");
