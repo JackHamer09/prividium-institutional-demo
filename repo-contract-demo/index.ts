@@ -31,13 +31,19 @@ import {
   NativeTokenVaultAbi,
   ERC20Abi,
   extractBundlesFromReceipt,
-  finalizeAndExecuteBridgeBundle,
+  waitAndExecuteBundle,
   getBridgedTokenAddress,
-  BridgeBundleInfo,
-  // New SDK functions
+  BundleInfo,
   getShadowAccountAddress,
-  sendAndExecuteBundle,
-  waitForBridgeBundleExternalExecution,
+  // For implementing local high-level functions
+  sendBundle,
+  waitForBundleFinalization,
+  waitUntilRootAvailable,
+  executeBundle,
+  waitForBundleExecution,
+  getBundleInfoFinalizationInfo,
+  WaitOptions,
+  ExecuteBundleOptions,
 } from 'interop-sdk';
 
 // SimpleERC20 bytecode (constructor takes uint256 initialSupply)
@@ -80,8 +86,6 @@ async function deployContract(
   const deployData = bytecode + constructorArgs.substring(2);
   const deployTx = await wallet.sendTransaction({
     data: deployData,
-    gasLimit: 10_000_000n,
-    gasPrice: 1_000_000_000n,
   });
   console.log(`Deploy tx hash: ${deployTx.hash}`);
   const receipt = await deployTx.wait();
@@ -102,17 +106,93 @@ async function registerToken(wallet: ethers.Wallet, tokenAddress: string): Promi
     [...NativeTokenVaultAbi, 'function ensureTokenIsRegistered(address _nativeToken) returns (bytes32)'],
     wallet
   );
-  const registerTx = await nativeTokenVault.ensureTokenIsRegistered(tokenAddress, {
-    gasLimit: 5_000_000n,
-    gasPrice: 1_000_000_000n,
-  });
+  const registerTx = await nativeTokenVault.ensureTokenIsRegistered(tokenAddress);
   console.log(`Register tx hash: ${registerTx.hash}`);
   await registerTx.wait();
   console.log('Token registered successfully');
 }
 
 /**
- * Wrapper around the SDK's sendAndExecuteBundle that adds description logging
+ * Options for sendAndExecuteBundle
+ */
+interface SendAndExecuteBundleOptions extends ExecuteBundleOptions, WaitOptions {
+  /** If true, wait for external executor instead of executing ourselves */
+  waitForExternalExecution?: boolean;
+}
+
+/**
+ * Complete bundle lifecycle: send bundle, wait for finalization, wait for root, and execute.
+ * This is a high-level convenience function that handles the entire cross-chain bundle flow.
+ * Note: This function is demo-specific and not part of the SDK.
+ */
+async function sendAndExecuteBundle(
+  sourceSigner: ethers.Signer,
+  sourceProvider: ethers.Provider,
+  destSigner: ethers.Signer,
+  destProvider: ethers.Provider,
+  bundle: BundleBuilder,
+  options: SendAndExecuteBundleOptions = {}
+): Promise<ethers.TransactionReceipt> {
+  // Send bundle
+  console.log('Sending bundle...');
+  const handle = await sendBundle(sourceSigner, bundle);
+  console.log('Bundle hash:', handle.bundleHash);
+  console.log('Tx hash:', handle.txHash);
+
+  // Wait for finalization
+  console.log('Waiting for finalization...');
+  const finalizationInfo = await waitForBundleFinalization(sourceProvider, handle, options);
+  console.log('Bundle finalized! Batch:', finalizationInfo.expectedRoot.batchNumber);
+
+  // Wait for root availability
+  console.log('Waiting for root availability on destination...');
+  await waitUntilRootAvailable(destProvider, finalizationInfo.expectedRoot, options);
+  console.log('Root available!');
+
+  if (options.waitForExternalExecution) {
+    // Wait for external executor and get the execution receipt
+    console.log('Waiting for external executor...');
+    const receipt = await waitForBundleExecution(destProvider, handle.bundleHash, options);
+    console.log('Execute status:', receipt.status === 1 ? 'Success' : 'Failed');
+    return receipt;
+  } else {
+    // Execute bundle ourselves
+    console.log('Executing bundle...');
+    const receipt = await executeBundle(destSigner, finalizationInfo, options);
+    console.log('Execute tx hash:', receipt.hash);
+    console.log('Execute status:', receipt.status === 1 ? 'Success' : 'Failed');
+    return receipt;
+  }
+}
+
+/**
+ * Wait for a bundle to be executed by an external executor.
+ * Waits for finalization on source chain, then waits for root availability on destination,
+ * then polls for external execution status.
+ * Note: This function is demo-specific and not part of the SDK.
+ */
+async function waitForBundleExternalExecution(
+  sourceProvider: ethers.Provider,
+  destProvider: ethers.Provider,
+  bundleInfo: BundleInfo,
+  options: WaitOptions = {}
+): Promise<ethers.TransactionReceipt> {
+  console.log(`Waiting for external execution of bundle: ${bundleInfo.bundleHandle.bundleHash}`);
+
+  // Wait for finalization
+  const finalizationInfo = await getBundleInfoFinalizationInfo(sourceProvider, bundleInfo);
+  console.log('Bundle finalized! Batch:', finalizationInfo.expectedRoot.batchNumber);
+
+  // Wait for root availability on destination
+  await waitUntilRootAvailable(destProvider, finalizationInfo.expectedRoot, options);
+  console.log('Root available on destination!');
+
+  // Wait for external executor to execute the bundle and return the receipt
+  return await waitForBundleExecution(destProvider, bundleInfo.bundleHandle.bundleHash, options);
+}
+
+/**
+ * Wrapper function that adds description logging and calls sendAndExecuteBundle
  */
 async function sendAndExecuteBundleWithDescription(
   sourceWallet: ethers.Wallet,
@@ -179,10 +259,7 @@ async function main() {
 
   // Set unbundler address for cross-chain transfers
   console.log('Setting unbundler address...');
-  const setUnbundlerTx = await repoContract.setUnbundlerAddress(walletA.address, {
-    gasLimit: 100_000n,
-    gasPrice: 1_000_000_000n,
-  });
+  const setUnbundlerTx = await repoContract.setUnbundlerAddress(walletA.address);
   await setUnbundlerTx.wait();
   console.log('Unbundler address set');
 
@@ -222,10 +299,7 @@ async function main() {
 
   // Approve lend token to repo contract
   console.log('Approving lend token to RepoContract...');
-  const approveLendTx = await lendToken.approve(repoContractAddress, lendAmount, {
-    gasLimit: 100_000n,
-    gasPrice: 1_000_000_000n,
-  });
+  const approveLendTx = await lendToken.approve(repoContractAddress, lendAmount);
   await approveLendTx.wait();
   console.log('Lend token approved');
 
@@ -239,11 +313,7 @@ async function main() {
     duration, // _duration
     chainAId, // _lenderChainId (lender is on chain A)
     walletA.address, // _lenderRefundAddress
-    lenderFee, // _lenderFee
-    {
-      gasLimit: 500_000n,
-      gasPrice: 1_000_000_000n,
-    }
+    lenderFee // _lenderFee
   );
   const createOfferReceipt = await createOfferTx.wait();
   console.log('Create offer tx:', createOfferTx.hash);
@@ -268,10 +338,7 @@ async function main() {
 
   // Send collateral tokens to shadow account
   console.log('Sending collateral tokens to shadow account...');
-  const sendCollateralTx = await collateralToken.transfer(borrowerShadowAccount, collateralAmount, {
-    gasLimit: 100_000n,
-    gasPrice: 1_000_000_000n,
-  });
+  const sendCollateralTx = await collateralToken.transfer(borrowerShadowAccount, collateralAmount);
   await sendCollateralTx.wait();
   console.log('Collateral sent to shadow account');
 
@@ -332,21 +399,13 @@ async function main() {
   console.log(`Found ${bridgeBundles.length} bridge bundle(s) to finalize`);
 
   for (const bundleInfo of bridgeBundles) {
-    console.log(`Finalizing bridge bundle: ${bundleInfo.bundleHandle.bundleHash}`);
+    console.log(`Waiting for bundle: ${bundleInfo.bundleHandle.bundleHash}`);
     if (executeBundles) {
-      const bridgeReceipt = await finalizeAndExecuteBridgeBundle(
-        providerA,
-        walletB,
-        bundleInfo,
-        {
-          // gasLimit: 10_000_000n,
-          // gasPrice: 1_000_000_000n,
-        }
-      );
-      console.log(`Bridge bundle executed on chain B, tx: ${bridgeReceipt.hash}`);
+      const bridgeReceipt = await waitAndExecuteBundle(providerA, walletB, bundleInfo);
+      console.log(`Bundle executed on chain B, tx: ${bridgeReceipt.hash}`);
     } else {
-      const bridgeReceipt = await waitForBridgeBundleExternalExecution(providerA, providerB, bundleInfo);
-      console.log(`Bridge bundle executed on chain B, tx: ${bridgeReceipt.hash}`);
+      const bridgeReceipt = await waitForBundleExternalExecution(providerA, providerB, bundleInfo);
+      console.log(`Bundle executed on chain B, tx: ${bridgeReceipt.hash}`);
     }
   }
 
@@ -378,10 +437,7 @@ async function main() {
   // First approve the NTV on chain B to spend the tokens
   console.log('Approving NTV on chain B to spend lend tokens...');
   const lendTokenOnBWithSigner = new ethers.Contract(lendTokenAddressOnB, ERC20Abi, walletB);
-  const approveNtvTx = await lendTokenOnBWithSigner.approve(L2_NATIVE_TOKEN_VAULT_ADDRESS, repaymentAmount, {
-    gasLimit: 100_000n,
-    gasPrice: 1_000_000_000n,
-  });
+  const approveNtvTx = await lendTokenOnBWithSigner.approve(L2_NATIVE_TOKEN_VAULT_ADDRESS, repaymentAmount);
   await approveNtvTx.wait();
   console.log('NTV approved');
 
@@ -456,21 +512,13 @@ async function main() {
   console.log(`Found ${collateralBridgeBundles.length} collateral bridge bundle(s) to finalize`);
 
   for (const bundleInfo of collateralBridgeBundles) {
-    console.log(`Finalizing collateral bridge bundle: ${bundleInfo.bundleHandle.bundleHash}`);
+    console.log(`Waiting for collateral bundle: ${bundleInfo.bundleHandle.bundleHash}`);
     if (executeBundles) {
-      const collateralBridgeReceipt = await finalizeAndExecuteBridgeBundle(
-        providerA,
-        walletB,
-        bundleInfo,
-        {
-          gasLimit: 10_000_000n,
-          gasPrice: 1_000_000_000n,
-        }
-      );
-      console.log(`Collateral bridge bundle executed on chain B, tx: ${collateralBridgeReceipt.hash}`);
+      const collateralBridgeReceipt = await waitAndExecuteBundle(providerA, walletB, bundleInfo);
+      console.log(`Collateral bundle executed on chain B, tx: ${collateralBridgeReceipt.hash}`);
     } else {
-      const collateralBridgeReceipt = await waitForBridgeBundleExternalExecution(providerA, providerB, bundleInfo);
-      console.log(`Collateral bridge bundle executed on chain B, tx: ${collateralBridgeReceipt.hash}`);
+      const collateralBridgeReceipt = await waitForBundleExternalExecution(providerA, providerB, bundleInfo);
+      console.log(`Collateral bundle executed on chain B, tx: ${collateralBridgeReceipt.hash}`);
     }
   }
 

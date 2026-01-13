@@ -96,10 +96,10 @@ export interface BundleHandle {
 }
 
 /**
- * Information about a bridge bundle extracted from a transaction
- * Used for tracking and executing bridge bundles that move tokens across chains
+ * Information about a bundle extracted from a transaction receipt
+ * Used for tracking and executing bundles
  */
-export interface BridgeBundleInfo {
+export interface BundleInfo {
   /** Bundle handle for tracking */
   bundleHandle: BundleHandle;
   /** L1 message hash from L1MessageSent event */

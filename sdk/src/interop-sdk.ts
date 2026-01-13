@@ -17,11 +17,9 @@ import {
 import {
   getBundleDestinationStatus,
   waitForBundleAvailability,
+  waitUntilRootAvailable,
 } from './destination-chain';
-import {
-  executeBundle,
-  waitAndExecuteBundle,
-} from './bundle-executor';
+import { executeBundle } from './bundle-executor';
 
 /**
  * Convenience class that composes all interop operations for a complete flow.
@@ -112,11 +110,13 @@ export class InteropSDK {
    * Wait for root availability and execute a bundle
    */
   async waitAndExecute(
+    destinationProvider: ethers.Provider,
     destinationSigner: ethers.Signer,
     finalizationInfo: InteropMessageFinalizationInfo,
-    options: ExecuteBundleOptions = {}
+    options: ExecuteBundleOptions & WaitOptions = {}
   ): Promise<ethers.TransactionReceipt> {
-    return waitAndExecuteBundle(destinationSigner, finalizationInfo, options);
+    await waitUntilRootAvailable(destinationProvider, finalizationInfo.expectedRoot, options);
+    return executeBundle(destinationSigner, finalizationInfo, options);
   }
 
   /**

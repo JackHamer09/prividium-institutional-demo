@@ -126,6 +126,7 @@ export function computeAssetId(
 /**
  * Get the shadow account address for a user on a destination chain
  * Shadow accounts allow users from one chain to interact with contracts on another chain
+ * IMPORTANT: ONLY works in the demo version.
  * @param provider - The provider for the chain where the shadow account exists
  * @param ownerChainId - The chain ID where the owner's account exists
  * @param ownerAddress - The owner's address on their origin chain
