@@ -8,7 +8,8 @@ Lenders create offers specifying loan terms (amount, collateral, duration, fee).
 
 ### 1. Prividium Environment
 
-Set up the [Prividium](https://github.com/matter-labs/zksync-prividium) environment.
+Set up the [Prividium](https://github.com/matter-labs/zksync-prividium) environment
+with Bundler enabled and SSO contracts deployed and whitelisted.
 
 ### 1.1 Register App in Admin Panel
 

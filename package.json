@@ -7,7 +7,7 @@
   },
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "dev": "PORT=3003 nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
@@ -38,7 +38,7 @@
     "vue-router": "^4.6.3",
     "vue-toastification": "^2.0.0-rc.5",
     "web3-avatar-vue": "^1.0.5",
-    "zksync-sso": "link:../../../../Library/pnpm/global/5/node_modules/zksync-sso",
+    "zksync-sso": "1.0.0-beta.4",
     "zod": "^4.1.13"
   },
   "devDependencies": {
