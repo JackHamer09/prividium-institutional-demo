@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
-import { formatEvmV1, formatEvmV1AddressOnly, formatEvmV1WithAddress } from './address';
-import { InteropCallStarter } from './types';
+import { formatEvmV1, formatEvmV1AddressOnly, formatEvmV1WithAddress, computeAssetId } from './address';
+import { InteropCall, InteropCallStarter } from './types';
 import { NEW_ENCODING_VERSION, L2_NATIVE_TOKEN_VAULT_ADDRESS, L2_ASSET_ROUTER_ADDRESS } from './constants';
 
 /**
@@ -58,6 +58,8 @@ export class CallBuilder {
    * Mark this call to be executed via a shadow account on the destination chain.
    * Shadow accounts are deterministic contracts that represent the sender's cross-chain identity,
    * enabling execution on contracts that don't natively support ERC-7786.
+   *
+   * IMPORTANT: This feature is only available in the demo version.
    * @returns this for chaining
    */
   withShadowAccount(): CallBuilder {
@@ -76,6 +78,60 @@ export class CallBuilder {
       data: this._data,
       callAttributes: this._attributes,
     };
+  }
+
+  /**
+   * Create a call for transferring tokens via the Asset Router
+   * This is a convenience method that encapsulates:
+   * - Computing the asset ID from chain ID and token address
+   * - Building the bridge calldata
+   * - Creating a InteropCallStarter with indirect call
+   *
+   * @param sourceChainId - The source chain ID where the token originates
+   * @param tokenAddress - The token address on the source chain
+   * @param amount - Amount to transfer
+   * @param receiver - Receiver address on destination chain
+   * @returns An InteropCallStarter configured for token transfer
+   *
+   * @example
+   * ```typescript
+   * const call = CallBuilder.tokenTransfer(
+   *   sourceChainId,
+   *   tokenAddress,
+   *   ethers.parseUnits('100', 18),
+   *   recipientAddress
+   * );
+   *
+   * const bundle = new BundleBuilder(destChainId)
+   *   .addCall(call)
+   *   .withUnbundler(unbundlerAddress);
+   * ```
+   */
+  static tokenTransfer(
+    sourceChainId: bigint | number,
+    tokenAddress: string,
+    amount: bigint,
+    receiver: string
+  ): InteropCallStarter {
+    // Compute the asset ID
+    const assetId = computeAssetId(
+      sourceChainId,
+      L2_NATIVE_TOKEN_VAULT_ADDRESS,
+      tokenAddress
+    );
+
+    // Build the bridge calldata
+    const burnData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['uint256', 'address', 'address'],
+      [amount, receiver, ethers.ZeroAddress]
+    );
+    const calldata = ethers.concat([
+      NEW_ENCODING_VERSION,
+      ethers.AbiCoder.defaultAbiCoder().encode(['bytes32', 'bytes'], [assetId, burnData]),
+    ]);
+
+    // Create and return the CallBuilder configured as an indirect call
+    return (new CallBuilder(L2_ASSET_ROUTER_ADDRESS, calldata).asIndirectCall(0n)).build();
   }
 }
 
@@ -131,6 +187,8 @@ export class BundleBuilder {
   /**
    * Add a call that executes via shadow account on the destination chain.
    * Shadow accounts enable calling contracts that don't support ERC-7786 natively.
+   *
+   * IMPORTANT: This feature is only available in the demo version.
    * @param to - Target address
    * @param data - Calldata
    * @param value - Optional value to send
@@ -148,7 +206,7 @@ export class BundleBuilder {
   /**
    * Set the unbundler address (who can unbundle the bundle on destination)
    * @param address - The unbundler address
-   * @param chainId - Optional chain ID (if not set, uses current chain ID)
+   * @param chainId - Optional chain ID (if not set, any chain id is allowed)
    * @returns this for chaining
    */
   withUnbundler(address: string, chainId?: bigint | number): BundleBuilder {

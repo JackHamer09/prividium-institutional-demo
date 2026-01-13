@@ -45,17 +45,6 @@
  * const receipt = await executeBundle(destSigner, finalizationInfo);
  * ```
  *
- * @example Using high-level sendAndExecuteBundle:
- * ```typescript
- * import { sendAndExecuteBundle, BundleBuilder, CallBuilder } from 'interop-sdk';
- *
- * const receipt = await sendAndExecuteBundle(
- *   sourceSigner, sourceProvider,
- *   destSigner, destProvider,
- *   bundle
- * );
- * ```
- *
  * @example Using InteropSDK convenience class:
  * ```typescript
  * import { createInteropSDK, BundleBuilder, CallBuilder } from 'interop-sdk';
@@ -70,8 +59,13 @@
 // Convenience SDK class
 export { InteropSDK, createInteropSDK } from './interop-sdk';
 
-// Bundle sending
-export { sendBundle, sendRawBundle } from './bundle-sender';
+// Bundle sending and receipt extraction
+export {
+  sendBundle,
+  sendRawBundle,
+  extractBundlesFromReceipt,
+  extractL1MessagesFromReceipt,
+} from './bundle-sender';
 
 // Bundle building
 export {
@@ -99,7 +93,7 @@ export {
 export {
   getAssetId,
   getTokenAddress,
-  computeTokenAssetId,
+  computeNativeTokenAssetId,
   getBridgedTokenAddress,
 } from './assets';
 
@@ -122,7 +116,6 @@ export {
   getBundleOnChainStatus,
   getBundleDestinationStatus,
   waitForBundleAvailability,
-  canVerifyMessage,
   waitForMessageVerifiability,
   searchEventInChunks,
   waitForBundleExecution,
@@ -132,11 +125,10 @@ export {
 export {
   executeBundle,
   verifyBundle,
+  getBundleFinalizationInfo as getBundleInfoFinalizationInfo,
   waitAndExecuteBundle,
-  sendAndExecuteBundle,
-  waitForBridgeBundleExternalExecution,
+  waitAndExecuteAllBundles,
 } from './bundle-executor';
-export type { SendAndExecuteBundleOptions } from './bundle-executor';
 
 // Message operations
 export {
@@ -147,21 +139,13 @@ export {
   waitAndVerifyMessage,
 } from './message';
 
-// Bridge bundle operations
-export {
-  extractBundlesFromReceipt,
-  extractL1MessagesFromReceipt,
-  waitForBridgeBundleFinalization,
-  finalizeAndExecuteBridgeBundle,
-  finalizeAndExecuteAllBridgeBundles,
-} from './bridge';
-
 // Types
 export {
   SourceChainStatus,
   DestinationChainStatus,
   BundleStatus,
   BundleHandle,
+  BundleInfo,
   MessageHandle,
   InteropMessageFinalizationInfo,
   ExpectedRoot,
@@ -176,7 +160,6 @@ export {
   WaitOptions,
   EventSearchOptions,
   ExtendedLogProof,
-  BridgeBundleInfo,
 } from './types';
 
 // Constants

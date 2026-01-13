@@ -42,19 +42,17 @@ export async function getTokenAddress(
 }
 
 /**
- * Compute the asset ID for a token given its origin chain and NTV address
+ * Compute the asset ID for a native token using the Native Token Vault
  * This is useful when the token hasn't been queried from the chain yet
  * @param originChainId - The chain ID where the token originates
  * @param tokenAddress - The token address on the origin chain
- * @param ntvAddress - The NativeTokenVault address (defaults to standard address)
  * @returns The computed asset ID
  */
-export function computeTokenAssetId(
+export function computeNativeTokenAssetId(
   originChainId: bigint | number,
-  tokenAddress: string,
-  ntvAddress: string = L2_NATIVE_TOKEN_VAULT_ADDRESS
+  tokenAddress: string
 ): string {
-  return computeAssetId(originChainId, ntvAddress, tokenAddress);
+  return computeAssetId(originChainId, L2_NATIVE_TOKEN_VAULT_ADDRESS, tokenAddress);
 }
 
 /**
@@ -71,6 +69,6 @@ export async function getBridgedTokenAddress(
   originTokenAddress: string,
   destProvider: ethers.Provider
 ): Promise<string> {
-  const assetId = computeTokenAssetId(originChainId, originTokenAddress);
+  const assetId = computeNativeTokenAssetId(originChainId, originTokenAddress);
   return getTokenAddress(destProvider, assetId);
 }

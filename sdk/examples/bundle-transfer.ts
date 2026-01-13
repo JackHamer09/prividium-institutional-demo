@@ -28,9 +28,7 @@ import {
   CallBuilder,
   // Utilities
   computeAssetId,
-  buildBridgeCalldata,
   // Constants and ABIs
-  L2_ASSET_ROUTER_ADDRESS,
   L2_NATIVE_TOKEN_VAULT_ADDRESS,
   NativeTokenVaultAbi,
   ERC20Abi,
@@ -79,8 +77,6 @@ async function main() {
   console.log('Deploying ERC20 token...');
   const deployTx = await walletA.sendTransaction({
     data: deployData,
-    gasLimit: 5_000_000n,
-    gasPrice: 1_000_000_000n,
   });
   console.log('Deploy tx hash:', deployTx.hash);
   const deployReceipt = await deployTx.wait();
@@ -101,10 +97,7 @@ async function main() {
   );
 
   console.log('Registering token...');
-  const registerTx = await nativeTokenVault.ensureTokenIsRegistered(tokenAAddress, {
-    gasLimit: 5_000_000n,
-    gasPrice: 1_000_000_000n,
-  });
+  const registerTx = await nativeTokenVault.ensureTokenIsRegistered(tokenAAddress);
   console.log('Register tx hash:', registerTx.hash);
   await registerTx.wait();
   console.log('Token registered successfully');
@@ -117,10 +110,7 @@ async function main() {
 
   const tokenAWithSigner = new ethers.Contract(tokenAAddress, ERC20Abi, walletA);
 
-  const approveTx = await tokenAWithSigner.approve(L2_NATIVE_TOKEN_VAULT_ADDRESS, amountToSend, {
-    gasLimit: 100_000n,
-    gasPrice: 1_000_000_000n,
-  });
+  const approveTx = await tokenAWithSigner.approve(L2_NATIVE_TOKEN_VAULT_ADDRESS, amountToSend);
   console.log('Approve tx hash:', approveTx.hash);
   await approveTx.wait();
   console.log('Approval successful');
@@ -128,17 +118,14 @@ async function main() {
   // ---- Send bundle using standalone functions ----
   console.log('\n=== SENDING INTEROP BUNDLE (ERC20 TRANSFER) ===');
 
-  // Compute asset ID
+  // Compute asset ID for checking later
   const assetId = computeAssetId(chainAId, L2_NATIVE_TOKEN_VAULT_ADDRESS, tokenAAddress);
   console.log('Asset ID:', assetId);
 
-  // Build the bridge calldata
-  const bridgeCalldata = buildBridgeCalldata(assetId, amountToSend, walletB.address);
-
-  // Build the bundle
+  // Build the bundle using CallBuilder.tokenTransfer helper
   const bundle = new BundleBuilder(chainBId)
     .addCall(
-      new CallBuilder(L2_ASSET_ROUTER_ADDRESS, bridgeCalldata).asIndirectCall(0n).build()
+      CallBuilder.tokenTransfer(chainAId, tokenAAddress, amountToSend, walletB.address)
     )
     .withUnbundler(walletB.address);
 
@@ -171,10 +158,7 @@ async function main() {
   console.log('\n=== EXECUTING BUNDLE ON DESTINATION CHAIN ===');
 
   // 4. Execute bundle
-  const executeReceipt = await executeBundle(walletB, finalizationInfo, {
-    gasLimit: 10_000_000n,
-    gasPrice: 1_000_000_000n,
-  });
+  const executeReceipt = await executeBundle(walletB, finalizationInfo);
   console.log('Execute tx hash:', executeReceipt.hash);
   console.log('Execute status:', executeReceipt.status === 1 ? 'Success' : 'Failed');
 

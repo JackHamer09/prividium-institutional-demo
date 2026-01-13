@@ -37,11 +37,9 @@ export async function getInteropRoot(
 
   try {
     const root = await contract.interopRoots(chainId, batchNumber);
-    console.log(`Fetched interop root for chainId ${chainId}, batchNumber ${batchNumber}: ${root}`);
     if (
       root &&
-      root !== ethers.ZeroHash &&
-      root !== '0x0000000000000000000000000000000000000000000000000000000000000000'
+      root !== ethers.ZeroHash
     ) {
       return root;
     }
@@ -176,31 +174,6 @@ export async function waitForBundleAvailability(
 }
 
 /**
- * Check if a message can be verified on the destination chain
- * @param provider - The provider for the destination chain
- * @param expectedRoot - The expected root information
- * @returns True if the message can be verified
- */
-export async function canVerifyMessage(
-  provider: ethers.Provider,
-  expectedRoot: ExpectedRoot
-): Promise<boolean> {
-  const root = await getInteropRoot(provider, expectedRoot.rootChainId, expectedRoot.batchNumber);
-
-  if (root === null) {
-    return false;
-  }
-
-  if (root.toLowerCase() !== expectedRoot.expectedRoot.toLowerCase()) {
-    throw new Error(
-      `Interop root mismatch: expected ${expectedRoot.expectedRoot}, got ${root}`
-    );
-  }
-
-  return true;
-}
-
-/**
  * Wait until a message can be verified on the destination chain
  * @param provider - The provider for the destination chain
  * @param expectedRoot - The expected root information
@@ -254,7 +227,6 @@ export async function searchEventInChunks(
       }
     } catch {
       // Some providers have limits on block ranges, try smaller chunks
-      console.warn(`Error fetching logs for blocks ${fromBlock}-${toBlock}, continuing...`);
     }
 
     toBlock = fromBlock - 1;
@@ -280,17 +252,13 @@ export async function waitForBundleExecution(
   const pollInterval = options.pollInterval ?? DEFAULT_POLL_INTERVAL;
   const timeout = options.timeout ?? DEFAULT_TIMEOUT;
 
-  console.log(`Waiting for external executor to execute bundle ${bundleHash}...`);
   const startTime = Date.now();
 
   while (Date.now() - startTime < timeout) {
     const status = await getBundleOnChainStatus(provider, bundleHash);
 
     if (status === BundleStatus.FullyExecuted || status === BundleStatus.Unbundled) {
-      console.log(`Bundle has been ${status === BundleStatus.FullyExecuted ? 'executed' : 'unbundled'} by external executor!`);
-
       // Search for the BundleExecuted event in chunks (up to 50000 blocks back by default)
-      console.log('Searching for BundleExecuted event...');
       const logs = await searchEventInChunks(
         provider,
         L2_INTEROP_HANDLER_ADDRESS,
@@ -302,7 +270,6 @@ export async function waitForBundleExecution(
         const log = logs[logs.length - 1];
         const receipt = await provider.getTransactionReceipt(log.transactionHash);
         if (receipt) {
-          console.log(`Found execution tx: ${receipt.hash}`);
           return receipt;
         }
       }

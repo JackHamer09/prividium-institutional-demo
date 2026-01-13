@@ -1,22 +1,19 @@
 import { ethers } from 'ethers';
 import {
   InteropMessageFinalizationInfo,
-  BundleHandle,
   ExecuteBundleOptions,
   BundleStatus,
+  BundleInfo,
   WaitOptions,
-  BridgeBundleInfo,
 } from './types';
 import { InteropHandlerAbi } from './abis';
 import { L2_INTEROP_HANDLER_ADDRESS } from './constants';
 import {
   getBundleOnChainStatus,
   waitUntilRootAvailable,
-  waitForBundleExecution,
 } from './destination-chain';
-import { sendBundle } from './bundle-sender';
-import { waitForBundleFinalization, getBundleFinalizationInfo } from './source-chain';
-import { BundleBuilder } from './bundle-builder';
+import { getBundleFinalizationInfo as getFinalizationInfoFromHandle } from './source-chain';
+import { extractBundlesFromReceipt } from './bundle-sender';
 
 /**
  * Execute a bundle on the destination chain
@@ -130,11 +127,7 @@ export async function verifyBundle(
   // Send the transaction
   const tx = await interopHandler.verifyBundle(
     finalizationInfo.encodedData,
-    messageInclusionProof,
-    {
-      gasLimit: options.gasLimit ?? 5_000_000n,
-      gasPrice: options.gasPrice ?? 1_000_000_000n,
-    }
+    messageInclusionProof
   );
 
   const receipt = await tx.wait();
@@ -147,113 +140,96 @@ export async function verifyBundle(
 }
 
 /**
- * Wait for root availability and then execute a bundle
- * @param signer - The signer to use for the transaction
- * @param finalizationInfo - The finalization info from the source chain
+ * Get finalization info from a bundle info extracted from a receipt
+ * Also validates the L1 message hash
+ * @param provider - The source chain provider
+ * @param bundleInfo - The bundle info extracted from receipt
+ * @returns The finalization info
+ */
+export async function getBundleFinalizationInfo(
+  provider: ethers.Provider,
+  bundleInfo: BundleInfo
+): Promise<InteropMessageFinalizationInfo> {
+  const finalizationInfo = await getFinalizationInfoFromHandle(provider, bundleInfo.bundleHandle);
+
+  // Double check just in case
+  const msgHash = ethers.keccak256(finalizationInfo.proof.message.data);
+  if (msgHash !== bundleInfo.l1MessageHash) {
+    throw new Error(
+      `L1 message hash mismatch: expected ${bundleInfo.l1MessageHash}, got ${msgHash}`
+    );
+  }
+
+  return finalizationInfo;
+}
+
+/**
+ * Wait for bundle finalization on source chain, then wait for root availability
+ * on destination chain, and execute the bundle.
+ * @param sourceProvider - The source chain provider
+ * @param destSigner - The signer for the destination chain
+ * @param bundleInfo - The bundle info extracted from receipt
  * @param options - Execution options
- * @returns The transaction receipt
+ * @returns The execution receipt
  */
 export async function waitAndExecuteBundle(
-  signer: ethers.Signer,
-  finalizationInfo: InteropMessageFinalizationInfo,
-  options: ExecuteBundleOptions = {}
+  sourceProvider: ethers.Provider,
+  destSigner: ethers.Signer,
+  bundleInfo: BundleInfo,
+  options: ExecuteBundleOptions & WaitOptions = {}
 ): Promise<ethers.TransactionReceipt> {
-  const provider = signer.provider;
-  if (!provider) {
+  const destProvider = destSigner.provider;
+  if (!destProvider) {
     throw new Error('Signer must have a provider');
   }
 
-  // Wait for root to be available
-  await waitUntilRootAvailable(provider, finalizationInfo.expectedRoot);
+  // Get finalization info
+  const finalizationInfo = await getBundleFinalizationInfo(
+    sourceProvider,
+    bundleInfo
+  );
+
+  // Wait for root to be available on destination
+  await waitUntilRootAvailable(destProvider, finalizationInfo.expectedRoot, options);
 
   // Execute the bundle
-  return executeBundle(signer, finalizationInfo, options);
+  return executeBundle(destSigner, finalizationInfo, options);
 }
 
 /**
- * Options for sendAndExecuteBundle
+ * Wait for and execute all bundles from a transaction
+ * This is useful when a transaction triggers multiple cross-chain transfers
+ * @param receipt - The transaction receipt containing bundles
+ * @param sourceChainId - The source chain ID
+ * @param sourceProvider - The source chain provider
+ * @param destSigner - The signer for the destination chain
+ * @param options - Execution options
+ * @returns Array of execution receipts
  */
-export interface SendAndExecuteBundleOptions extends ExecuteBundleOptions, WaitOptions {
-  /** If true, wait for external executor instead of executing ourselves */
-  waitForExternalExecution?: boolean;
-}
-
-/**
- * Complete bundle lifecycle: send bundle, wait for finalization, wait for root, and execute
- * This is a high-level convenience function that handles the entire cross-chain bundle flow
- * @param sourceSigner - The signer on the source chain (to send the bundle)
- * @param sourceProvider - The provider for the source chain (to wait for finalization)
- * @param destSigner - The signer on the destination chain (to execute the bundle)
- * @param destProvider - The provider for the destination chain (to wait for root)
- * @param bundle - The bundle to send and execute
- * @param options - Options for sending and executing
- * @returns The execution receipt on the destination chain
- */
-export async function sendAndExecuteBundle(
-  sourceSigner: ethers.Signer,
+export async function waitAndExecuteAllBundles(
+  receipt: ethers.TransactionReceipt,
+  sourceChainId: bigint,
   sourceProvider: ethers.Provider,
   destSigner: ethers.Signer,
-  destProvider: ethers.Provider,
-  bundle: BundleBuilder,
-  options: SendAndExecuteBundleOptions = {}
-): Promise<ethers.TransactionReceipt> {
-  // Send bundle
-  console.log('Sending bundle...');
-  const handle = await sendBundle(sourceSigner, bundle);
-  console.log('Bundle hash:', handle.bundleHash);
-  console.log('Tx hash:', handle.txHash);
+  options: ExecuteBundleOptions & WaitOptions = {}
+): Promise<ethers.TransactionReceipt[]> {
+  const bundles = extractBundlesFromReceipt(receipt, sourceChainId);
 
-  // Wait for finalization
-  console.log('Waiting for finalization...');
-  const finalizationInfo = await waitForBundleFinalization(sourceProvider, handle, options);
-  console.log('Bundle finalized! Batch:', finalizationInfo.expectedRoot.batchNumber);
-
-  // Wait for root availability
-  console.log('Waiting for root availability on destination...');
-  await waitUntilRootAvailable(destProvider, finalizationInfo.expectedRoot, options);
-  console.log('Root available!');
-
-  if (options.waitForExternalExecution) {
-    // Wait for external executor and get the execution receipt
-    const receipt = await waitForBundleExecution(destProvider, handle.bundleHash, options);
-    console.log('Execute status:', receipt.status === 1 ? 'Success' : 'Failed');
-    return receipt;
-  } else {
-    // Execute bundle ourselves
-    console.log('Executing bundle...');
-    const receipt = await executeBundle(destSigner, finalizationInfo, options);
-    console.log('Execute tx hash:', receipt.hash);
-    console.log('Execute status:', receipt.status === 1 ? 'Success' : 'Failed');
-    return receipt;
+  if (bundles.length === 0) {
+    return [];
   }
-}
 
-/**
- * Wait for a bridge bundle to be executed by an external executor
- * Waits for finalization on source chain, then waits for root availability on destination,
- * then polls for external execution status
- * @param sourceProvider - The provider for the source chain
- * @param destProvider - The provider for the destination chain
- * @param bundleInfo - The bridge bundle info extracted from receipt
- * @param options - Wait options
- * @returns The transaction receipt of the execution
- */
-export async function waitForBridgeBundleExternalExecution(
-  sourceProvider: ethers.Provider,
-  destProvider: ethers.Provider,
-  bundleInfo: BridgeBundleInfo,
-  options: WaitOptions = {}
-): Promise<ethers.TransactionReceipt> {
-  console.log(`Waiting for external execution of bridge bundle: ${bundleInfo.bundleHandle.bundleHash}`);
+  const receipts: ethers.TransactionReceipt[] = [];
 
-  // Wait for finalization
-  const finalizationInfo = await getBundleFinalizationInfo(sourceProvider, bundleInfo.bundleHandle);
-  console.log('Bridge bundle finalized! Batch:', finalizationInfo.expectedRoot.batchNumber);
+  for (const bundleInfo of bundles) {
+    const execReceipt = await waitAndExecuteBundle(
+      sourceProvider,
+      destSigner,
+      bundleInfo,
+      options
+    );
+    receipts.push(execReceipt);
+  }
 
-  // Wait for root availability on destination
-  await waitUntilRootAvailable(destProvider, finalizationInfo.expectedRoot, options);
-  console.log('Root available on destination!');
-
-  // Wait for external executor to execute the bundle and return the receipt
-  return await waitForBundleExecution(destProvider, bundleInfo.bundleHandle.bundleHash, options);
+  return receipts;
 }
