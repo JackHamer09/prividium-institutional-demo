@@ -38,7 +38,7 @@ export const NativeTokenVaultAbi = [
   'function assetId(address _tokenAddress) view returns (bytes32)',
   'function tokenAddress(bytes32 _assetId) view returns (address)',
   'function ensureTokenIsRegistered(address _nativeToken) returns (bytes32)',
-];
+] as const;
 
 export const ERC20Abi = [
   'function balanceOf(address account) view returns (uint256)',

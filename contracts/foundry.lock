@@ -8,6 +8,15 @@
   "../../contracts/lib/openzeppelin-contracts": {
     "rev": "21c8312b022f495ebe3621d5daeed20552b43ff9"
   },
+  "../cast-interop": {
+    "rev": "b331e52b14d5bdd24eff8a7357ea130eef8cb8cb"
+  },
+  "../zksync-os-server": {
+    "rev": "c9ff211d68d67bc28e66e31a9b43a0420eb0605a"
+  },
+  "lib/era-contracts": {
+    "rev": "32502e318f141e8557a3af537c610b8ac36f84fc"
+  },
   "lib/forge-std": {
     "tag": {
       "name": "v1.12.0",

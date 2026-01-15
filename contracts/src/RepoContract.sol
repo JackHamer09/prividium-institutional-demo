@@ -21,7 +21,7 @@ import {L2_NATIVE_TOKEN_VAULT_ADDR} from "era-contracts/l1-contracts/contracts/c
  * - Lender fee in basis points
  * - Full collateralization
  * - Lender protection through collateral claiming mechanism
- * - Cross-chain functionality using ZKSync's interop system
+ * - Cross-chain functionality using ZKsync's interop system
  */
 
 /// @notice Minimal ERC20 interface needed for transfers.

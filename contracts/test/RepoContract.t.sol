@@ -46,6 +46,8 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
 
@@ -56,6 +58,10 @@ contract RepoContractTest is Test {
             uint256 id,
             address lenderAddr,
             address borrowerAddr,
+            address lenderRefundAddress,
+            address borrowerRefundAddress,
+            uint256 lenderChainId,
+            uint256 borrowerChainId,
             address lendToken,
             uint256 lendAmount,
             address collateralToken,
@@ -70,6 +76,10 @@ contract RepoContractTest is Test {
         assertEq(id, 1);
         assertEq(lenderAddr, lender);
         assertEq(borrowerAddr, address(0));
+        assertEq(lenderRefundAddress, lender);
+        assertEq(borrowerRefundAddress, address(0));
+        assertEq(lenderChainId, block.chainid);
+        assertEq(borrowerChainId, 0);
         assertEq(lendToken, address(usdc));
         assertEq(lendAmount, LEND_AMOUNT);
         assertEq(collateralToken, address(ttbill));
@@ -90,27 +100,35 @@ contract RepoContractTest is Test {
 
         // Invalid lend token
         vm.expectRevert("Invalid lend token");
-        repo.createOffer(address(0), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, DURATION, LENDER_FEE);
+        repo.createOffer(address(0), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, DURATION, block.chainid, lender, LENDER_FEE);
 
         // Invalid collateral token
         vm.expectRevert("Invalid collateral token");
-        repo.createOffer(address(usdc), LEND_AMOUNT, address(0), COLLATERAL_AMOUNT, DURATION, LENDER_FEE);
+        repo.createOffer(address(usdc), LEND_AMOUNT, address(0), COLLATERAL_AMOUNT, DURATION, block.chainid, lender, LENDER_FEE);
 
         // Zero lend amount
         vm.expectRevert("Lend amount must be greater than 0");
-        repo.createOffer(address(usdc), 0, address(ttbill), COLLATERAL_AMOUNT, DURATION, LENDER_FEE);
+        repo.createOffer(address(usdc), 0, address(ttbill), COLLATERAL_AMOUNT, DURATION, block.chainid, lender, LENDER_FEE);
 
         // Zero collateral amount
         vm.expectRevert("Collateral amount must be greater than 0");
-        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), 0, DURATION, LENDER_FEE);
+        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), 0, DURATION, block.chainid, lender, LENDER_FEE);
 
         // Zero duration
         vm.expectRevert("Duration must be greater than 0");
-        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, 0, LENDER_FEE);
+        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, 0, block.chainid, lender, LENDER_FEE);
+
+        // Invalid chain ID
+        vm.expectRevert("Invalid lender chain ID");
+        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, DURATION, 0, lender, LENDER_FEE);
+
+        // Invalid refund address
+        vm.expectRevert("Invalid lender refund address");
+        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, DURATION, block.chainid, address(0), LENDER_FEE);
 
         // Fee too high
         vm.expectRevert("Lender fee cannot exceed 100%");
-        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, DURATION, 10001);
+        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, DURATION, block.chainid, lender, 10001);
 
         vm.stopPrank();
     }
@@ -124,6 +142,8 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
 
@@ -132,11 +152,31 @@ contract RepoContractTest is Test {
 
         // Accept offer
         vm.prank(borrower);
-        repo.acceptOffer(offerId);
+        repo.acceptOffer(offerId, block.chainid, borrower);
 
         // Check offer state
-        (, , address borrowerAddr, , , , , , uint256 startTime, uint256 endTime, , RepoContract.OfferStatus status) = repo.offers(offerId);
+        (
+            ,
+            ,
+            address borrowerAddr,
+            ,
+            address borrowerRefundAddress,
+            ,
+            uint256 borrowerChainId,
+            ,
+            ,
+            ,
+            ,
+            ,
+            uint256 startTime,
+            uint256 endTime,
+            ,
+            RepoContract.OfferStatus status
+        ) = repo.offers(offerId);
+
         assertEq(borrowerAddr, borrower);
+        assertEq(borrowerRefundAddress, borrower);
+        assertEq(borrowerChainId, block.chainid);
         assertEq(uint8(status), uint8(RepoContract.OfferStatus.Active));
         assertEq(startTime, block.timestamp);
         assertEq(endTime, block.timestamp + DURATION);
@@ -156,16 +196,22 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
 
         vm.prank(borrower);
-        repo.acceptOffer(offerId);
+        repo.acceptOffer(offerId, block.chainid, borrower);
 
-        // Try to accept again
+        // Try to accept again - need to setup other with collateral
+        ttbill.mint(other, 10e18);
+        vm.prank(other);
+        ttbill.approve(address(repo), type(uint256).max);
+
         vm.prank(other);
         vm.expectRevert("Offer is not open");
-        repo.acceptOffer(offerId);
+        repo.acceptOffer(offerId, block.chainid, other);
     }
 
     function testLenderCannotBorrowOwnOffer() public {
@@ -176,13 +222,20 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
+
+        // Give lender some collateral tokens
+        ttbill.mint(lender, 10e18);
+        vm.prank(lender);
+        ttbill.approve(address(repo), type(uint256).max);
 
         // Lender tries to accept own offer
         vm.prank(lender);
         vm.expectRevert("Lender cannot borrow own offer");
-        repo.acceptOffer(offerId);
+        repo.acceptOffer(offerId, block.chainid, lender);
     }
 
     function testRepayLoan() public {
@@ -194,11 +247,13 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
 
         vm.prank(borrower);
-        repo.acceptOffer(offerId);
+        repo.acceptOffer(offerId, block.chainid, borrower);
 
         // Mint USDC for repayment (principal + fee)
         uint256 feeAmount = (LEND_AMOUNT * LENDER_FEE) / 10000;
@@ -217,7 +272,7 @@ contract RepoContractTest is Test {
         repo.repayLoan(offerId);
 
         // Check status
-        (, , , , , , , , , , , RepoContract.OfferStatus status) = repo.offers(offerId);
+        (, , , , , , , , , , , , , , , RepoContract.OfferStatus status) = repo.offers(offerId);
         assertEq(uint8(status), uint8(RepoContract.OfferStatus.Completed));
 
         // Check balances
@@ -235,15 +290,17 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
 
         vm.prank(borrower);
-        repo.acceptOffer(offerId);
+        repo.acceptOffer(offerId, block.chainid, borrower);
 
         // Other user tries to repay
         vm.prank(other);
-        vm.expectRevert("Only borrower can repay");
+        vm.expectRevert("RepoContract: msg.sender must be borrower refund address");
         repo.repayLoan(offerId);
     }
 
@@ -256,11 +313,13 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
 
         vm.prank(borrower);
-        repo.acceptOffer(offerId);
+        repo.acceptOffer(offerId, block.chainid, borrower);
 
         // Warp past deadline + grace period
         vm.warp(block.timestamp + DURATION + repo.gracePeriod() + 1);
@@ -272,7 +331,7 @@ contract RepoContractTest is Test {
         repo.claimCollateral(offerId);
 
         // Check status
-        (, , , , , , , , , , , RepoContract.OfferStatus status) = repo.offers(offerId);
+        (, , , , , , , , , , , , , , , RepoContract.OfferStatus status) = repo.offers(offerId);
         assertEq(uint8(status), uint8(RepoContract.OfferStatus.Defaulted));
 
         // Check balances
@@ -288,11 +347,13 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
 
         vm.prank(borrower);
-        repo.acceptOffer(offerId);
+        repo.acceptOffer(offerId, block.chainid, borrower);
 
         // Warp to just after deadline (still in grace period)
         vm.warp(block.timestamp + DURATION + 1);
@@ -310,17 +371,19 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
 
         vm.prank(borrower);
-        repo.acceptOffer(offerId);
+        repo.acceptOffer(offerId, block.chainid, borrower);
 
         vm.warp(block.timestamp + DURATION + repo.gracePeriod() + 1);
 
         // Other user tries to claim
         vm.prank(other);
-        vm.expectRevert("Only lender can claim collateral");
+        vm.expectRevert("RepoContract: msg.sender must be lender refund address");
         repo.claimCollateral(offerId);
     }
 
@@ -332,6 +395,8 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
 
@@ -342,7 +407,7 @@ contract RepoContractTest is Test {
         repo.cancelOffer(offerId);
 
         // Check status
-        (, , , , , , , , , , , RepoContract.OfferStatus status) = repo.offers(offerId);
+        (, , , , , , , , , , , , , , , RepoContract.OfferStatus status) = repo.offers(offerId);
         assertEq(uint8(status), uint8(RepoContract.OfferStatus.Cancelled));
 
         // Check balance returned
@@ -358,11 +423,13 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
 
         vm.prank(other);
-        vm.expectRevert("Only lender can cancel offer");
+        vm.expectRevert("RepoContract: msg.sender must be lender refund address");
         repo.cancelOffer(offerId);
     }
 
@@ -374,11 +441,13 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
 
         vm.prank(borrower);
-        repo.acceptOffer(offerId);
+        repo.acceptOffer(offerId, block.chainid, borrower);
 
         vm.prank(lender);
         vm.expectRevert("Offer is not open");
@@ -393,6 +462,8 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
 
@@ -404,8 +475,8 @@ contract RepoContractTest is Test {
     function testGetOpenOffers() public {
         vm.startPrank(lender);
 
-        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, DURATION, LENDER_FEE);
-        repo.createOffer(address(usdc), LEND_AMOUNT * 2, address(ttbill), COLLATERAL_AMOUNT * 2, DURATION * 2, LENDER_FEE * 2);
+        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, DURATION, block.chainid, lender, LENDER_FEE);
+        repo.createOffer(address(usdc), LEND_AMOUNT * 2, address(ttbill), COLLATERAL_AMOUNT * 2, DURATION * 2, block.chainid, lender, LENDER_FEE * 2);
 
         vm.stopPrank();
 
@@ -417,7 +488,7 @@ contract RepoContractTest is Test {
 
     function testGetLenderOffers() public {
         vm.prank(lender);
-        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, DURATION, LENDER_FEE);
+        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, DURATION, block.chainid, lender, LENDER_FEE);
 
         // Setup other account
         usdc.mint(other, 10000e6);
@@ -425,15 +496,15 @@ contract RepoContractTest is Test {
         usdc.approve(address(repo), type(uint256).max);
 
         vm.prank(other);
-        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, DURATION, LENDER_FEE);
+        repo.createOffer(address(usdc), LEND_AMOUNT, address(ttbill), COLLATERAL_AMOUNT, DURATION, block.chainid, other, LENDER_FEE);
 
         RepoContract.RepoOffer[] memory lenderOffers = repo.getLenderOffers(lender);
         assertEq(lenderOffers.length, 1);
-        assertEq(lenderOffers[0].lender, lender);
+        assertEq(lenderOffers[0].lenderRefundAddress, lender);
 
         RepoContract.RepoOffer[] memory otherOffers = repo.getLenderOffers(other);
         assertEq(otherOffers.length, 1);
-        assertEq(otherOffers[0].lender, other);
+        assertEq(otherOffers[0].lenderRefundAddress, other);
     }
 
     function testGetBorrowerOffers() public {
@@ -444,15 +515,17 @@ contract RepoContractTest is Test {
             address(ttbill),
             COLLATERAL_AMOUNT,
             DURATION,
+            block.chainid,
+            lender,
             LENDER_FEE
         );
 
         vm.prank(borrower);
-        repo.acceptOffer(offerId);
+        repo.acceptOffer(offerId, block.chainid, borrower);
 
         RepoContract.RepoOffer[] memory borrowerOffers = repo.getBorrowerOffers(borrower);
         assertEq(borrowerOffers.length, 1);
-        assertEq(borrowerOffers[0].borrower, borrower);
+        assertEq(borrowerOffers[0].borrowerRefundAddress, borrower);
     }
 
     function testSetGracePeriod() public {

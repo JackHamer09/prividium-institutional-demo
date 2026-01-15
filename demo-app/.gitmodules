@@ -1,0 +1,18 @@
+[submodule "contracts/lib/forge-std"]
+	path = contracts/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+
+[submodule "contracts/lib/openzeppelin-contracts"]
+	path = contracts/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "contracts/lib/era-contracts"]
+	path = contracts/lib/era-contracts
+	url = https://github.com/matter-labs/era-contracts
+[submodule "zksync-os-server"]
+	path = zksync-os-server
+	url = https://github.com/matter-labs/zksync-os-server.git
+	branch = sb/interop-type-b-demo
+[submodule "cast-interop"]
+	path = cast-interop
+	url = https://github.com/mm-zk-codex/cast-interop.git
+	branch = main

@@ -6,6 +6,18 @@ Lenders create offers specifying loan terms (amount, collateral, duration, fee).
 
 ## Setup
 
+### Clone with Submodules
+
+```bash
+git clone --recurse-submodules https://github.com/JackHamer09/prividium-institutional-demo
+```
+
+Or if already cloned:
+
+```bash
+git submodule update --init --recursive
+```
+
 ### 1. Prividium Environment
 
 Set up the [Prividium](https://github.com/matter-labs/zksync-prividium) environment

@@ -44,6 +44,7 @@ import {
   getBundleInfoFinalizationInfo,
   WaitOptions,
   ExecuteBundleOptions,
+  getTokenAddress
 } from 'interop-sdk';
 
 // SimpleERC20 bytecode (constructor takes uint256 initialSupply)
