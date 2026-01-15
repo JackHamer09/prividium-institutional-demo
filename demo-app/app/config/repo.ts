@@ -9,10 +9,12 @@ export const DURATION_UNITS = [
   { label: "Months", value: "months", multiplier: 2592000 }, // 30 days
 ] as const;
 
+export type DurationUnit = typeof DURATION_UNITS[number]["value"];
+
 /**
  * Convert duration value and unit to seconds
  */
-export function convertDurationToSeconds(value: number, unit: string): number {
+export function convertDurationToSeconds(value: number, unit: DurationUnit): number {
   const unitConfig = DURATION_UNITS.find((u) => u.value === unit);
   return value * (unitConfig?.multiplier ?? 3600); // Default to hours
 }

@@ -19,7 +19,7 @@ contract DeployScript is Script {
 
         // Deploy RepoContract
         RepoContract repoContract = new RepoContract(admin);
-        console.log("RepoContract deployed at:", address(repoContract));
+        console.log("Intraday Repo deployed at:", address(repoContract));
 
         // Optionally deploy test tokens (set DEPLOY_TEST_TOKENS=true in .env)
         bool deployTestTokens = vm.envOr("DEPLOY_TEST_TOKENS", false);

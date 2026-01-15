@@ -71,6 +71,43 @@ pnpm dev
 
 Navigate to `http://localhost:3000`
 
+## Scripts
+
+Helper scripts are located in the `scripts/` folder.
+
+### Mint Tokens
+
+Mint test tokens to any address (only works with TestnetERC20Token):
+
+```bash
+./scripts/mint.sh <TO_ADDRESS> <TOKEN_ADDRESS> <AMOUNT> <PRIVATE_KEY> <RPC_URL>
+```
+
+**Decimal reference:**
+- USDC: 6 decimals (1 USDC = 1000000)
+- TTBILL: 18 decimals (1 TTBILL = 1000000000000000000)
+- SGD: 18 decimals (1 SGD = 1000000000000000000)
+
+**Example (mint 1000 USDC):**
+
+```bash
+./scripts/mint.sh 0xRecipient 0xUSDCAddress 1000000000 abc123...def http://localhost:3050
+```
+
+### Deposit ETH (L1 to L2)
+
+Deposit ETH from L1 Sepolia to L2 via the bridge contract:
+
+```bash
+./scripts/deposit.sh <CHAIN_ID> <TO_ADDRESS> <AMOUNT_IN_WEI> <PRIVATE_KEY>
+```
+
+**Example (deposit 0.001 ETH):**
+
+```bash
+./scripts/deposit.sh 270 0xRecipient 1000000000000000 abc123...def
+```
+
 ## Tests
 
 Contract tests only. See [contracts/README.md](./contracts/README.md).

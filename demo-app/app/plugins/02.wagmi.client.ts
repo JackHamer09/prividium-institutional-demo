@@ -1,9 +1,9 @@
 import { createConfig, injected, reconnect } from "@wagmi/core";
 import { callPolicy, zksyncSsoConnector } from "zksync-sso/connector";
 import type { PrividiumChain } from "prividium";
-import { type Address, type Chain, erc20Abi, parseEther, type Transport } from "viem";
+import { type Address, type Chain, /* erc20Abi, */ parseEther, type Transport } from "viem";
 import { INTRADAY_REPO_ABI } from "../contracts/intraday-repo";
-import { mintAbi } from "../config/tokens";
+/* import { mintAbi } from "../config/tokens"; */
 
 export default defineNuxtPlugin(async (nuxtApp) => {
   // Get all Prividium instances from earlier plugin
@@ -42,14 +42,14 @@ export default defineNuxtPlugin(async (nuxtApp) => {
           }),
         ),
         // Allow any ERC20 approve/mint (token addresses resolved dynamically in multichain)
-        callPolicy({
-          abi: [...erc20Abi, ...mintAbi],
-          functionName: "approve",
-        }),
-        callPolicy({
-          abi: [...erc20Abi, ...mintAbi],
-          functionName: "mint",
-        }),
+        // callPolicy({
+        //   abi: [...erc20Abi, ...mintAbi],
+        //   functionName: "approve",
+        // }),
+        // callPolicy({
+        //   abi: [...erc20Abi, ...mintAbi],
+        //   functionName: "mint",
+        // }),
       ],
     },
   });

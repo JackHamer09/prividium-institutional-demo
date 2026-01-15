@@ -62,20 +62,23 @@ export function usePrividiumWrite() {
       chainId: params.chainId,
     });
 
-    const gas = await estimateGas(config, {
-      to: params.address,
-      data: calldata,
-      chainId: params.chainId,
-    });
+    // const gas = await estimateGas(config, {
+    //   to: params.address,
+    //   data: calldata,
+    //   chainId: params.chainId,
+    // });
+    const gas = BigInt(100_000_000); // Use fixed gas limit for simplicity
 
     const gasPrice = await getGasPrice(config, {
       chainId: params.chainId,
     });
 
+    console.log(123)
+    console.log("nonce", nonce);
     // Enable wallet token before transaction using the chain-specific Prividium instance
-    await prividium.enableWalletToken({
+    await prividium.authorizeTransaction({
       walletAddress: walletStore.address,
-      contractAddress: params.address,
+      toAddress: params.address,
       nonce,
       calldata,
     });

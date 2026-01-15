@@ -42,16 +42,18 @@ forge build
 ## Deploy
 
 ```bash
-forge script script/Deploy.s.sol:DeployScript --rpc-url [PRIVIDIUM_SEQUENCER_RPC_URL] --broadcast
+forge script script/Deploy.s.sol:DeployScript --rpc-url <PRIVIDIUM_SEQUENCER_RPC_URL> --broadcast
 ```
 
 The script will output deployed contract addresses. Copy these addresses to your app's `.env` file:
 
 ```
 RepoContract deployed at: 0x...
-USDC deployed at: 0x...     (if DEPLOY_TEST_TOKENS=true)
-TTBILL deployed at: 0x...   (if DEPLOY_TEST_TOKENS=true)
-SGD deployed at: 0x...      (if DEPLOY_TEST_TOKENS=true)
+
+(if DEPLOY_TEST_TOKENS=true)
+USDC deployed at: 0x...     
+TTBILL deployed at: 0x...
+SGD deployed at: 0x...
 ```
 
 ## Test

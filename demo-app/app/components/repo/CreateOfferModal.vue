@@ -123,7 +123,7 @@
 <script lang="ts" setup>
 import type { Hex } from "viem";
 import { parseUnits } from "viem";
-import { DURATION_UNITS, convertDurationToSeconds, calculateFeeAmount } from "~/config/repo";
+import { DURATION_UNITS, convertDurationToSeconds, calculateFeeAmount, type DurationUnit } from "~/config/repo";
 import type { TokenConfig } from "~/config/tokens";
 
 interface Props {
@@ -138,7 +138,8 @@ const emit = defineEmits<{
 }>();
 
 const { tokens, refreshBalances } = useBalances();
-const { createOffer } = useRepoContract();
+const { createOffer, repoAddress, mainChainId } = useRepoContract();
+const { ensureApproval } = useTokenContract();
 const walletStore = useWalletStore();
 const toast = useToast();
 
@@ -152,7 +153,7 @@ const form = reactive({
   collateralToken: (defaultCollateralToken?.assetId || "") as Hex | "",
   collateralAmount: undefined as number | undefined,
   durationValue: undefined as number | undefined,
-  durationUnit: "hours",
+  durationUnit: "hours" as DurationUnit,
   lenderFee: undefined as number | undefined,
 });
 
@@ -252,6 +253,17 @@ async function handleSubmit() {
 
     // Convert duration to seconds (validated by isFormValid)
     const durationInSeconds = convertDurationToSeconds(form.durationValue!, form.durationUnit);
+
+    // Ensure approval for lend token before creating offer
+    const approved = await ensureApproval({
+      chainId: mainChainId,
+      assetId: form.lendToken as Hex,
+      owner: walletStore.address,
+      spender: repoAddress,
+      amount: lendAmount,
+    });
+
+    if (!approved) return;
 
     // Create offer using asset IDs (createOffer resolves to addresses internally)
     const result = await createOffer({

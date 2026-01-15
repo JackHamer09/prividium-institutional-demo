@@ -133,7 +133,7 @@ const processingOffers = ref<Set<string>>(new Set());
 const walletStore = useWalletStore();
 const repoStore = useRepoStore();
 const { refreshBalances } = useBalances();
-const { getOpenOffers, getLenderOffers, getBorrowerOffers, getGracePeriod, acceptOffer, repayLoan, claimCollateral, cancelOffer } = useRepoContract();
+const { repoAddress, getOpenOffers, getLenderOffers, getBorrowerOffers, getGracePeriod, acceptOffer, repayLoan, claimCollateral, cancelOffer } = useRepoContract();
 const { ensureApproval } = useTokenContract();
 const toast = useToast();
 
@@ -216,7 +216,7 @@ async function handleAcceptOffer(offerId: bigint) {
       chainId: mainChainId,
       assetId: collateralAssetId,
       owner: walletStore.address,
-      spender: useRepoContract().repoAddress,
+      spender: repoAddress,
       amount: offer.collateralAmount,
     });
 
@@ -255,7 +255,7 @@ async function handleRepayLoan(offerId: bigint) {
       chainId: mainChainId,
       assetId: lendAssetId,
       owner: walletStore.address,
-      spender: useRepoContract().repoAddress,
+      spender: repoAddress,
       amount: repaymentAmount,
     });
 

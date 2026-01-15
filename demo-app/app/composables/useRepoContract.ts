@@ -144,6 +144,17 @@ export function useRepoContract() {
       const lenderChainId = params.lenderChainId ?? BigInt(walletStore.chainId ?? mainChainId);
       const lenderRefundAddress = params.lenderRefundAddress ?? walletStore.address;
 
+      console.log("Args", {
+        lendToken,
+        lendAmount: params.lendAmount,
+        collateralToken,
+        collateralAmount: params.collateralAmount,
+        duration: params.duration,
+        lenderChainId,
+        lenderRefundAddress,
+        lenderFee: params.lenderFee,
+      });
+
       const hash = await executeWrite({
         address: repoAddress,
         abi: INTRADAY_REPO_ABI,
@@ -154,9 +165,9 @@ export function useRepoContract() {
           collateralToken,
           params.collateralAmount,
           params.duration,
-          params.lenderFee,
           lenderChainId,
           lenderRefundAddress,
+          params.lenderFee,
         ],
         chainId: mainChainId,
       });
