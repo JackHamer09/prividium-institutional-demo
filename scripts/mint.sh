@@ -36,6 +36,7 @@ echo "Minting tokens..."
 echo "  To: $TO_ADDRESS"
 echo "  Token: $TOKEN_ADDRESS"
 echo "  Amount: $AMOUNT"
+echo "  Gas Limit: 1000000000000"
 echo ""
 
 cast send \
@@ -43,7 +44,9 @@ cast send \
     "$TOKEN_ADDRESS" \
     "mint(address,uint256)" \
     "$TO_ADDRESS" "$AMOUNT" \
-    --private-key "$PRIVATE_KEY"
+    --private-key "$PRIVATE_KEY" \
+    --gas-limit 10000000 \
+    --legacy
 
 echo ""
 echo "Mint transaction sent!"

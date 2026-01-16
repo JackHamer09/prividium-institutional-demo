@@ -6,9 +6,8 @@ interface ChainEnvConfig {
   id: number;
   name: string;
   clientId: string;
-  rpcUrl: string;
   authBaseUrl: string;
-  permissionsApiBaseUrl: string;
+  prividiumApiBaseUrl: string;
   blockExplorerUrl: string;
   blockExplorerName: string;
 }
@@ -23,9 +22,8 @@ function parseChainConfig(config: ReturnType<typeof useRuntimeConfig>, index: nu
     id: Number(id),
     name: config.public[`${prefix}Name` as keyof typeof config.public] as string,
     clientId: config.public[`${prefix}OauthClientId` as keyof typeof config.public] as string,
-    rpcUrl: config.public[`${prefix}RpcUrl` as keyof typeof config.public] as string,
     authBaseUrl: config.public[`${prefix}AuthBaseUrl` as keyof typeof config.public] as string,
-    permissionsApiBaseUrl: config.public[`${prefix}PermissionsApiBaseUrl` as keyof typeof config.public] as string,
+    prividiumApiBaseUrl: config.public[`${prefix}PrividiumApiUrl` as keyof typeof config.public] as string,
     blockExplorerUrl: config.public[`${prefix}BlockExplorerUrl` as keyof typeof config.public] as string,
     blockExplorerName: config.public[`${prefix}BlockExplorerName` as keyof typeof config.public] as string,
   };
@@ -68,9 +66,8 @@ export default defineNuxtPlugin(() => {
     const prividium = createPrividiumChain({
       clientId: chainConfig.clientId,
       chain,
-      rpcUrl: chainConfig.rpcUrl,
       authBaseUrl: chainConfig.authBaseUrl,
-      permissionsApiBaseUrl: chainConfig.permissionsApiBaseUrl,
+      prividiumApiBaseUrl: chainConfig.prividiumApiBaseUrl,
       redirectUrl: `${window.location.origin}/auth/callback?chainId=${chainConfig.id}`,
       onAuthExpiry: () => {
         const prividiumStore = usePrividiumStore();

@@ -1,0 +1,399 @@
+# Starts 2 prividiums on the local machine.
+# Assumes that L1 and 2 L2s are already present and running on port 3050 and 3051 respectively.
+
+name: zksync-prividium-prividium
+
+x-admin-panel: &admin-panel
+  image: quay.io/matterlabs_enterprise/prividium-adminv2:latest
+  platform: linux/amd64
+  restart: unless-stopped
+  environment: &admin-panel-env
+    PORT: 3000
+  depends_on:
+    - permissions-api
+    - user-panel
+
+x-permissions-api: &permissions-api
+  image: quay.io/matterlabs_enterprise/prividium-permissions-api:latest
+  platform: linux/amd64
+  restart: unless-stopped
+  depends_on:
+    - postgres
+  environment: &permissions-api-env
+    PORT: 8000
+    METRICS_PORT: 9091
+    AUTH_METHODS: oidc,crypto_native
+    NODE_ENV: production
+    OIDC_JWKS_URI: http://keycloak:8080/realms/prividium/protocol/openid-connect/certs
+    OIDC_JWT_AUD: prividium-client
+    OIDC_JWT_ISSUER: http://localhost:5080/realms/prividium
+    OIDC_ADMIN_SUBS: 00000000-0000-0000-0000-000000000001
+    CORS_CACHE_DURATION_MS: 600000
+    USER_SESSION_DURATION_SECONDS: 86400 # 24 hours
+
+x-user-panel: &user-panel
+  image: quay.io/matterlabs_enterprise/prividium-user-panel:latest
+  platform: linux/amd64
+  restart: unless-stopped
+  environment: &user-panel-env
+    VITE_OIDC_AUTHORITY: http://localhost:5080/realms/prividium
+    VITE_OIDC_CLIENT_ID: prividium-client
+    VITE_OIDC_BUTTON_TEXT: Sign in with Keycloak
+    VITE_AUTH_METHODS: oidc,crypto_native
+    VITE_WALLETS_ENABLED: "true"
+    PORT: 3000
+    VITE_BRIDGING_ENABLED: "true"
+    VITE_L1_RPC_URL: http://localhost:8545
+    VITE_L1_CHAIN_ID: 31337
+    VITE_L1_CHAIN_NAME: Anvil Localhost
+  depends_on:
+    - permissions-api
+
+x-block-explorer-api: &block-explorer-api
+  image: ghcr.io/matter-labs/block-explorer-api:latest
+  platform: linux/amd64
+  extra_hosts:
+    - host.docker.internal:host-gateway
+  environment: &block-explorer-api-env
+    LOG_LEVEL: verbose
+    NODE_ENV: development
+    DATABASE_HOST: postgres
+    DATABASE_USER: postgres
+    DATABASE_PASSWORD: postgres
+    DATABASE_ENABLE_SSL: "false"
+    NETWORK_NAME: testnet
+    PRIVIDIUM: "true"
+    PRIVIDIUM_APP_URL: http://localhost:3010
+    PRIVIDIUM_SESSION_SECRET: QkxPQ0tfRVhQTE9SRVJfU0VTU0lPTl9TRUNSRVQ=
+    PRIVIDIUM_SESSION_MAX_AGE: 86400000
+    PRIVIDIUM_SESSION_SAME_SITE: strict
+    LIMITED_PAGINATION_MAX_ITEMS: "10000"
+    API_LIMITED_PAGINATION_MAX_ITEMS: "1000"
+    DISABLE_BFF_API_SCHEMA_DOCS: "true"
+  depends_on:
+    - postgres
+
+x-block-explorer-app: &block-explorer-app
+  image: ghcr.io/matter-labs/block-explorer-app:latest
+  platform: linux/amd64
+  environment: &block-explorer-app-env
+    PORT: 3010
+    VITE_APP_ENVIRONMENT: prividium
+  depends_on:
+    - block-explorer-api
+
+x-block-explorer-worker: &block-explorer-worker
+  image: ghcr.io/matter-labs/block-explorer-worker:latest
+  platform: linux/amd64
+  extra_hosts:
+    - host.docker.internal:host-gateway
+  environment: &block-explorer-worker-env
+    DATABASE_HOST: postgres
+    DATABASE_USER: postgres
+    DATABASE_PASSWORD: postgres
+    DATABASE_ENABLE_SSL: "false"
+    NETWORK_NAME: testnet
+    PRIVIDIUM: "true"
+    ENABLE_TOKEN_OFFCHAIN_DATA_SAVER: "true"
+    BLOCKS_PROCESSING_BATCH_SIZE: "10"
+    NUMBER_OF_BLOCKS_PER_DB_TRANSACTION: "10"
+  depends_on:
+    - postgres
+    - block-explorer-data-fetcher
+
+x-block-explorer-data-fetcher: &block-explorer-data-fetcher
+  image: ghcr.io/matter-labs/block-explorer-data-fetcher:latest
+  platform: linux/amd64
+  extra_hosts:
+    - host.docker.internal:host-gateway
+  environment: &block-explorer-data-fetcher-env
+    NETWORK_NAME: testnet
+    BLOCKCHAIN_RPC_URL: http://host.docker.internal:3050
+    PRIVIDIUM: "true"
+    PRIVIDIUM_PERMISSIONS_API_URL: http://permissions-api:8000/api
+
+services:
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    entrypoint: |
+      bash -c "
+      cat > /docker-entrypoint-initdb.d/init.sql << 'EOF'
+      -- Create databases for the prividium project
+      CREATE DATABASE permissions_api_l2a;
+      CREATE DATABASE permissions_api_l2b;
+      -- Create databases for block explorer
+      CREATE DATABASE prividium_block_explorer_l2a;
+      CREATE DATABASE prividium_block_explorer_l2b;
+
+      -- Databases created successfully
+      EOF
+
+      exec docker-entrypoint.sh postgres
+      "
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    ports:
+      - 5080:8080
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_RELATIVE_PATH: /
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HOSTNAME_URL: http://localhost:5080
+      KC_HOSTNAME_ADMIN_URL: http://localhost:5080
+    command:
+      - start-dev
+      - --import-realm
+    volumes:
+      - ./dev/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+
+  admin-panel-l2a:
+    <<: *admin-panel
+    container_name: prividium-admin-panel-l2a
+    environment:
+      <<: *admin-panel-env
+      VITE_PRIVIDIUM_API_URL: http://localhost:8000
+      VITE_USER_PANEL_URL: http://localhost:3001
+      VITE_EXPLORER_URL: http://localhost:3010
+    depends_on:
+      - permissions-api-l2a
+      - user-panel-l2a
+    ports:
+      - 3000:3000
+    networks:
+      default:
+        aliases: [l2a-admin-panel]
+
+  permissions-api-l2a:
+    <<: *permissions-api
+    container_name: prividium-permissions-api-l2a
+    environment:
+      <<: *permissions-api-env
+      SEQUENCER_RPC_URL: http://host.docker.internal:3050
+      CORS_ORIGIN: http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3004
+      ADMIN_PANEL_REDIRECT_URLS: http://localhost:3000/callback
+      BLOCK_EXPLORER_REDIRECT_URLS: http://localhost:3010/auth/callback
+      SIWE_VALID_DOMAINS: localhost:3000,localhost:3001,localhost:3004
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/permissions_api_l2a
+      SIWE_CHAIN_ID: 6565
+
+    ports:
+      - 8000:8000
+      - 9091:9091
+    networks:
+      default:
+        aliases: [l2a-permissions-api]
+
+  user-panel-l2a:
+    <<: *user-panel
+    container_name: prividium-user-panel-l2a
+    environment:
+      <<: *user-panel-env
+      VITE_CHAIN_ID: 6565
+      VITE_CHAIN_NAME: "Chain 1"
+      VITE_OIDC_REDIRECT_URI: http://localhost:3001/callback
+      VITE_OIDC_POST_LOGOUT_REDIRECT_URI: http://localhost:3001/login
+      VITE_PORTAL_REDIRECT_URI: http://localhost:3002/callback
+      VITE_ADMIN_PANEL_REDIRECT_URI: http://localhost:3000/callback
+      VITE_BLOCK_EXPLORER_REDIRECT_URI: http://localhost:3010/auth/callback
+      VITE_PRIVIDIUM_API_URL: http://localhost:8000
+      VITE_EXPLORER_URL: http://localhost:3010
+    depends_on:
+      - permissions-api-l2a
+    ports:
+      - 3001:3000
+    networks:
+      default:
+        aliases: [l2a-user-panel]
+
+  block-explorer-api-l2a:
+    <<: *block-explorer-api
+    container_name: prividium-block-explorer-api-l2a
+    environment:
+      <<: *block-explorer-api-env
+      PRIVIDIUM_APP_URL: http://localhost:3010
+      PRIVIDIUM_PERMISSIONS_API_URL: http://host.docker.internal:8000
+      DATABASE_NAME: prividium_block_explorer_l2a
+
+    ports:
+      - 3002:3000
+    networks:
+      default:
+        aliases: [l2a-block-explorer-api]
+
+  block-explorer-app-l2a:
+    <<: *block-explorer-app
+    container_name: prividium-block-explorer-app-l2a
+    ports:
+      - 3010:3010
+    depends_on:
+      - block-explorer-api-l2a
+    volumes:
+      - ./dev/block-explorer/block-explorer-config.js:/usr/src/app/packages/app/dist/config.js:ro
+    networks:
+      default:
+        aliases: [l2a-block-explorer-app]
+
+  block-explorer-worker-l2a:
+    <<: *block-explorer-worker
+    container_name: prividium-block-explorer-worker-l2a
+    environment:
+      <<: *block-explorer-worker-env
+      BLOCKCHAIN_RPC_URL: http://host.docker.internal:3050
+      DATA_FETCHER_URL: http://block-explorer-data-fetcher-l2a:3040
+      PRIVIDIUM_PERMISSIONS_API_URL: http://permissions-api-l2a:8000/api
+      DATABASE_NAME: prividium_block_explorer_l2a
+    depends_on:
+      - postgres
+      - block-explorer-data-fetcher-l2a
+    networks:
+      default:
+        aliases: [l2a-block-explorer-worker]
+
+  block-explorer-data-fetcher-l2a:
+    <<: *block-explorer-data-fetcher
+    container_name: prividium-block-explorer-data-fetcher-l2a
+    environment:
+      <<: *block-explorer-data-fetcher-env
+      BLOCKCHAIN_RPC_URL: http://host.docker.internal:3050
+      PRIVIDIUM_PERMISSIONS_API_URL: http://permissions-api-l2a:8000/api
+    ports:
+      - 3040:3040
+    networks:
+      default:
+        aliases: [l2a-block-explorer-data-fetcher]
+
+  admin-panel-l2b:
+    <<: *admin-panel
+    container_name: prividium-admin-panel-l2b
+    environment:
+      <<: *admin-panel-env
+      VITE_PRIVIDIUM_API_URL: http://localhost:8300
+      VITE_USER_PANEL_URL: http://localhost:3301
+      VITE_EXPLORER_URL: http://localhost:3310
+    depends_on:
+      - permissions-api-l2b
+      - user-panel-l2b
+    ports:
+      - 3300:3000
+    networks:
+      default:
+        aliases: [l2b-admin-panel]
+
+  permissions-api-l2b:
+    <<: *permissions-api
+    container_name: prividium-permissions-api-l2b
+    environment:
+      <<: *permissions-api-env
+      SEQUENCER_RPC_URL: http://host.docker.internal:3051
+      CORS_ORIGIN: http://localhost:3300,http://localhost:3301,http://localhost:3302,http://localhost:3004
+      ADMIN_PANEL_REDIRECT_URLS: http://localhost:3300/callback
+      BLOCK_EXPLORER_REDIRECT_URLS: http://localhost:3310/auth/callback
+      SIWE_VALID_DOMAINS: localhost:3300,localhost:3301,localhost:3004
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/permissions_api_l2b
+      SIWE_CHAIN_ID: 6566
+
+    ports:
+      - 8300:8000
+      - 9391:9091
+    networks:
+      default:
+        aliases: [l2b-permissions-api]
+
+  user-panel-l2b:
+    <<: *user-panel
+    container_name: prividium-user-panel-l2b
+    environment:
+      <<: *user-panel-env
+      VITE_CHAIN_ID: 6566
+      VITE_CHAIN_NAME: "Chain 2"
+      VITE_OIDC_REDIRECT_URI: http://localhost:3301/callback
+      VITE_OIDC_POST_LOGOUT_REDIRECT_URI: http://localhost:3301/login
+      VITE_PORTAL_REDIRECT_URI: http://localhost:3302/callback
+      VITE_ADMIN_PANEL_REDIRECT_URI: http://localhost:3300/callback
+      VITE_BLOCK_EXPLORER_REDIRECT_URI: http://localhost:3310/auth/callback
+      VITE_PRIVIDIUM_API_URL: http://localhost:8300
+      VITE_EXPLORER_URL: http://localhost:3310
+    depends_on:
+      - permissions-api-l2b
+    ports:
+      - 3301:3000
+    networks:
+      default:
+        aliases: [l2b-user-panel]
+
+  block-explorer-api-l2b:
+    <<: *block-explorer-api
+    container_name: prividium-block-explorer-api-l2b
+    environment:
+      <<: *block-explorer-api-env
+      PRIVIDIUM_APP_URL: http://localhost:3310
+      PRIVIDIUM_PERMISSIONS_API_URL: http://host.docker.internal:8300
+      DATABASE_NAME: prividium_block_explorer_l2b
+    ports:
+      - 3302:3000
+    networks:
+      default:
+        aliases: [l2b-block-explorer-api]
+
+  block-explorer-app-l2b:
+    <<: *block-explorer-app
+    container_name: prividium-block-explorer-app-l2b
+    ports:
+      - 3310:3010
+    depends_on:
+      - block-explorer-api-l2b
+    volumes:
+      - ./dev/block-explorer/block-explorer-config-b.js:/usr/src/app/packages/app/dist/config.js:ro
+    networks:
+      default:
+        aliases: [l2b-block-explorer-app]
+
+  block-explorer-worker-l2b:
+    <<: *block-explorer-worker
+    container_name: prividium-block-explorer-worker-l2b
+    environment:
+      <<: *block-explorer-worker-env
+      BLOCKCHAIN_RPC_URL: http://host.docker.internal:3051
+      DATA_FETCHER_URL: http://block-explorer-data-fetcher-l2b:3040
+      PRIVIDIUM_PERMISSIONS_API_URL: http://permissions-api-l2b:8000/api
+      DATABASE_NAME: prividium_block_explorer_l2b
+    depends_on:
+      - postgres
+      - block-explorer-data-fetcher-l2b
+    networks:
+      default:
+        aliases: [l2b-block-explorer-worker]
+
+  block-explorer-data-fetcher-l2b:
+    <<: *block-explorer-data-fetcher
+    container_name: prividium-block-explorer-data-fetcher-l2b
+    environment:
+      <<: *block-explorer-data-fetcher-env
+      BLOCKCHAIN_RPC_URL: http://host.docker.internal:3051
+      PRIVIDIUM_PERMISSIONS_API_URL: http://permissions-api-l2b:8000/api
+    ports:
+      - 3340:3040
+    networks:
+      default:
+        aliases: [l2b-block-explorer-data-fetcher]
+
+volumes:
+  postgres:
