@@ -12,20 +12,39 @@ interface ChainEnvConfig {
   blockExplorerName: string;
 }
 
-function parseChainConfig(config: ReturnType<typeof useRuntimeConfig>, index: number): ChainEnvConfig | null {
+function parseChainConfig(
+  config: ReturnType<typeof useRuntimeConfig>,
+  index: number,
+): ChainEnvConfig | null {
   const prefix = `prividiumChain${index}`;
-  const id = config.public[`${prefix}Id` as keyof typeof config.public] as string;
+  const id = config.public[
+    `${prefix}Id` as keyof typeof config.public
+  ] as string;
 
-  if (!id) {return null;}
+  if (!id) {
+    return null;
+  }
 
   return {
     id: Number(id),
-    name: config.public[`${prefix}Name` as keyof typeof config.public] as string,
-    clientId: config.public[`${prefix}OauthClientId` as keyof typeof config.public] as string,
-    authBaseUrl: config.public[`${prefix}AuthBaseUrl` as keyof typeof config.public] as string,
-    prividiumApiBaseUrl: config.public[`${prefix}PrividiumApiUrl` as keyof typeof config.public] as string,
-    blockExplorerUrl: config.public[`${prefix}BlockExplorerUrl` as keyof typeof config.public] as string,
-    blockExplorerName: config.public[`${prefix}BlockExplorerName` as keyof typeof config.public] as string,
+    name: config.public[
+      `${prefix}Name` as keyof typeof config.public
+    ] as string,
+    clientId: config.public[
+      `${prefix}OauthClientId` as keyof typeof config.public
+    ] as string,
+    authBaseUrl: config.public[
+      `${prefix}AuthBaseUrl` as keyof typeof config.public
+    ] as string,
+    prividiumApiBaseUrl: config.public[
+      `${prefix}PrividiumApiBaseUrl` as keyof typeof config.public
+    ] as string,
+    blockExplorerUrl: config.public[
+      `${prefix}BlockExplorerUrl` as keyof typeof config.public
+    ] as string,
+    blockExplorerName: config.public[
+      `${prefix}BlockExplorerName` as keyof typeof config.public
+    ] as string,
   };
 }
 

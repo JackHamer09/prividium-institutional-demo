@@ -8,11 +8,13 @@ import {
 } from "viem";
 import type { Address, PublicClient, WalletClient } from "viem";
 import type { PrividiumChain } from "prividium";
+import { switchChain } from "@wagmi/core";
 import { createViemClient, createViemSdk } from "@dutterbutter/zksync-sdk/viem";
 import { ETH_ADDRESS } from "@dutterbutter/zksync-sdk/core";
 import { getL1Chain } from "~/config/chains";
 
 export function useL1Bridge() {
+  const config = useWagmiConfig();
   const walletStore = useWalletStore();
   const toast = useToast();
 
@@ -39,7 +41,9 @@ export function useL1Bridge() {
    * Fetch L1 ETH balance
    */
   async function fetchL1Balance() {
-    if (!walletStore.address) {return;}
+    if (!walletStore.address) {
+      return;
+    }
     try {
       const balance = await getL1PublicClient().getBalance({
         address: walletStore.address,
@@ -54,7 +58,9 @@ export function useL1Bridge() {
    * Fetch L2 ETH balance
    */
   async function fetchL2Balance() {
-    if (!walletStore.address) {return;}
+    if (!walletStore.address) {
+      return;
+    }
     try {
       const { $prividium } = useNuxtApp();
       const prividium = $prividium as PrividiumChain;
@@ -129,7 +135,7 @@ export function useL1Bridge() {
       // Create L2 public client
       const l2PublicClient = createPublicClient({
         chain: prividium.chain,
-        transport: http(prividium.chain.rpcUrls.default.http[0]),
+        transport: prividium.transport,
       });
 
       // Create L1 wallet client
@@ -137,8 +143,12 @@ export function useL1Bridge() {
 
       // Ensure wallet client has account
       if (!l1WalletClient.account) {
-        throw new Error("Wallet account not available");
+        throw new Error("Wallet account ,not available");
       }
+
+      await switchChain(config, {
+        chainId: l1WalletClient.chain!.id,
+      });
 
       // Create SDK client and perform deposit
       const client = createViemClient({

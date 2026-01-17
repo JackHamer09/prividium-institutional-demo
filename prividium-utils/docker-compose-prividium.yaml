@@ -1,7 +1,7 @@
 # Starts 2 prividiums on the local machine.
 # Assumes that L1 and 2 L2s are already present and running on port 3050 and 3051 respectively.
 
-name: zksync-prividium-prividium
+name: zksync-prividium-institutional-demo
 
 x-admin-panel: &admin-panel
   image: quay.io/matterlabs_enterprise/prividium-adminv2:latest
@@ -22,6 +22,7 @@ x-permissions-api: &permissions-api
   environment: &permissions-api-env
     PORT: 8000
     METRICS_PORT: 9091
+    WALLETS_API_ENABLED: "true"
     AUTH_METHODS: oidc,crypto_native
     NODE_ENV: production
     OIDC_JWKS_URI: http://keycloak:8080/realms/prividium/protocol/openid-connect/certs

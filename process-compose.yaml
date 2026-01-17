@@ -26,6 +26,15 @@ processes:
       restart: "no"
 
   # ═══════════════════════════════════════════════════════════════
+  # DOCKER: Pull Prividium images (starts immediately, parallel with builds)
+  # ═══════════════════════════════════════════════════════════════
+  prividium-pull:
+    command: docker compose -f ./prividium-utils/docker-compose-prividium.yaml pull
+    working_dir: .
+    availability:
+      restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
   # CLEANUP: Remove old chain databases (after build, before anvil)
   # ═══════════════════════════════════════════════════════════════
   zkos-cleanup:
@@ -167,6 +176,27 @@ processes:
         condition: process_healthy
       chain2:
         condition: process_healthy
+
+  # ═══════════════════════════════════════════════════════════════
+  # DOCKER: Start Prividium services (after chains healthy + cleanup)
+  # ═══════════════════════════════════════════════════════════════
+  prividium:
+    command: docker compose -f ./prividium-utils/docker-compose-prividium.yaml up
+    working_dir: .
+    depends_on:
+      prividium-pull:
+        condition: process_completed_successfully
+      chain1:
+        condition: process_healthy
+      chain2:
+        condition: process_healthy
+    readiness_probe:
+      exec:
+        command: 'curl -sf http://localhost:8000/health && curl -sf http://localhost:8300/health'
+      initial_delay_seconds: 10
+      period_seconds: 5
+      timeout_seconds: 10
+      failure_threshold: 60
 
   # ═══════════════════════════════════════════════════════════════
   # PARALLEL TRACK: SDK Build (independent of chains)

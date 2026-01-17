@@ -3,6 +3,7 @@ import { callPolicy, zksyncSsoConnector } from "zksync-sso/connector";
 import type { PrividiumChain } from "prividium";
 import { type Address, type Chain, /* erc20Abi, */ parseEther, type Transport } from "viem";
 import { INTRADAY_REPO_ABI } from "../contracts/intraday-repo";
+import { getL1Chain } from "~/config/chains";
 /* import { mintAbi } from "../config/tokens"; */
 
 export default defineNuxtPlugin(async (nuxtApp) => {
@@ -22,6 +23,8 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   if (chains.length === 0) {
     throw new Error("No chains configured for wagmi");
   }
+
+  chains.push(getL1Chain());
 
   // Get repo contract address for session policies
   const repoAddress = runtimeConfig.public.intradayRepoContractAddress as Address;
