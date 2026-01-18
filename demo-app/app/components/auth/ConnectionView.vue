@@ -8,7 +8,79 @@
         Short-term collateralized lending market
       </p>
 
-      <!-- Step 1: Prividium Login (main chain) -->
+      <!-- Auth Status Badges (shows completed steps) -->
+      <div v-if="prividiumStore.isAuthorized" class="space-y-2 mb-6">
+        <!-- Prividium badge -->
+        <div class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                <svg
+                  class="w-4 h-4 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <div class="text-left">
+                <p v-if="isProfileLoading" class="h-4 w-24 bg-slate-200 rounded animate-pulse mb-1" />
+                <p v-else class="text-sm font-medium text-slate-900">
+                  {{ prividiumStore.userDisplayName || 'Prividium' }}
+                </p>
+                <p class="text-xs text-slate-500">Prividium account</p>
+              </div>
+            </div>
+            <button
+              class="text-xs text-slate-500 hover:text-slate-700 hover:underline"
+              @click="handlePrividiumLogout"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+
+        <!-- Wallet badge (only when connected) -->
+        <div v-if="walletStore.isConnected" class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                <svg
+                  class="w-4 h-4 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <div class="text-left">
+                <p class="text-sm font-medium text-slate-900">{{ formattedAddress }}</p>
+                <p class="text-xs text-slate-500">Wallet connected</p>
+              </div>
+            </div>
+            <button
+              class="text-xs text-slate-500 hover:text-slate-700 hover:underline"
+              @click="handleWalletDisconnect"
+            >
+              Disconnect
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 1: Prividium Login -->
       <div v-if="!prividiumStore.isAuthorized" class="space-y-4">
         <CommonSparkleButton
           :loading="prividiumStore.isAuthorizing"
@@ -22,31 +94,13 @@
         </p>
       </div>
 
-      <!-- Step 2: Connect Wallet (after Prividium auth) -->
+      <!-- Step 2: Connect Wallet -->
       <div v-else-if="!walletStore.isConnected" class="space-y-4">
-        <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-          <div class="flex items-center justify-center gap-2">
-            <svg
-              class="w-5 h-5 text-green-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-            <span class="text-sm text-green-700">Logged in with Prividium ({{ mainChain?.name }})</span>
-          </div>
-        </div>
-
-        <!-- Wallet Connection Options -->
+        <!-- <p class="text-sm text-slate-600 mb-4">
+          Connect your wallet to continue:
+        </p> -->
         <div class="space-y-3">
-          <!-- ZKsync SSO Option (Primary) -->
-          <CommonButton
+          <!-- <CommonButton
             variant="primary"
             size="lg"
             full-width
@@ -55,118 +109,69 @@
             @click="handleConnect('zksync-sso')"
           >
             Continue with ZKsync SSO
-          </CommonButton>
+          </CommonButton> -->
 
-          <!-- Browser Wallet Option -->
           <CommonButton
-            variant="secondary"
+            variant="primary"
             size="lg"
             full-width
             :loading="walletStore.isConnecting && connectingType === 'injected'"
             :disabled="walletStore.isConnecting && connectingType !== 'injected'"
             @click="handleConnect('injected')"
           >
-            Browser Wallet
+            Connect Wallet
           </CommonButton>
         </div>
-
-        <button
-          class="text-sm text-slate-500 hover:text-slate-700 mt-4 underline"
-          @click="handleLogout"
-        >
-          Use different Prividium account
-        </button>
       </div>
 
-      <!-- Step 3: Additional Chain Authorization (optional) -->
-      <div v-else-if="showStep3" class="space-y-4">
-        <!-- Success badges for completed steps -->
-        <div class="space-y-2 mb-4">
-          <div class="bg-green-50 border border-green-200 rounded-lg p-3">
-            <div class="flex items-center justify-center gap-2">
-              <svg
-class="w-5 h-5 text-green-600"
-fill="none"
-stroke="currentColor"
-viewBox="0 0 24 24">
-                <path
-stroke-linecap="round"
-stroke-linejoin="round"
-stroke-width="2"
-d="M5 13l4 4L19 7" />
-              </svg>
-              <span class="text-sm text-green-700">Logged in with Prividium ({{ mainChain?.name }})</span>
-            </div>
-          </div>
-          <div class="bg-green-50 border border-green-200 rounded-lg p-3">
-            <div class="flex items-center justify-center gap-2">
-              <svg
-class="w-5 h-5 text-green-600"
-fill="none"
-stroke="currentColor"
-viewBox="0 0 24 24">
-                <path
-stroke-linecap="round"
-stroke-linejoin="round"
-stroke-width="2"
-d="M5 13l4 4L19 7" />
-              </svg>
-              <span class="text-sm text-green-700">Wallet connected</span>
-            </div>
-          </div>
-        </div>
+      <!-- Step 3: Chain Selection -->
+      <div v-else class="space-y-4">
+        <p class="text-sm text-slate-600 mb-4">Select which chain to use:</p>
 
-        <!-- Connected to non-main chain message -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <p class="text-sm text-blue-700">
-            Your wallet is connected to <strong>{{ connectedChainName }}</strong>.
-            You can authorize additional chains to view balances across networks.
+        <!-- Main chain option -->
+        <div
+          :class="switchChainError?.chainId === mainChain?.id
+            ? 'bg-red-50 border border-red-200 rounded-lg p-3'
+            : ''"
+        >
+          <p v-if="switchChainError?.chainId === mainChain?.id" class="text-sm text-red-700 mb-2">
+            Please switch your wallet network
           </p>
-        </div>
-
-        <!-- Authorize connected chain if not already authorized -->
-        <div v-if="canAuthorizeConnectedChain" class="space-y-3">
           <CommonButton
             variant="primary"
             size="lg"
             full-width
-            :loading="isAuthorizingChain === walletStore.chainId"
-            @click="handleAuthorizeChain(walletStore.chainId!)"
+            :loading="isAuthorizingChain === mainChain?.id || (isSwitchingChain && switchChainError?.chainId === mainChain?.id)"
+            @click="switchChainError?.chainId === mainChain?.id ? retrySwitchChain() : handleSelectChain(mainChain!.id)"
           >
-            Authorize {{ connectedChainName }}
+            {{ switchChainError?.chainId === mainChain?.id ? 'Switch to' : 'Continue on' }} {{ mainChain?.name }}
           </CommonButton>
         </div>
 
-        <!-- Other available chains to authorize -->
-        <div v-if="otherChainsToAuthorize.length > 0" class="space-y-2 mt-4">
-          <p class="text-sm text-slate-600 mb-2">Other available chains:</p>
-          <CommonButton
-            v-for="chain in otherChainsToAuthorize"
+        <!-- Other chains -->
+        <div v-if="otherChains.length > 0" class="space-y-2 mt-4">
+          <p class="text-sm text-slate-600 mb-2">Or select another chain:</p>
+          <div
+            v-for="chain in otherChains"
             :key="chain.id"
-            variant="secondary"
-            size="md"
-            full-width
-            :loading="isAuthorizingChain === chain.id"
-            @click="handleAuthorizeChain(chain.id)"
+            :class="switchChainError?.chainId === chain.id
+              ? 'bg-red-50 border border-red-200 rounded-lg p-3'
+              : ''"
           >
-            Authorize {{ chain.name }}
-          </CommonButton>
+            <p v-if="switchChainError?.chainId === chain.id" class="text-sm text-red-700 mb-2">
+              Please switch your wallet network
+            </p>
+            <CommonButton
+              variant="secondary"
+              size="md"
+              full-width
+              :loading="isAuthorizingChain === chain.id || (isSwitchingChain && switchChainError?.chainId === chain.id)"
+              @click="switchChainError?.chainId === chain.id ? retrySwitchChain() : handleSelectChain(chain.id)"
+            >
+              {{ switchChainError?.chainId === chain.id ? 'Switch to' : '' }} {{ chain.name }}
+            </CommonButton>
+          </div>
         </div>
-
-        <!-- Continue without additional auth -->
-        <button
-          class="text-sm text-slate-500 hover:text-slate-700 mt-4 underline"
-          @click="skipStep3"
-        >
-          Continue without additional authorization
-        </button>
-
-        <button
-          class="text-sm text-slate-500 hover:text-slate-700 mt-2 underline block mx-auto"
-          @click="handleLogout"
-        >
-          Use different account
-        </button>
       </div>
     </div>
   </div>
@@ -179,9 +184,11 @@ import { getAllChains } from "~/config/chains";
 const walletStore = useWalletStore();
 const prividiumStore = usePrividiumStore();
 const toast = useToast();
+const { switchToChain } = useChainSwitch();
 
 const isAuthorizingChain = ref<number | null>(null);
-const step3Skipped = ref(false);
+const isSwitchingChain = ref(false);
+const switchChainError = ref<{ chainId: number; chainName: string } | null>(null);
 // Track which button was clicked for loading state
 const connectingType = ref<WalletConnectorType | null>(null);
 
@@ -197,40 +204,19 @@ const allChains = computed(() => {
 // Get main chain
 const mainChain = computed(() => allChains.value.find((c) => c.isMainChain));
 
-// Check if connected chain can be authorized (is a known Prividium chain but not yet authorized)
-const canAuthorizeConnectedChain = computed(() => {
-  if (!walletStore.chainId) return false;
-  const chain = allChains.value.find((c) => c.id === walletStore.chainId);
-  if (!chain) return false;
-  return !prividiumStore.isChainAuthorized(walletStore.chainId);
+// Get non-main chains
+const otherChains = computed(() => allChains.value.filter((c) => !c.isMainChain));
+
+// Formatted wallet address
+const formattedAddress = computed(() => {
+  if (!walletStore.address) return "";
+  return formatAddress(walletStore.address);
 });
 
-// Get name of connected chain
-const connectedChainName = computed(() => {
-  if (!walletStore.chainId) return "Unknown";
-  const chain = allChains.value.find((c) => c.id === walletStore.chainId);
-  return chain?.name || `Chain ${walletStore.chainId}`;
-});
-
-// Get other chains that can be authorized (not connected, not main if already authorized)
-const otherChainsToAuthorize = computed(() => {
-  return allChains.value.filter((chain) => {
-    // Skip main chain (already authorized in step 1)
-    if (chain.isMainChain) return false;
-    // Skip connected chain (handled separately)
-    if (chain.id === walletStore.chainId) return false;
-    // Skip already authorized chains
-    if (prividiumStore.isChainAuthorized(chain.id)) return false;
-    return true;
-  });
-});
-
-// Show Step 3 if wallet connected to non-main chain and user hasn't skipped
-const showStep3 = computed(() => {
-  if (step3Skipped.value) return false;
-  // Only show if there are chains to authorize
-  return canAuthorizeConnectedChain.value || otherChainsToAuthorize.value.length > 0;
-});
+// Profile is loading if authorized but profile not yet fetched
+const isProfileLoading = computed(() =>
+  prividiumStore.isAuthorized && !prividiumStore.userProfile,
+);
 
 async function handleAuthorize() {
   try {
@@ -255,17 +241,59 @@ async function handleConnect(type: WalletConnectorType) {
   }
 }
 
-async function handleAuthorizeChain(chainId: number) {
-  isAuthorizingChain.value = chainId;
-  try {
-    await prividiumStore.authorize(chainId);
-    toast.success(`Authorized ${getChainNameById(chainId)}`);
-  } catch (error) {
-    console.error("Chain authorization error:", error);
-    const message = error instanceof Error ? error.message : "Failed to authorize chain";
-    toast.error(message);
-  } finally {
+/**
+ * Handle chain selection in Step 3:
+ * 1. Set selectedChainId in store
+ * 2. If chain not authorized, authorize first
+ * 3. Try to switch wallet to that chain
+ * 4. If switch fails, show error with retry button
+ */
+async function handleSelectChain(chainId: number) {
+  const chainName = getChainNameById(chainId);
+  switchChainError.value = null;
+
+  // Authorize chain if not already authorized
+  if (!prividiumStore.isChainAuthorized(chainId)) {
+    isAuthorizingChain.value = chainId;
+    try {
+      await prividiumStore.authorize(chainId);
+    } catch (error) {
+      console.error("Chain authorization error:", error);
+      const message = error instanceof Error ? error.message : "Failed to authorize chain";
+      toast.error(message);
+      isAuthorizingChain.value = null;
+      return;
+    }
     isAuthorizingChain.value = null;
+  }
+
+  // Try to switch wallet to the selected chain
+  isSwitchingChain.value = true;
+  const switched = await switchToChain(chainId);
+  isSwitchingChain.value = false;
+
+  if (switched) {
+    // Only set selected chain after wallet successfully switched
+    prividiumStore.selectChain(chainId);
+  } else {
+    // Show error state with retry button
+    switchChainError.value = { chainId, chainName };
+  }
+}
+
+async function retrySwitchChain() {
+  if (!switchChainError.value) return;
+
+  const { chainId } = switchChainError.value;
+
+  isSwitchingChain.value = true;
+  const switched = await switchToChain(chainId);
+  isSwitchingChain.value = false;
+
+  if (switched) {
+    switchChainError.value = null;
+    // Set selected chain after successful switch
+    prividiumStore.selectChain(chainId);
   }
 }
 
@@ -274,13 +302,15 @@ function getChainNameById(chainId: number): string {
   return chain?.name || `Chain ${chainId}`;
 }
 
-function skipStep3() {
-  step3Skipped.value = true;
+function handlePrividiumLogout() {
+  switchChainError.value = null;
+  prividiumStore.unauthorizeAll();
+  walletStore.disconnectWallet();
 }
 
-function handleLogout() {
-  step3Skipped.value = false;
-  prividiumStore.unauthorizeAll();
+function handleWalletDisconnect() {
+  switchChainError.value = null;
+  prividiumStore.clearSelectedChain();
   walletStore.disconnectWallet();
 }
 </script>

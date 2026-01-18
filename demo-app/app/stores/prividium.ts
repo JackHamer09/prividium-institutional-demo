@@ -1,10 +1,11 @@
 import { defineStore } from "pinia";
-import type { PrividiumChain } from "prividium";
+import type { PrividiumChain, UserProfile } from "prividium";
 
 interface ChainAuthState {
   isAuthorized: boolean;
   isAuthorizing: boolean;
   authError: string | null;
+  userProfile: UserProfile | null;
 }
 
 export const usePrividiumStore = defineStore("prividium", () => {
@@ -16,6 +17,9 @@ export const usePrividiumStore = defineStore("prividium", () => {
   // Per-chain auth states
   const authStates = ref<Map<number, ChainAuthState>>(new Map());
 
+  // Currently selected chain (null = no chain selected yet, forces Step 3)
+  const selectedChainId = ref<number | null>(null);
+
   // Initialize auth states for all chains
   function initializeAuthStates() {
     for (const chainId of prividiumChains.keys()) {
@@ -23,6 +27,7 @@ export const usePrividiumStore = defineStore("prividium", () => {
         isAuthorized: false,
         isAuthorizing: false,
         authError: null,
+        userProfile: null,
       });
     }
   }
@@ -57,16 +62,38 @@ export const usePrividiumStore = defineStore("prividium", () => {
     return state?.authError ?? null;
   });
 
+  // User profile computed properties (from main chain state)
+  const userProfile = computed(() => {
+    const state = authStates.value.get(mainChainId);
+    return state?.userProfile ?? null;
+  });
+  const userDisplayName = computed(() => userProfile.value?.displayName ?? null);
+
+  // Computed: is selected chain authorized (uses reactive authStates directly)
+  const isSelectedChainAuthorized = computed(() => {
+    if (selectedChainId.value === null) return false;
+    const state = authStates.value.get(selectedChainId.value);
+    return state?.isAuthorized ?? false;
+  });
+
   /**
    * Check if already authorized on init for all chains
    */
-  function initialize() {
+  async function initialize() {
     initializeAuthStates();
+
+    // Check auth status for all chains
     for (const [chainId, prividium] of prividiumChains) {
       const state = authStates.value.get(chainId);
-      if (state) {
-        state.isAuthorized = prividium.isAuthorized();
+      if (state && prividium.isAuthorized()) {
+        state.isAuthorized = true;
       }
+    }
+
+    // Fetch main chain profile immediately (needed for auth screen UI)
+    // Other chain profiles are fetched in LoadingView
+    if (isMainChainAuthorized.value) {
+      await fetchUserProfile(mainChainId);
     }
   }
 
@@ -105,6 +132,10 @@ export const usePrividiumStore = defineStore("prividium", () => {
       await prividium.authorize({
         scopes: ["wallet:required"],
       });
+
+      // Fetch user profile before completing auth
+      await fetchUserProfile(targetChainId);
+
       state.isAuthorized = true;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Authorization failed";
@@ -117,6 +148,27 @@ export const usePrividiumStore = defineStore("prividium", () => {
       throw error;
     } finally {
       state.isAuthorizing = false;
+    }
+  }
+
+  /**
+   * Fetch user profile for a chain
+   */
+  async function fetchUserProfile(chainId: number): Promise<UserProfile | null> {
+    const prividium = prividiumChains.get(chainId);
+    const state = authStates.value.get(chainId);
+    if (!prividium || !state) {
+      return null;
+    }
+
+    try {
+      const profile = await prividium.fetchUser();
+      state.userProfile = profile;
+      return profile;
+    } catch (error) {
+      console.error("Failed to fetch user profile:", error);
+      state.userProfile = null;
+      return null;
     }
   }
 
@@ -134,7 +186,22 @@ export const usePrividiumStore = defineStore("prividium", () => {
     if (state) {
       state.isAuthorized = false;
       state.authError = null;
+      state.userProfile = null;
     }
+  }
+
+  /**
+   * Select a chain (for Step 3 auth flow)
+   */
+  function selectChain(chainId: number) {
+    selectedChainId.value = chainId;
+  }
+
+  /**
+   * Clear selected chain (resets to Step 3)
+   */
+  function clearSelectedChain() {
+    selectedChainId.value = null;
   }
 
   /**
@@ -144,6 +211,7 @@ export const usePrividiumStore = defineStore("prividium", () => {
     for (const chainId of prividiumChains.keys()) {
       unauthorize(chainId);
     }
+    clearSelectedChain(); // Reset to null on logout
   }
 
   /**
@@ -201,21 +269,29 @@ export const usePrividiumStore = defineStore("prividium", () => {
     // State
     authStates,
     mainChainId,
+    selectedChainId,
     // Computed
     isAuthorized,
     isAuthorizing,
     authError,
     isMainChainAuthorized,
+    isSelectedChainAuthorized,
     authorizedChainIds,
+    // User profile
+    userProfile,
+    userDisplayName,
     // Actions
     initialize,
     getPrividium,
     isChainAuthorized,
     authorize,
+    selectChain,
+    clearSelectedChain,
     unauthorize,
     unauthorizeAll,
     handleAuthExpiry,
     addNetworkToWallet,
     getAuthHeaders,
+    fetchUserProfile,
   };
 });

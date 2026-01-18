@@ -2,8 +2,6 @@ import {
   createPublicClient,
   createWalletClient,
   custom,
-  formatEther,
-  http,
   parseEther,
 } from "viem";
 import type { Address, PublicClient, WalletClient } from "viem";
@@ -13,82 +11,32 @@ import { createViemClient, createViemSdk } from "@dutterbutter/zksync-sdk/viem";
 import { ETH_ADDRESS } from "@dutterbutter/zksync-sdk/core";
 import { getL1Chain } from "~/config/chains";
 
+/**
+ * L1 to L2 bridge deposit functionality
+ * Note: L1 and L2 ETH balances are now managed by useBalances composable
+ */
 export function useL1Bridge() {
   const config = useWagmiConfig();
   const walletStore = useWalletStore();
+  const balancesStore = useBalancesStore();
   const toast = useToast();
 
-  const l1EthBalance = ref<bigint>(0n);
-  const l2EthBalance = ref<bigint>(0n);
   const isDepositing = ref(false);
-  const isFetchingBalances = ref(false);
 
-  // Lazy-initialized L1 public client
+  // L1 chain for bridge operations
+  const l1Chain = getL1Chain();
+
+  // Lazy-initialized L1 public client for SDK
   let l1PublicClient: PublicClient | null = null;
 
   function getL1PublicClient(): PublicClient {
     if (!l1PublicClient) {
-      const l1Chain = getL1Chain();
       l1PublicClient = createPublicClient({
         chain: l1Chain,
-        transport: http(l1Chain.rpcUrls.default.http[0]),
+        transport: custom(window.ethereum!),
       });
     }
     return l1PublicClient;
-  }
-
-  /**
-   * Fetch L1 ETH balance
-   */
-  async function fetchL1Balance() {
-    if (!walletStore.address) {
-      return;
-    }
-    try {
-      const balance = await getL1PublicClient().getBalance({
-        address: walletStore.address,
-      });
-      l1EthBalance.value = balance;
-    } catch (error) {
-      console.error("Failed to fetch L1 balance:", error);
-    }
-  }
-
-  /**
-   * Fetch L2 ETH balance
-   */
-  async function fetchL2Balance() {
-    if (!walletStore.address) {
-      return;
-    }
-    try {
-      const { $prividium } = useNuxtApp();
-      const prividium = $prividium as PrividiumChain;
-
-      const l2PublicClient = createPublicClient({
-        chain: prividium.chain,
-        transport: prividium.transport,
-      });
-
-      const balance = await l2PublicClient.getBalance({
-        address: walletStore.address,
-      });
-      l2EthBalance.value = balance;
-    } catch (error) {
-      console.error("Failed to fetch L2 balance:", error);
-    }
-  }
-
-  /**
-   * Refresh both L1 and L2 balances
-   */
-  async function refreshBalances() {
-    isFetchingBalances.value = true;
-    try {
-      await Promise.all([fetchL1Balance(), fetchL2Balance()]);
-    } finally {
-      isFetchingBalances.value = false;
-    }
   }
 
   /**
@@ -101,7 +49,7 @@ export function useL1Bridge() {
 
     return createWalletClient({
       account: walletStore.address as Address,
-      chain: getL1Chain(),
+      chain: l1Chain,
       transport: custom(window.ethereum),
     });
   }
@@ -120,9 +68,12 @@ export function useL1Bridge() {
       return;
     }
 
+    // Get L1 balance from store
+    const l1Balance = balancesStore.ethBalances.get(l1Chain.id) ?? 0n;
+
     // Check if user has sufficient L1 balance
     const depositAmount = parseEther(amount);
-    if (depositAmount > l1EthBalance.value) {
+    if (depositAmount > l1Balance) {
       toast.error("Insufficient L1 balance");
       return;
     }
@@ -143,7 +94,7 @@ export function useL1Bridge() {
 
       // Ensure wallet client has account
       if (!l1WalletClient.account) {
-        throw new Error("Wallet account ,not available");
+        throw new Error("Wallet account not available");
       }
 
       await switchChain(config, {
@@ -171,7 +122,9 @@ export function useL1Bridge() {
       await sdk.deposits.wait(handle, { for: "l2" });
 
       toast.success("Deposit complete!");
-      await refreshBalances();
+
+      // Clear the L1 and L2 balances in store to trigger refresh
+      // The actual refresh will be handled by the component
     } catch (error) {
       console.error("Deposit failed:", error);
       toast.error("Deposit failed: " + (error as Error).message);
@@ -181,15 +134,7 @@ export function useL1Bridge() {
   }
 
   return {
-    l1EthBalance,
-    l2EthBalance,
     isDepositing,
-    isFetchingBalances,
-    fetchL1Balance,
-    fetchL2Balance,
-    refreshBalances,
     deposit,
-    formattedL1Balance: computed(() => formatEther(l1EthBalance.value)),
-    formattedL2Balance: computed(() => formatEther(l2EthBalance.value)),
   };
 }

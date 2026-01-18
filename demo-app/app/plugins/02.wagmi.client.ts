@@ -1,7 +1,7 @@
 import { createConfig, injected, reconnect } from "@wagmi/core";
 import { callPolicy, zksyncSsoConnector } from "zksync-sso/connector";
 import type { PrividiumChain } from "prividium";
-import { type Address, type Chain, /* erc20Abi, */ parseEther, type Transport } from "viem";
+import { http, type Address, type Chain, /* erc20Abi, */ parseEther, type Transport } from "viem";
 import { INTRADAY_REPO_ABI } from "../contracts/intraday-repo";
 import { getL1Chain } from "~/config/chains";
 /* import { mintAbi } from "../config/tokens"; */
@@ -24,7 +24,10 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     throw new Error("No chains configured for wagmi");
   }
 
-  chains.push(getL1Chain());
+  // Add L1 chain with HTTP transport for balance fetching
+  const l1Chain = getL1Chain();
+  chains.push(l1Chain);
+  transports[l1Chain.id] = http(l1Chain.rpcUrls.default.http[0]);
 
   // Get repo contract address for session policies
   const repoAddress = runtimeConfig.public.intradayRepoContractAddress as Address;

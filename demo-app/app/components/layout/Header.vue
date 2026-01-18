@@ -6,7 +6,10 @@
           Intraday Repo
         </h1>
 
-        <LayoutAccountDropdown v-if="walletStore.isConnected" />
+        <div v-if="walletStore.isConnected" class="flex items-center gap-4">
+          <LayoutChainSelector />
+          <LayoutAccountDropdown />
+        </div>
       </div>
     </div>
   </header>

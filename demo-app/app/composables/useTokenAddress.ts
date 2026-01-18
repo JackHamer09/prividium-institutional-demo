@@ -88,6 +88,8 @@ export function useTokenAddress() {
       chainId,
     });
 
+    console.log(`Fetched token address for assetId ${assetId} on chain ${chainId}: ${result}`);
+
     // Normalize the returned address
     const address = getAddress(result as Address);
     addressCache.set(cacheKey, address);
@@ -134,11 +136,13 @@ export function useTokenAddress() {
    */
   async function preloadAddressesForChain(chainId: number): Promise<void> {
     if (preloadedChains.has(chainId)) {
+      console.log(`Token addresses for chain ${chainId} already preloaded.`);
       return;
     }
 
     const promises = tokens.map((token) => getTokenAddress(chainId, token.assetId));
     await Promise.all(promises);
+    console.log(`Preloaded token addresses for chain ${chainId}.`);
     preloadedChains.add(chainId);
   }
 

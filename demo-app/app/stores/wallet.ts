@@ -89,15 +89,10 @@ export const useWalletStore = defineStore("wallet", () => {
   }
 
   /**
-   * Disconnect wallet and clear Prividium auth
+   * Disconnect wallet
    */
   async function disconnectWallet() {
     try {
-      // Clear Prividium auth state first
-      const prividiumStore = usePrividiumStore();
-      prividiumStore.unauthorize();
-
-      // Then disconnect wallet
       await disconnect(config);
       address.value = undefined;
       isConnected.value = false;

@@ -23,9 +23,11 @@ const prividiumStore = usePrividiumStore();
 // Track if loading is complete
 const isReady = ref(false);
 
-// Both wallet AND Prividium auth required
+// Wallet connected + main chain auth + selected chain authorized
 const isFullyAuthorized = computed(() =>
-  walletStore.isConnected && prividiumStore.isAuthorized,
+  walletStore.isConnected &&
+  prividiumStore.isAuthorized &&
+  prividiumStore.isSelectedChainAuthorized,
 );
 
 // Reset isReady when authorization changes

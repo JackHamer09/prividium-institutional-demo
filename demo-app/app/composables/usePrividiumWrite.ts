@@ -1,21 +1,14 @@
-import { estimateGas, getGasPrice, getTransactionCount, sendTransaction, switchChain } from "@wagmi/core";
+import { getTransactionCount, prepareTransactionRequest, sendTransaction, switchChain } from "@wagmi/core";
 import { type Abi, type Address, encodeFunctionData, type Hex } from "viem";
 
 /**
  * Wrapper for contract write operations that enables Prividium wallet token before each transaction
- * For ZKsync SSO connections, sends transactions directly without nonce/gas management
- * Now supports multi-chain by using the correct Prividium instance for each chain
  */
 export function usePrividiumWrite() {
   const config = useWagmiConfig();
   const walletStore = useWalletStore();
   const prividiumStore = usePrividiumStore();
 
-  /**
-   * Execute a write transaction with Prividium wallet token authorization
-   * For ZKsync SSO, sends transaction directly with just to and data
-   * Uses the correct Prividium instance for the target chain
-   */
   async function executeWrite<TAbi extends Abi>(params: {
     address: Address;
     abi: TAbi;
@@ -78,15 +71,9 @@ export function usePrividiumWrite() {
     });
     
     await switchChain(config, { chainId: params.chainId });
-    
-    const gas = await estimateGas(config, transactionParams);
-    const gasPrice = await getGasPrice(config, { chainId: params.chainId });
-    const hash = await sendTransaction(config, {
-      ...transactionParams,
-      nonce,
-      gas,
-      gasPrice,
-    });
+
+    const preparedTransaction = await prepareTransactionRequest(config, transactionParams);
+    const hash = await sendTransaction(config, preparedTransaction);
 
     return hash;
   }

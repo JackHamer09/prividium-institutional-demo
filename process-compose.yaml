@@ -98,7 +98,9 @@ processes:
   # LAYER 3: Deposit ETH to L2 (after chain1 healthy, before contracts)
   # ═══════════════════════════════════════════════════════════════
   deposit:
-    command: ./scripts/deposit.sh $MAIN_CHAIN_ID $DEPLOYER_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN1_RPC
+    command: |
+      ./scripts/deposit.sh $MAIN_CHAIN_ID $DEPLOYER_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN1_RPC
+      ./scripts/deposit.sh $MAIN_CHAIN_ID $DEPLOYER_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN2_RPC
     working_dir: .
     depends_on:
       chain1:
@@ -199,6 +201,20 @@ processes:
       failure_threshold: 60
 
   # ═══════════════════════════════════════════════════════════════
+  # DOCKER: Seed Prividium permissions databases (after prividium healthy)
+  # ═══════════════════════════════════════════════════════════════
+  prividium-seed:
+    command: |
+      docker exec -i zksync-prividium-institutional-demo-postgres-1 psql -U postgres -d permissions_api_l2a < prividium-utils/dev/seed-permissions-l2a.sql
+      docker exec -i zksync-prividium-institutional-demo-postgres-1 psql -U postgres -d permissions_api_l2b < prividium-utils/dev/seed-permissions-l2b.sql
+    working_dir: .
+    depends_on:
+      prividium:
+        condition: process_healthy
+    availability:
+      restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
   # PARALLEL TRACK: SDK Build (independent of chains)
   # ═══════════════════════════════════════════════════════════════
   sdk-deps:
@@ -238,9 +254,11 @@ processes:
         condition: process_completed_successfully
       app-deps:
         condition: process_completed_successfully
+      contracts-deploy:
+        condition: process_completed_successfully
       chain1:
         condition: process_healthy
       chain2:
         condition: process_healthy
-      contracts-deploy:
-        condition: process_completed_successfully
+      prividium:
+        condition: process_healthy

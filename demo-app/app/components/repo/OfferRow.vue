@@ -58,10 +58,11 @@
     <td class="py-3 px-4">
       <div class="flex items-center gap-1.5">
         <img
-v-if="lendTokenConfig"
-:src="`/${lendTokenConfig.iconUrl}`"
-class="h-5 w-5"
-alt="" />
+          v-if="lendTokenConfig"
+          :src="`/${lendTokenConfig.iconUrl}`"
+          class="h-5 w-5"
+          :alt="lendTokenConfig.symbol"
+        />
         <div class="text-sm">
           <span class="font-semibold text-slate-900">
             {{ formatTokenAmount(offer.lendAmount, lendTokenConfig?.decimals || 18) }}
@@ -75,10 +76,11 @@ alt="" />
     <td class="py-3 px-4">
       <div class="flex items-center gap-1.5">
         <img
-v-if="collateralTokenConfig"
-:src="`/${collateralTokenConfig.iconUrl}`"
-class="h-5 w-5"
-alt="" />
+          v-if="collateralTokenConfig"
+          :src="`/${collateralTokenConfig.iconUrl}`"
+          class="h-5 w-5"
+          :alt="collateralTokenConfig.symbol"
+        />
         <div class="text-sm">
           <span class="font-semibold text-slate-900">
             {{ formatTokenAmount(offer.collateralAmount, collateralTokenConfig?.decimals || 18) }}
@@ -109,7 +111,7 @@ alt="" />
         <div class="font-medium text-slate-900">{{ formatBps(Number(offer.lenderFee)) }}</div>
         <div v-if="feeTokenAmount && lendTokenConfig" class="flex items-center gap-1 text-xs text-slate-600 text-nowrap">
           <img :src="`/${lendTokenConfig.iconUrl}`" class="h-3 w-3" alt="" />
-          {{ formatTokenAmount(feeTokenAmount, lendTokenConfig.decimals, 2) }} {{ lendTokenConfig.symbol }}
+          {{ formatTokenAmount(feeTokenAmount, lendTokenConfig.decimals, 6) }} {{ lendTokenConfig.symbol }}
         </div>
       </div>
     </td>

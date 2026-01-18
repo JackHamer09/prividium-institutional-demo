@@ -137,7 +137,7 @@ const emit = defineEmits<{
   success: []
 }>();
 
-const { tokens, refreshBalances } = useBalances();
+const { tokens, refresh: refreshBalances } = useBalances();
 const { createOffer, repoAddress, mainChainId } = useRepoContract();
 const { ensureApproval } = useTokenContract();
 const walletStore = useWalletStore();

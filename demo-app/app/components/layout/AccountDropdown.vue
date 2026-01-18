@@ -3,8 +3,8 @@
     <MenuButton v-if="walletStore.address" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
       <Web3Avatar class="size-7" :address="walletStore.address" />
       <div class="flex flex-col items-start">
-        <span class="text-sm font-medium leading-tight text-slate-900">
-          Connected Account
+        <span class="text-sm font-medium leading-tight text-slate-900 truncate max-w-36">
+          {{ prividiumStore.userDisplayName || 'Connected Account' }}
         </span>
         <span class="text-xs text-slate-500">
           {{ formattedAddress }}
@@ -35,14 +35,6 @@
     >
       <MenuItems class="absolute right-0 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-lg ring-1 ring-black/5 focus:outline-none">
         <div class="p-1">
-          <!-- Prividium Auth Status -->
-          <div class="px-3 py-2 border-b border-slate-100 mb-1">
-            <div class="flex items-center gap-2">
-              <div class="w-2 h-2 rounded-full bg-green-500" />
-              <span class="text-xs text-slate-600">Prividium Authorized</span>
-            </div>
-          </div>
-
           <MenuItem v-slot="{ active }">
             <button
               :class="[
@@ -87,7 +79,7 @@ stroke-linejoin="round"
 stroke-width="2"
 d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
-              View in Explorer
+              View on {{ selectedChainName }} explorer
             </a>
           </MenuItem>
 
@@ -112,7 +104,7 @@ stroke-linejoin="round"
 stroke-width="2"
 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              Disconnect
+              Logout
             </button>
           </MenuItem>
         </div>
@@ -124,9 +116,10 @@ d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3
 <script lang="ts" setup>
 import { Menu, MenuButton, MenuItems, MenuItem } from "@headlessui/vue";
 import Web3Avatar from "web3-avatar-vue";
-import { getExplorerUrl } from "~/config/chains";
+import { getExplorerUrl, getChainById } from "~/config/chains";
 
 const walletStore = useWalletStore();
+const prividiumStore = usePrividiumStore();
 const toast = useToast();
 
 const formattedAddress = computed(() => {
@@ -134,9 +127,19 @@ const formattedAddress = computed(() => {
   return formatAddress(walletStore.address);
 });
 
+// Get selected chain name for explorer link
+const selectedChainName = computed(() => {
+  if (!prividiumStore.selectedChainId) return "Explorer";
+  try {
+    return getChainById(prividiumStore.selectedChainId).name;
+  } catch {
+    return "Explorer";
+  }
+});
+
 const explorerUrl = computed(() => {
   if (!walletStore.address) return "#";
-  return getExplorerUrl(walletStore.address);
+  return getExplorerUrl(walletStore.address, prividiumStore.selectedChainId ?? undefined);
 });
 
 async function copyAddress() {
@@ -153,10 +156,11 @@ async function copyAddress() {
 
 async function handleDisconnect() {
   try {
+    prividiumStore.unauthorizeAll();
     await walletStore.disconnectWallet();
   } catch (error) {
-    console.error("Failed to disconnect:", error);
-    toast.error("Failed to disconnect wallet");
+    console.error("Failed to logout:", error);
+    toast.error("Failed to logout");
   }
 }
 </script>

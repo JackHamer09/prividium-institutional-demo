@@ -132,7 +132,7 @@ const processingOffers = ref<Set<string>>(new Set());
 
 const walletStore = useWalletStore();
 const repoStore = useRepoStore();
-const { refreshBalances } = useBalances();
+const { refresh: refreshBalances } = useBalances();
 const { repoAddress, getOpenOffers, getLenderOffers, getBorrowerOffers, getGracePeriod, acceptOffer, repayLoan, claimCollateral, cancelOffer } = useRepoContract();
 const { ensureApproval } = useTokenContract();
 const toast = useToast();

@@ -63,7 +63,7 @@ const error = ref<string | null>(null);
 const isRetrying = ref(false);
 
 /**
- * Preload token addresses for all authorized chains
+ * Preload user profiles and token addresses for all authorized chains
  */
 async function preloadAllChains() {
   const authorizedChains = prividiumStore.authorizedChainIds;
@@ -74,11 +74,17 @@ async function preloadAllChains() {
     return;
   }
 
-  loadingMessage.value = "Loading token addresses...";
   error.value = null;
 
   try {
-    // Preload addresses for all authorized chains in parallel
+    // Fetch user profiles for all authorized chains
+    loadingMessage.value = "Loading user profiles...";
+    await Promise.all(
+      authorizedChains.map((chainId) => prividiumStore.fetchUserProfile(chainId)),
+    );
+
+    // Preload token addresses for all authorized chains
+    loadingMessage.value = "Loading token addresses...";
     await Promise.all(
       authorizedChains.map(async (chainId) => {
         if (!isPreloaded(chainId)) {
@@ -89,8 +95,8 @@ async function preloadAllChains() {
 
     emit("ready");
   } catch (e) {
-    console.error("Failed to preload token addresses:", e);
-    error.value = e instanceof Error ? e.message : "Failed to load token data";
+    console.error("Failed to preload:", e);
+    error.value = e instanceof Error ? e.message : "Failed to load data";
   }
 }
 

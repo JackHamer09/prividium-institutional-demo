@@ -1,8 +1,8 @@
-import { waitForTransactionReceipt } from "@wagmi/core";
+import { getBalance, waitForTransactionReceipt } from "@wagmi/core";
 import type { Hex } from "viem";
-import { zeroAddress } from "viem";
-import { getTokenByAssetId, getTokensConfig } from "../config/tokens";
-import { getMainChainId } from "../config/chains";
+import { formatEther, zeroAddress } from "viem";
+import { getTokenByAssetId, getTokensConfig, type TokenConfig } from "../config/tokens";
+import { getChainName, getL1Chain, getMainChainId } from "../config/chains";
 import { getCachedAddress } from "./useTokenAddress";
 
 const mintAbi = [
@@ -19,113 +19,125 @@ const mintAbi = [
 ] as const;
 
 /**
- * Token balance management (multi-chain aware)
+ * Token and ETH balance management (multi-chain aware)
+ * Takes a reactive chainId and returns reactive balances
  */
-export function useBalances() {
+export function useBalances(chainId?: Ref<number> | ComputedRef<number>) {
   const runtimeConfig = useRuntimeConfig();
   const tokens = getTokensConfig(runtimeConfig);
   const balancesStore = useBalancesStore();
   const walletStore = useWalletStore();
-  const prividiumStore = usePrividiumStore();
-  const { getBalance } = useTokenContract();
-  const { executeWrite } = usePrividiumWrite();
   const config = useWagmiConfig();
   const toast = useToast();
+  const { getBalance: getTokenBalance, resolveAddress } = useTokenContract();
+  const { executeWrite } = usePrividiumWrite();
+
+  // Use provided chainId or fall back to main chain
+  const effectiveChainId = chainId ?? computed(() => getMainChainId());
+
+  // L1 chain ID for bridge balance
+  const l1ChainId = computed(() => getL1Chain().id);
+
+  // Reactive: token balances for current chain (access store directly)
+  const tokenBalances = computed(() =>
+    balancesStore.tokenBalances.get(effectiveChainId.value) ?? new Map<Hex, bigint>()
+  );
+
+  // Reactive: ETH balance for current chain (access store directly)
+  const ethBalance = computed(() =>
+    balancesStore.ethBalances.get(effectiveChainId.value) ?? 0n
+  );
+
+  // Reactive: L1 ETH balance for bridging (always same L1 chain)
+  const l1EthBalance = computed(() =>
+    balancesStore.ethBalances.get(l1ChainId.value) ?? 0n
+  );
+
+  // Reactive: formatted ETH balances
+  const formattedEthBalance = computed(() => formatEther(ethBalance.value));
+  const formattedL1EthBalance = computed(() => formatEther(l1EthBalance.value));
 
   /**
-   * Fetch balance for a single token on a specific chain
+   * Get formatted balance for a token
    */
-  async function fetchTokenBalance(chainId: number, assetId: Hex) {
-    if (!walletStore.address) {return;}
+  function getFormattedBalance(assetId: Hex): string {
+    const balance = tokenBalances.value.get(assetId) ?? 0n;
+    if (balance === 0n) return "0";
 
-    const token = tokens.find((t) => t.assetId === assetId);
-    if (!token) {return;}
-
-    // Check if token is registered on this chain (address in cache)
-    const tokenAddress = getCachedAddress(chainId, assetId);
-    if (!tokenAddress || tokenAddress === zeroAddress) {
-      return;
-    }
-
-    try {
-      const balance = await getBalance({
-        chainId,
-        assetId,
-        account: walletStore.address,
-      });
-      balancesStore.setBalance({ chainId, assetId, balance });
-    } catch (error) {
-      console.error(`Failed to fetch balance for ${token.symbol} on chain ${chainId}:`, error);
-    }
-  }
-
-  /**
-   * Fetch balances for all configured tokens on a specific chain
-   */
-  async function fetchBalancesForChain(chainId: number) {
-    if (!walletStore.address) {
-      balancesStore.clearChainBalances(chainId);
-      return;
-    }
-
-    balancesStore.setLoading(true);
-
-    try {
-      await Promise.all(tokens.map((token) => fetchTokenBalance(chainId, token.assetId)));
-    } catch (error) {
-      console.error(`Failed to fetch balances for chain ${chainId}:`, error);
-    } finally {
-      balancesStore.setLoading(false);
-    }
-  }
-
-  /**
-   * Fetch balances for all authorized chains
-   */
-  async function fetchAllBalances() {
-    if (!walletStore.address) {
-      balancesStore.clearBalances();
-      return;
-    }
-
-    const authorizedChains = prividiumStore.authorizedChainIds;
-    if (authorizedChains.length === 0) {return;}
-
-    balancesStore.setLoading(true);
-
-    try {
-      await Promise.all(authorizedChains.map((chainId) => fetchBalancesForChain(chainId)));
-    } catch (error) {
-      console.error("Failed to fetch balances:", error);
-    } finally {
-      balancesStore.setLoading(false);
-    }
-  }
-
-  /**
-   * Refresh balances for a specific chain or all chains
-   */
-  async function refreshBalances(chainId?: number) {
-    if (chainId !== undefined) {
-      await fetchBalancesForChain(chainId);
-    } else {
-      await fetchAllBalances();
-    }
-  }
-
-  /**
-   * Get formatted balance for a token on a specific chain
-   * Token decimals come from tokens config (single source of truth)
-   */
-  function getFormattedBalance(chainId: number, assetId: Hex): string {
-    const balance = balancesStore.getBalance(chainId, assetId);
-    if (balance === 0n) {return "0";}
-
-    // Get decimals from token config (single source of truth)
     const token = getTokenByAssetId(assetId, tokens);
-    if (!token) {return "0";}
+    if (!token) return "0";
 
     return formatTokenAmount(balance, token.decimals);
+  }
+
+  /**
+   * Fetch ETH balance for a specific chain using wagmi
+   */
+  async function fetchEthBalance(targetChainId: number) {
+    if (!walletStore.address) return;
+
+    try {
+      const result = await getBalance(config, {
+        address: walletStore.address,
+        chainId: targetChainId,
+      });
+      balancesStore.setEthBalance(targetChainId, result.value);
+    } catch (error) {
+      console.error(`Failed to fetch ETH for chain ${targetChainId} (${getChainName(targetChainId) ?? "unknown"}):`, error);
+    }
+  }
+
+  /**
+   * Fetch single token balance
+   */
+  async function fetchTokenBalanceForChain(targetChainId: number, token: TokenConfig) {
+    if (!walletStore.address) return;
+
+    // Check if token is registered on this chain
+    const tokenAddress = getCachedAddress(targetChainId, token.assetId);
+    if (!tokenAddress || tokenAddress === zeroAddress) {
+      console.error(
+        `Token address not found: assetId=${token.assetId}, chainId=${targetChainId} (${getChainName(targetChainId) ?? "unknown"}), symbol=${token.symbol}`
+      );
+      return;
+    }
+
+    try {
+      const balance = await getTokenBalance({
+        chainId: targetChainId,
+        assetId: token.assetId,
+        account: walletStore.address,
+      });
+      balancesStore.setTokenBalance(targetChainId, token.assetId, balance);
+    } catch (error) {
+      console.error(
+        `Failed to fetch ${token.symbol} on chain ${targetChainId} (${getChainName(targetChainId) ?? "unknown"}):`,
+        error
+      );
+    }
+  }
+
+  /**
+   * Refresh ALL balances (ETH + all tokens) for a chain
+   * Also fetches L1 ETH balance for bridging
+   */
+  async function refresh(targetChainId?: number) {
+    const chain = targetChainId ?? effectiveChainId.value;
+    if (!walletStore.address) return;
+
+    balancesStore.isLoading = true;
+    try {
+      await Promise.all([
+        // Fetch ETH for the target L2 chain
+        fetchEthBalance(chain),
+        // Fetch L1 ETH for bridging
+        fetchEthBalance(l1ChainId.value),
+        // Fetch all token balances
+        ...tokens.map((t) => fetchTokenBalanceForChain(chain, t)),
+      ]);
+    } finally {
+      balancesStore.isLoading = false;
+    }
   }
 
   /**
@@ -138,7 +150,6 @@ export function useBalances() {
     }
 
     const mainChainId = getMainChainId();
-    const { resolveAddress } = useTokenContract();
 
     try {
       for (const token of tokens) {
@@ -163,20 +174,33 @@ export function useBalances() {
       }
 
       toast.success("Tokens minted successfully!");
-      await fetchBalancesForChain(mainChainId);
+      await refresh(mainChainId);
     } catch (error) {
       console.error("Failed to mint tokens:", error);
       toast.error("Failed to mint tokens");
     }
   }
 
+  // Auto-refresh when chainId changes
+  if (chainId) {
+    watch(chainId, (newChainId) => {
+      refresh(newChainId);
+    });
+  }
+
   return {
+    // Reactive values
     tokens,
-    fetchTokenBalance,
-    fetchBalancesForChain,
-    fetchAllBalances,
-    refreshBalances,
+    tokenBalances,
+    ethBalance,
+    l1EthBalance,
+    formattedEthBalance,
+    formattedL1EthBalance,
+    isLoading: computed(() => balancesStore.isLoading),
+
+    // Functions
     getFormattedBalance,
+    refresh,
     mintTokens,
   };
 }

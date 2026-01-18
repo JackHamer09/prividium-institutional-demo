@@ -1,42 +1,46 @@
 <template>
-  <div class="max-w-2xl mx-auto border border-slate-200 rounded-lg overflow-hidden">
-    <!-- Chain Tabs -->
-    <div v-if="authorizedChains.length > 1" class="flex border-b border-slate-200 bg-slate-50">
-      <button
-        v-for="chain in authorizedChains"
-        :key="chain.id"
-        class="px-4 py-2 text-sm font-medium transition-colors"
-        :class="selectedChainId === chain.id
-          ? 'text-blue-600 border-b-2 border-blue-600 bg-white -mb-px'
-          : 'text-slate-600 hover:text-slate-900'"
-        @click="selectedChainId = chain.id"
-      >
-        {{ chain.name }}
-      </button>
-    </div>
-
-    <div class="px-4 py-3 flex items-center justify-between bg-slate-50">
-      <span class="font-medium text-slate-900">Token Balances</span>
-      <div class="flex items-center gap-2">
-        <CommonButton
-          variant="secondary"
-          size="sm"
-          :loading="isManualRefreshing"
-          @click="handleManualRefresh"
+  <div class="max-w-2xl mx-auto">
+    <!-- Chain Tabs (above the balance card) -->
+    <div v-if="authorizedChains.length > 1" class="mb-3">
+      <div class="inline-flex gap-1 rounded-lg bg-slate-200/70 p-1">
+        <button
+          v-for="chain in authorizedChains"
+          :key="chain.id"
+          class="px-4 py-1.5 cursor-pointer text-sm font-medium rounded-md transition-all duration-150"
+          :class="selectedChainId === chain.id
+            ? 'bg-white text-slate-900 shadow-sm'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'"
+          @click="selectedChainId = chain.id"
         >
-          Refresh
-        </CommonButton>
-        <CommonButton
-          v-if="isMainChainSelected"
-          variant="secondary"
-          size="sm"
-          :loading="isMintingAll"
-          @click="handleMintAll"
-        >
-          Mint
-        </CommonButton>
+          {{ chain.name }}
+        </button>
       </div>
     </div>
+
+    <!-- Balance Card -->
+    <div class="border border-slate-200 rounded-lg overflow-hidden">
+      <div class="px-4 py-3 flex items-center justify-between bg-slate-50">
+        <span class="font-medium text-slate-900">Token Balances</span>
+        <div class="flex items-center gap-2">
+          <CommonButton
+            variant="secondary"
+            size="sm"
+            :loading="isManualRefreshing"
+            @click="handleManualRefresh"
+          >
+            Refresh
+          </CommonButton>
+          <CommonButton
+            v-if="isMainChainSelected"
+            variant="secondary"
+            size="sm"
+            :loading="isMintingAll"
+            @click="handleMintAll"
+          >
+            Mint
+          </CommonButton>
+        </div>
+      </div>
 
     <div class="divide-y divide-slate-200">
       <div
@@ -59,7 +63,7 @@
         <div class="flex items-center gap-3">
           <p class="text-right">
             <span class="font-medium text-slate-900">
-              {{ getTokenBalance(token.assetId) }}
+              {{ getFormattedBalance(token.assetId) }}
             </span>
             <span class="text-sm text-slate-500 ml-1">{{ token.symbol }}</span>
           </p>
@@ -99,7 +103,7 @@
           </div>
         </div>
         <div class="text-right">
-          <span class="font-medium text-slate-900">{{ formattedL2Balance }}</span>
+          <span class="font-medium text-slate-900">{{ formattedEthBalance }}</span>
           <span class="text-sm text-slate-500 ml-1">ETH</span>
         </div>
       </div>
@@ -108,7 +112,7 @@
       <div class="px-4 py-3 border-t border-slate-100 bg-slate-50">
         <div class="flex items-center justify-between text-sm text-slate-500 mb-3">
           <span>{{ l1Chain.name }} Balance</span>
-          <span>{{ formattedL1Balance }} ETH</span>
+          <span>{{ formattedL1EthBalance }} ETH</span>
         </div>
 
         <div class="flex gap-2">
@@ -130,6 +134,7 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
@@ -139,7 +144,6 @@ import { ChevronDownIcon } from "@heroicons/vue/20/solid";
 import { getL1Chain, getMainChainId, getAllChains } from "~/config/chains";
 import { BALANCE_REFRESH_INTERVAL_MS } from "~/config/repo";
 
-const { tokens, refreshBalances, mintTokens, getFormattedBalance } = useBalances();
 const prividiumStore = usePrividiumStore();
 const isManualRefreshing = ref(false);
 const isMintingAll = ref(false);
@@ -147,13 +151,6 @@ const isMintingAll = ref(false);
 // ETH bridge state
 const isEthExpanded = ref(false);
 const depositAmount = ref("");
-const {
-  formattedL1Balance,
-  formattedL2Balance,
-  isDepositing,
-  refreshBalances: refreshEthBalances,
-  deposit,
-} = useL1Bridge();
 
 // Main chain ID and L1 chain
 const mainChainId = getMainChainId();
@@ -165,11 +162,34 @@ const authorizedChains = computed(() => {
   return allChains.filter((c) => prividiumStore.isChainAuthorized(c.id));
 });
 
-// Selected chain for balance display (component-local state)
-const selectedChainId = ref(mainChainId);
+// Selected chain for balance display - syncs with store's selected chain
+const selectedChainId = ref(prividiumStore.selectedChainId ?? mainChainId);
 
 // Whether main chain is selected
 const isMainChainSelected = computed(() => selectedChainId.value === mainChainId);
+
+// Unified balance composable with reactive chainId
+const {
+  tokens,
+  formattedEthBalance,
+  formattedL1EthBalance,
+  getFormattedBalance,
+  refresh,
+  mintTokens,
+} = useBalances(selectedChainId);
+
+// Bridge deposit functionality
+const { isDepositing, deposit } = useL1Bridge();
+
+// Sync with store's selected chain
+watch(
+  () => prividiumStore.selectedChainId,
+  (storeChainId) => {
+    if (storeChainId !== null) {
+      selectedChainId.value = storeChainId;
+    }
+  },
+);
 
 // Watch for changes in authorized chains - reset to main if selected is no longer authorized
 watch(
@@ -181,14 +201,10 @@ watch(
   },
 );
 
-function getTokenBalance(assetId: Hex): string {
-  return getFormattedBalance(selectedChainId.value, assetId);
-}
-
 async function handleManualRefresh() {
   isManualRefreshing.value = true;
   try {
-    await refreshBalances(selectedChainId.value);
+    await refresh();
   } finally {
     isManualRefreshing.value = false;
   }
@@ -206,16 +222,14 @@ async function handleMintAll() {
 async function handleDeposit() {
   await deposit(depositAmount.value);
   depositAmount.value = "";
+  // Refresh balances after deposit
+  await refresh();
 }
 
 // Auto-refresh balances (silent, doesn't trigger loading states)
 async function autoRefreshBalances() {
   try {
-    await refreshBalances(selectedChainId.value);
-    // Also refresh ETH balances if expanded
-    if (isEthExpanded.value) {
-      await refreshEthBalances();
-    }
+    await refresh();
   } catch (error) {
     // Silent auto-refresh - don't show errors
     console.error("Auto-refresh failed:", error);
@@ -224,19 +238,7 @@ async function autoRefreshBalances() {
 
 // Fetch balances on mount
 onMounted(() => {
-  refreshBalances(selectedChainId.value);
-});
-
-// Fetch balances when selected chain changes
-watch(selectedChainId, (newChainId) => {
-  refreshBalances(newChainId);
-});
-
-// Fetch ETH balances when expanded
-watch(isEthExpanded, (expanded) => {
-  if (expanded) {
-    refreshEthBalances();
-  }
+  refresh();
 });
 
 // Set up auto-refresh interval

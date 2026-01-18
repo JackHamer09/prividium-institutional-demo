@@ -91,7 +91,7 @@ alt="" />
         <div class="flex items-center gap-1">
           <span class="font-medium text-slate-900">{{ formatBps(Number(offer.lenderFee)) }}</span>
           <span v-if="feeTokenAmount && lendTokenConfig" class="text-xs text-slate-600">
-            ({{ formatTokenAmount(feeTokenAmount, lendTokenConfig.decimals, 2) }} {{ lendTokenConfig.symbol }})
+            ({{ formatTokenAmount(feeTokenAmount, lendTokenConfig.decimals, 6) }} {{ lendTokenConfig.symbol }})
           </span>
         </div>
       </div>

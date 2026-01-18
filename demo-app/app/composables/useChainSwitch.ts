@@ -43,8 +43,32 @@ export function useChainSwitch() {
     }
   }
 
+  /**
+   * Switch wallet to a specific chain
+   * @returns true if already on chain or successfully switched, false otherwise
+   */
+  async function switchToChain(chainId: number): Promise<boolean> {
+    if (!walletStore.isConnected) {
+      toast.error("Please connect your wallet first");
+      return false;
+    }
+
+    if (walletStore.chainId === chainId) {
+      return true; // Already on this chain
+    }
+
+    try {
+      await switchChain(config, { chainId });
+      return true;
+    } catch (error) {
+      console.error("Failed to switch chain:", error);
+      return false;
+    }
+  }
+
   return {
     getChainId,
     ensureCorrectChain,
+    switchToChain,
   };
 }
