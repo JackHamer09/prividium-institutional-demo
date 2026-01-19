@@ -1,7 +1,7 @@
 # Running Interop Demo
 
 Go to the following branch of zksync-os-server:
-`sb/interop-type-b-demo`: [https://github.com/matter-labs/zksync-os-server/tree/sb/interop-type-b-demo](https://github.com/matter-labs/zksync-os-server/tree/sb/interop-type-b-demo)
+`draft-v31-zksync-os-with-shadow-accounts`: [https://github.com/matter-labs/zksync-os-server/tree/sb/interop-type-b-demo](https://github.com/matter-labs/zksync-os-server/tree/sb/interop-type-b-demo)
 
 In three terminal windows run:
 
@@ -30,3 +30,11 @@ To explore how the SDK works, check out:
 - Its README
 - `./examples` folder (these can also be launched by using the `./sdk/start-tester.sh` script!)
 - The example of the repo contract demo
+
+## Branches
+- [zksync os server](https://github.com/matter-labs/zksync-os-server): draft-v31-zksync-os-with-shadow-accounts
+- [era-contracts](https://github.com/matter-labs/era-contracts): draft-v31-zksync-os-with-shadow-accounts
+- [zksync-era]: draft-v31
+- [zksync-os-workflow]: main
+
+Note, that the branches for zksync-era and zksync-os-workflow get regularly updated, so regeneration of the state may require syncing all the branches with their base ones.
