@@ -65,10 +65,6 @@ export default withNuxt(
       "node_modules",
       ".output",
       "*.config.*",
-      "contracts",
-      "zksync-os-server",
-      "sdk",
-      "repo-contract-demo",
     ],
   },
 );
