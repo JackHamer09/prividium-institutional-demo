@@ -75,28 +75,34 @@ app/
 ## Key Components
 
 ### Wagmi Plugin (`plugins/wagmi.client.ts`)
+
 Initializes @wagmi/core with Sepolia chain and injected wallet connector. Provides `$wagmiConfig` globally.
 
 ### Wallet Store (`stores/wallet.ts`)
+
 Manages wallet connection state. Methods: `initialize()`, `connectWallet()`, `disconnectWallet()`, `cleanup()`.
 
 ### Repo Contract Composable (`composables/useRepoContract.ts`)
+
 Contract interactions: `createOffer()`, `acceptOffer()`, `repayLoan()`, `claimCollateral()`, `cancelOffer()`.
 Read functions: `getOpenOffers()`, `getLenderOffers()`, `getBorrowerOffers()`.
 
 ### Token Contract Composable (`composables/useTokenContract.ts`)
+
 ERC20 interactions: `getBalance()`, `approve()`, `getAllowance()`, `ensureApproval()`.
 
 ### Status Calculator (`utils/repo-status.ts`)
+
 Calculates offer display status from contract data. Handles: Open → Active → Grace Period → Past Due transitions.
 
 ## Environment Configuration
 
 Required env vars (see `.env.example`):
+
 - `NUXT_PUBLIC_SEPOLIA_RPC_URL`
 - `NUXT_PUBLIC_INTRADAY_REPO_CONTRACT_ADDRESS`
 - `NUXT_PUBLIC_USDC_ADDRESS`
-- `NUXT_PUBLIC_TTBILL_ADDRESS`
+- `NUXT_PUBLIC_TUST_ADDRESS`
 - `NUXT_PUBLIC_SGD_ADDRESS`
 
 Validated with Zod at runtime (`utils/validation.ts`).

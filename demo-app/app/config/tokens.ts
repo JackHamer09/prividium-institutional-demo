@@ -11,7 +11,7 @@ export interface TokenConfig {
 interface RuntimeConfig {
   public: {
     usdcAssetId: string;
-    ttbillAssetId: string;
+    tustAssetId: string;
     sgdAssetId: string;
   };
 }
@@ -30,11 +30,11 @@ export function getTokensConfig(runtimeConfig: RuntimeConfig): TokenConfig[] {
       iconUrl: "tokens/usdc.webp",
     },
     {
-      assetId: runtimeConfig.public.ttbillAssetId as Hex,
-      symbol: "TTBILL",
-      name: "Tokenized Treasury Bill",
+      assetId: runtimeConfig.public.tustAssetId as Hex,
+      symbol: "TUST",
+      name: "Tokenized US Treasuries",
       decimals: 18,
-      iconUrl: "tokens/ttbill.png",
+      iconUrl: "tokens/tust.png",
     },
     {
       assetId: runtimeConfig.public.sgdAssetId as Hex,
@@ -50,14 +50,20 @@ export function getTokensConfig(runtimeConfig: RuntimeConfig): TokenConfig[] {
  * Get token by asset ID
  * Note: assetId comparison is case-sensitive (bytes32 values should be consistent)
  */
-export function getTokenByAssetId(assetId: Hex, tokens: TokenConfig[]): TokenConfig | undefined {
+export function getTokenByAssetId(
+  assetId: Hex,
+  tokens: TokenConfig[],
+): TokenConfig | undefined {
   return tokens.find((token) => token.assetId === assetId);
 }
 
 /**
  * Get token by symbol
  */
-export function getTokenBySymbol(symbol: string, tokens: TokenConfig[]): TokenConfig | undefined {
+export function getTokenBySymbol(
+  symbol: string,
+  tokens: TokenConfig[],
+): TokenConfig | undefined {
   return tokens.find((token) => token.symbol === symbol);
 }
 

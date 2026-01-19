@@ -1,113 +1,116 @@
 <template>
   <CommonModal :open="open" title="Create Lending Offer" @close="handleClose">
     <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">
-            Lending Amount
-            <span class="text-red-600">*</span>
-          </label>
-          <div class="flex gap-2">
-            <div class="flex-1">
-              <CommonInput
-                v-model="form.lendAmount"
-                type="number"
-                placeholder="0.0"
-                required
-                :min="0"
-                step="any"
-              />
-            </div>
-            <div class="w-40">
-              <CommonSelect
-                v-model="form.lendToken"
-                :options="tokenOptions"
-                required
-              />
-            </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">
+          Lending Amount
+          <span class="text-red-600">*</span>
+        </label>
+        <div class="flex gap-2">
+          <div class="flex-1">
+            <CommonInput
+              v-model="form.lendAmount"
+              type="number"
+              placeholder="0.0"
+              required
+              :min="0"
+              step="any"
+            />
           </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">
-            Collateral Amount
-            <span class="text-red-600">*</span>
-          </label>
-          <div class="flex gap-2">
-            <div class="flex-1">
-              <CommonInput
-                v-model="form.collateralAmount"
-                type="number"
-                placeholder="0.0"
-                required
-                :min="0"
-                step="any"
-              />
-            </div>
-            <div class="w-40">
-              <CommonSelect
-                v-model="form.collateralToken"
-                :options="tokenOptions"
-                required
-              />
-            </div>
+          <div class="w-40">
+            <CommonSelect
+              v-model="form.lendToken"
+              :options="tokenOptions"
+              required
+            />
           </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">
-            Duration
-            <span class="text-red-600">*</span>
-          </label>
-          <div class="flex gap-2">
-            <div class="flex-1">
-              <CommonInput
-                v-model="form.durationValue"
-                type="number"
-                placeholder="0"
-                required
-                :min="1"
-                step="1"
-              />
-            </div>
-            <div class="w-32">
-              <CommonSelect
-                v-model="form.durationUnit"
-                :options="durationUnitOptions"
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        <CommonInput
-          v-model="form.lenderFee"
-          type="number"
-          label="Lender Fee (bps)"
-          placeholder="0"
-          required
-          :min="0"
-          :max="10000"
-          hint="1 bps = 0.01%, max 10000 bps (100%)"
-        />
-
-        <div v-if="feeAmount" class="bg-slate-50 border border-slate-200 rounded-lg p-3">
-          <p class="text-sm text-slate-700">
-            <span class="font-medium">Fee Amount:</span>
-            {{ formatTokenAmount(feeAmount, selectedLendToken?.decimals || 18) }}
-            {{ selectedLendToken?.symbol }}
-          </p>
-          <p class="text-sm text-slate-700 mt-1">
-            <span class="font-medium">Total Repayment:</span>
-            {{ formatTokenAmount(totalRepayment, selectedLendToken?.decimals || 18) }}
-            {{ selectedLendToken?.symbol }}
-          </p>
         </div>
       </div>
 
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">
+          Collateral Amount
+          <span class="text-red-600">*</span>
+        </label>
+        <div class="flex gap-2">
+          <div class="flex-1">
+            <CommonInput
+              v-model="form.collateralAmount"
+              type="number"
+              placeholder="0.0"
+              required
+              :min="0"
+              step="any"
+            />
+          </div>
+          <div class="w-40">
+            <CommonSelect
+              v-model="form.collateralToken"
+              :options="tokenOptions"
+              required
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">
+          Duration
+          <span class="text-red-600">*</span>
+        </label>
+        <div class="flex gap-2">
+          <div class="flex-1">
+            <CommonInput
+              v-model="form.durationValue"
+              type="number"
+              placeholder="0"
+              required
+              :min="1"
+              step="1"
+            />
+          </div>
+          <div class="w-32">
+            <CommonSelect
+              v-model="form.durationUnit"
+              :options="durationUnitOptions"
+              required
+            />
+          </div>
+        </div>
+      </div>
+
+      <CommonInput
+        v-model="form.lenderFee"
+        type="number"
+        label="Lender Fee (bps)"
+        placeholder="0"
+        required
+        :min="0"
+        :max="10000"
+        hint="1 bps = 0.01%, max 10000 bps (100%)"
+      />
+
+      <div
+        v-if="feeAmount"
+        class="bg-slate-50 border border-slate-200 rounded-lg p-3"
+      >
+        <p class="text-sm text-slate-700">
+          <span class="font-medium">Fee Amount:</span>
+          {{ formatTokenAmount(feeAmount, selectedLendToken?.decimals || 18) }}
+          {{ selectedLendToken?.symbol }}
+        </p>
+        <p class="text-sm text-slate-700 mt-1">
+          <span class="font-medium">Total Repayment:</span>
+          {{
+            formatTokenAmount(totalRepayment, selectedLendToken?.decimals || 18)
+          }}
+          {{ selectedLendToken?.symbol }}
+        </p>
+      </div>
+    </div>
+
     <template #footer>
-      <CommonButton variant="ghost" @click="handleClose">
-        Cancel
-      </CommonButton>
+      <CommonButton variant="ghost" @click="handleClose"> Cancel </CommonButton>
       <CommonButton
         variant="primary"
         :loading="isSubmitting"
@@ -123,18 +126,23 @@
 <script lang="ts" setup>
 import type { Hex } from "viem";
 import { parseUnits } from "viem";
-import { DURATION_UNITS, convertDurationToSeconds, calculateFeeAmount, type DurationUnit } from "~/config/repo";
+import {
+  DURATION_UNITS,
+  convertDurationToSeconds,
+  calculateFeeAmount,
+  type DurationUnit,
+} from "~/config/repo";
 import type { TokenConfig } from "~/config/tokens";
 
 interface Props {
-  open: boolean
+  open: boolean;
 }
 
 defineProps<Props>();
 
 const emit = defineEmits<{
-  close: []
-  success: []
+  close: [];
+  success: [];
 }>();
 
 const { tokens, refresh: refreshBalances } = useBalances();
@@ -144,7 +152,7 @@ const toast = useToast();
 
 // Get default tokens
 const defaultLendToken = tokens.find((t) => t.symbol === "USDC");
-const defaultCollateralToken = tokens.find((t) => t.symbol === "TTBILL");
+const defaultCollateralToken = tokens.find((t) => t.symbol === "TUST");
 
 const form = reactive({
   lendToken: (defaultLendToken?.assetId || "") as Hex | "",
@@ -179,7 +187,10 @@ const selectedLendToken = computed((): TokenConfig | undefined => {
 const lendAmountBigInt = computed((): bigint => {
   if (!selectedLendToken.value || !form.lendAmount) return BigInt(0);
   try {
-    return parseUnits(form.lendAmount.toString(), selectedLendToken.value.decimals);
+    return parseUnits(
+      form.lendAmount.toString(),
+      selectedLendToken.value.decimals,
+    );
   } catch {
     return BigInt(0);
   }
@@ -187,10 +198,7 @@ const lendAmountBigInt = computed((): bigint => {
 
 const feeAmount = computed((): bigint => {
   if (!lendAmountBigInt.value || !form.lenderFee) return BigInt(0);
-  return calculateFeeAmount(
-    lendAmountBigInt.value,
-    form.lenderFee,
-  );
+  return calculateFeeAmount(lendAmountBigInt.value, form.lenderFee);
 });
 
 const totalRepayment = computed((): bigint => {
@@ -234,7 +242,9 @@ function handleClose() {
 async function handleSubmit() {
   if (!isFormValid.value || !walletStore.address) return;
 
-  const selectedCollateralToken = tokens.find((t) => t.assetId === form.collateralToken);
+  const selectedCollateralToken = tokens.find(
+    (t) => t.assetId === form.collateralToken,
+  );
   if (!selectedLendToken.value || !selectedCollateralToken) {
     toast.error("Invalid token selection");
     return;
@@ -244,14 +254,20 @@ async function handleSubmit() {
 
   try {
     // Parse amounts (validated by isFormValid)
-    const lendAmount = parseUnits(form.lendAmount!.toString(), selectedLendToken.value.decimals);
+    const lendAmount = parseUnits(
+      form.lendAmount!.toString(),
+      selectedLendToken.value.decimals,
+    );
     const collateralAmount = parseUnits(
       form.collateralAmount!.toString(),
       selectedCollateralToken.decimals,
     );
 
     // Convert duration to seconds (validated by isFormValid)
-    const durationInSeconds = convertDurationToSeconds(form.durationValue!, form.durationUnit);
+    const durationInSeconds = convertDurationToSeconds(
+      form.durationValue!,
+      form.durationUnit,
+    );
 
     // Create offer - approval is handled internally for both same-chain and cross-chain
     const result = await createOffer({

@@ -40,8 +40,7 @@ process-compose up
 ```
 
 1. Wait for all services to start and commands to complete
-
-    - The process list is scrollable, use navigation buttons to see all processes
+   - The process list is scrollable, use navigation buttons to see all processes
 
 1. Continue to Prividium and apps by checking sections [Links](#links) and [Demo](#demo) below
 
@@ -72,41 +71,42 @@ process-compose up
 - [MetaMask](https://chromewebstore.google.com/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn) wallet browser extension installed in both browsers/profiles.
 
 ### Steps:
+
 1. **Login to Prividium User Panel:**
-    - **Browser/Profile 1:**
-      - Open [Prividium User Panel - Chain 1](http://localhost:3001)
-      - Click on OIDC login button
-      - Use credentials: `user1@local.dev` / `password`
-    - **Browser/Profile 2:**
-      - Open [Prividium User Panel - Chain 2](http://localhost:3301)
-      - Click on OIDC login button
-      - Use credentials: `user2@local.dev` / `password`
+   - **Browser/Profile 1:**
+     - Open [Prividium User Panel - Chain 1](http://localhost:3001)
+     - Click on OIDC login button
+     - Use credentials: `user1@local.dev` / `password`
+   - **Browser/Profile 2:**
+     - Open [Prividium User Panel - Chain 2](http://localhost:3301)
+     - Click on OIDC login button
+     - Use credentials: `user2@local.dev` / `password`
 1. **Setup MetaMask with demo accounts:**
-    - **Browser/Profile 1 (user1):**
-      - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
-      - Use private key: `0x6a657d9f98808f0d551411319b851b35e9ef6fca68f38ccc9b92871ec61e1efb`
-    - **Browser/Profile 2 (user2):**
-      - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
-      - Use private key: `0x93dd39ca8b2666c9bf1cee643f18df4fef6ca96668302978675af1d717459706`
+   - **Browser/Profile 1 (user1):**
+     - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
+     - Use private key: `0x6a657d9f98808f0d551411319b851b35e9ef6fca68f38ccc9b92871ec61e1efb`
+   - **Browser/Profile 2 (user2):**
+     - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
+     - Use private key: `0x93dd39ca8b2666c9bf1cee643f18df4fef6ca96668302978675af1d717459706`
 1. **Add Prividium chains to MetaMask:**
-    - Go to [User Panel - Chain 1](http://localhost:3001)
-    - In the `Network Configuration` section, click `Add to Network to Wallet` -> Confirm in MetaMask
-    - Repeat for [User Panel - Chain 2](http://localhost:3301)
+   - Go to [User Panel - Chain 1](http://localhost:3001)
+   - In the `Network Configuration` section, click `Add to Network to Wallet` -> Confirm in MetaMask
+   - Repeat for [User Panel - Chain 2](http://localhost:3301)
 1. **Login to Intraday Repo App:**
-    - Open [Intraday Repo App](http://localhost:3004) in both browsers
-    - Login with Prividium (user1 in Browser 1, user2 in Browser 2)
-    - Connect the corresponding MetaMask account
+   - Open [Intraday Repo App](http://localhost:3004) in both browsers
+   - Login with Prividium (user1 in Browser 1, user2 in Browser 2)
+   - Connect the corresponding MetaMask account
 1. **Start using the app!**
-    - Create lending offers, accept them, repay loans, and claim collateral if needed.
+   - Create lending offers, accept them, repay loans, and claim collateral if needed.
 
 ---
 
 ## Permissions
 
 1. Login to Admin Panel with credentials: `admin@local.dev` / `password`
-    - *Note: Use a separate browser/profile or logout from demo user first via Prividium User Panel.*
-    - [Prividium Admin Panel - Chain 1](http://localhost:3000)
-    - [Prividium Admin Panel - Chain 2](http://localhost:3300)
+   - _Note: Use a separate browser/profile or logout from demo user first via Prividium User Panel._
+   - [Prividium Admin Panel - Chain 1](http://localhost:3000)
+   - [Prividium Admin Panel - Chain 2](http://localhost:3300)
 1. Go to `Contracts` page to view and manage permissions that are setup for each chain.
 
 ---
@@ -124,7 +124,7 @@ Mint test tokens to any address (only works with [TestnetERC20Token](./contracts
 **Decimal reference:**
 
 - USDC: 6 decimals (1 USDC = 1000000)
-- TTBILL: 18 decimals (1 TTBILL = 1000000000000000000)
+- TUST: 18 decimals (1 TUST = 1000000000000000000)
 - SGD: 18 decimals (1 SGD = 1000000000000000000)
 
 **Example (mint 1000 USDC on chain 1):**
@@ -176,6 +176,7 @@ npm run bridge-token -- 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0 1000000000 0x
 ## Troubleshooting
 
 If you experience any of the following issues:
+
 - Unable to add the MetaMask network
 - Unable to send transactions in the app
 - Seeing "Connection issue" warning in the chain selector

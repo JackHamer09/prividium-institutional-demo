@@ -138,11 +138,11 @@ processes:
       set -e
       echo "Minting tokens for user1..."
       ./scripts/mint.sh $USER1_ADDRESS $USDC_ADDRESS $USDC_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
-      ./scripts/mint.sh $USER1_ADDRESS $TTBILL_ADDRESS $TTBILL_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
+      ./scripts/mint.sh $USER1_ADDRESS $TUST_ADDRESS $TUST_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
       ./scripts/mint.sh $USER1_ADDRESS $SGD_ADDRESS $SGD_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
       echo "Minting tokens for deployer which then will be bridged to user2 on Chain 2..."
       ./scripts/mint.sh $DEPLOYER_ADDRESS $USDC_ADDRESS $USDC_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
-      ./scripts/mint.sh $DEPLOYER_ADDRESS $TTBILL_ADDRESS $TTBILL_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
+      ./scripts/mint.sh $DEPLOYER_ADDRESS $TUST_ADDRESS $TUST_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
       ./scripts/mint.sh $DEPLOYER_ADDRESS $SGD_ADDRESS $SGD_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
     working_dir: .
     depends_on:
@@ -171,8 +171,8 @@ processes:
       set -e
       echo "Bridging USDC to chain2..."
       npm run bridge-token -- $USDC_ADDRESS $USDC_MINT_AMOUNT $USER2_ADDRESS $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC $CHAIN2_RPC
-      echo "Bridging TTBILL to chain2..."
-      npm run bridge-token -- $TTBILL_ADDRESS $TTBILL_MINT_AMOUNT $USER2_ADDRESS $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC $CHAIN2_RPC
+      echo "Bridging TUST to chain2..."
+      npm run bridge-token -- $TUST_ADDRESS $TUST_MINT_AMOUNT $USER2_ADDRESS $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC $CHAIN2_RPC
       echo "Bridging SGD to chain2..."
       npm run bridge-token -- $SGD_ADDRESS $SGD_MINT_AMOUNT $USER2_ADDRESS $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC $CHAIN2_RPC
     working_dir: ./scripts
@@ -215,7 +215,7 @@ processes:
         condition: process_healthy
     readiness_probe:
       exec:
-        command: 'curl -sf http://localhost:8000/health && curl -sf http://localhost:8300/health'
+        command: "curl -sf http://localhost:8000/health && curl -sf http://localhost:8300/health"
       initial_delay_seconds: 10
       period_seconds: 5
       timeout_seconds: 10

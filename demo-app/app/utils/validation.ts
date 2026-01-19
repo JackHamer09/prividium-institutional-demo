@@ -16,7 +16,7 @@ export const envSchema = z.object({
 
   // Token Addresses
   usdcAddress: ethereumAddressSchema,
-  ttbillAddress: ethereumAddressSchema,
+  tustAddress: ethereumAddressSchema,
   sgdAddress: ethereumAddressSchema,
 });
 
@@ -26,7 +26,7 @@ interface RuntimeConfig {
   public: {
     intradayRepoContractAddress: string;
     usdcAddress: string;
-    ttbillAddress: string;
+    tustAddress: string;
     sgdAddress: string;
   };
 }
@@ -39,7 +39,7 @@ export function validateEnvConfig(config: RuntimeConfig): EnvConfig {
     return envSchema.parse({
       intradayRepoContractAddress: config.public.intradayRepoContractAddress,
       usdcAddress: config.public.usdcAddress,
-      ttbillAddress: config.public.ttbillAddress,
+      tustAddress: config.public.tustAddress,
       sgdAddress: config.public.sgdAddress,
     });
   } catch (error: unknown) {
@@ -47,7 +47,9 @@ export function validateEnvConfig(config: RuntimeConfig): EnvConfig {
       const errorMessages = error.issues
         .map((err: z.ZodIssue) => `${err.path.join(".")}: ${err.message}`)
         .join(", ");
-      throw new Error(`Environment configuration validation failed: ${errorMessages}`);
+      throw new Error(
+        `Environment configuration validation failed: ${errorMessages}`,
+      );
     }
     throw error;
   }

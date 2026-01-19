@@ -32,12 +32,7 @@ export default defineNuxtConfig({
     "web3-avatar-vue/dist/style.css",
     "vue-toastification/dist/index.css",
   ],
-  modules: [
-    "@nuxt/eslint",
-    "@nuxt/fonts",
-    "@pinia/nuxt",
-    "@vueuse/nuxt",
-  ],
+  modules: ["@nuxt/eslint", "@nuxt/fonts", "@pinia/nuxt", "@vueuse/nuxt"],
   build: {
     transpile: ["web3-avatar-vue", "vue-toastification"],
   },
@@ -57,7 +52,7 @@ export default defineNuxtConfig({
       mainChainId: "",
       // Token Asset IDs (chain-agnostic)
       usdcAssetId: "",
-      ttbillAssetId: "",
+      tustAssetId: "",
       sgdAssetId: "",
       // L1 Chain Configuration (for bridging)
       l1ChainId: "",

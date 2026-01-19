@@ -26,6 +26,7 @@ cp .env.example .env
 ```
 
 Edit `.env` and set:
+
 - `PRIVATE_KEY` - Deployer private key (without 0x prefix)
 - `RPC_URL` - Network RPC endpoint (e.g., Sepolia)
 - `ADMIN_ADDRESS` - Admin address for contract management
@@ -51,8 +52,8 @@ The script will output deployed contract addresses. Copy these addresses to your
 RepoContract deployed at: 0x...
 
 (if DEPLOY_TEST_TOKENS=true)
-USDC deployed at: 0x...     
-TTBILL deployed at: 0x...
+USDC deployed at: 0x...
+TUST deployed at: 0x...
 SGD deployed at: 0x...
 ```
 
@@ -67,6 +68,7 @@ forge test
 ## Contract Overview
 
 **RepoContract** - Native Ethereum intraday lending with collateral:
+
 - Create lending offers (lend tokens, require collateral)
 - Accept offers (provide collateral, receive tokens)
 - Repay loans (return tokens + fee, get collateral back)

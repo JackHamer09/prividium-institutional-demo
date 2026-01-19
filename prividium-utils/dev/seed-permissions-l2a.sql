@@ -35,12 +35,12 @@ VALUES (
 )
 ON CONFLICT (contract_address) DO NOTHING;
 
--- TTBILL token
+-- TUST token
 INSERT INTO contracts (contract_address, abi, name, description, disclose_erc_20_balance, disclose_bytecode, template_id)
 VALUES (
     decode('cf7ed3acca5a467e9e704c703e8d87f634fb0fc9', 'hex'),
     '[]',
-    'TTBILL',
+    'TUST',
     NULL,
     false,
     false,
