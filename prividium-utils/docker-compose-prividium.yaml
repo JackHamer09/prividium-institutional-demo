@@ -4,7 +4,7 @@
 name: zksync-prividium-institutional-demo
 
 x-admin-panel: &admin-panel
-  image: quay.io/matterlabs_enterprise/prividium-adminv2:latest
+  image: quay.io/matterlabs_enterprise/prividium-adminv2@sha256:1ee8b6d581186de72f1f92ae71708be90af078168cd7e674dcd9189c1e78c949
   platform: linux/amd64
   restart: unless-stopped
   environment: &admin-panel-env
@@ -14,7 +14,7 @@ x-admin-panel: &admin-panel
     - user-panel
 
 x-permissions-api: &permissions-api
-  image: quay.io/matterlabs_enterprise/prividium-permissions-api:latest
+  image: quay.io/matterlabs_enterprise/prividium-permissions-api@sha256:f20a348fcce32f3c2f43d981236799892e11fa4680ffcc7c5654e516938c5052
   platform: linux/amd64
   restart: unless-stopped
   depends_on:
@@ -33,7 +33,7 @@ x-permissions-api: &permissions-api
     USER_SESSION_DURATION_SECONDS: 86400 # 24 hours
 
 x-user-panel: &user-panel
-  image: quay.io/matterlabs_enterprise/prividium-user-panel:latest
+  image: quay.io/matterlabs_enterprise/prividium-user-panel@sha256:3e181ae58c720d232ca3312ccf62e98d5dade67bd716791b782567fec4cd7d33
   platform: linux/amd64
   restart: unless-stopped
   environment: &user-panel-env
@@ -51,7 +51,7 @@ x-user-panel: &user-panel
     - permissions-api
 
 x-block-explorer-api: &block-explorer-api
-  image: ghcr.io/matter-labs/block-explorer-api:latest
+  image: ghcr.io/matter-labs/block-explorer-api@sha256:6d5ebc5dfce80fd48f6ea534d795f98e13dc109625c09626b5cbdf074315efa4
   platform: linux/amd64
   extra_hosts:
     - host.docker.internal:host-gateway
@@ -75,7 +75,7 @@ x-block-explorer-api: &block-explorer-api
     - postgres
 
 x-block-explorer-app: &block-explorer-app
-  image: ghcr.io/matter-labs/block-explorer-app:latest
+  image: ghcr.io/matter-labs/block-explorer-app@sha256:cd1ffe953935709b7e62ed30ef3eda8eee42c537bb2c6f5d65ecb67f5459a724
   platform: linux/amd64
   environment: &block-explorer-app-env
     PORT: 3010
@@ -84,7 +84,7 @@ x-block-explorer-app: &block-explorer-app
     - block-explorer-api
 
 x-block-explorer-worker: &block-explorer-worker
-  image: ghcr.io/matter-labs/block-explorer-worker:latest
+  image: ghcr.io/matter-labs/block-explorer-worker@sha256:ae4eb8b27b2762dfb4a7115bbafa7fe1473ecb502594b0aa31ba324c4ef68561
   platform: linux/amd64
   extra_hosts:
     - host.docker.internal:host-gateway
@@ -103,7 +103,7 @@ x-block-explorer-worker: &block-explorer-worker
     - block-explorer-data-fetcher
 
 x-block-explorer-data-fetcher: &block-explorer-data-fetcher
-  image: ghcr.io/matter-labs/block-explorer-data-fetcher:latest
+  image: ghcr.io/matter-labs/block-explorer-data-fetcher@sha256:4c7a3021d7888661cac81b60168eeb57d3b59f52f5f7ffce249c76a2529cae91
   platform: linux/amd64
   extra_hosts:
     - host.docker.internal:host-gateway
