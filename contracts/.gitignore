@@ -1,4 +1,4 @@
 cache/
 out/
-lib/
 broadcast/
+.env

@@ -8,6 +8,9 @@ jobs:
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: demo-app
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,6 +25,11 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: demo-app/pnpm-lock.yaml
+
+      - name: Build SDK
+        working-directory: sdk
+        run: npm ci && npm run build
 
       - name: Install dependencies
         run: pnpm install

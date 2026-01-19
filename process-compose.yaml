@@ -1,0 +1,278 @@
+version: "0.5"
+
+log_level: info
+log_length: 3000
+
+# Environment variables are automatically loaded from .env file in current directory
+# To use a different file: process-compose up -e .env.local
+
+processes:
+  # ═══════════════════════════════════════════════════════════════
+  # BUILD: Compile zksync-os-server (runs first, parallel with SDK/app deps)
+  # ═══════════════════════════════════════════════════════════════
+  zkos-build:
+    command: cargo build --release
+    working_dir: ./zksync-os-server
+    availability:
+      restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
+  # BUILD: Compile cast-interop (parallel with zkos-build)
+  # ═══════════════════════════════════════════════════════════════
+  interop-build:
+    command: cargo build --release
+    working_dir: ./cast-interop
+    availability:
+      restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
+  # DOCKER: Pull Prividium images (starts immediately, parallel with builds)
+  # ═══════════════════════════════════════════════════════════════
+  prividium-pull:
+    command: docker compose -f ./prividium-utils/docker-compose-prividium.yaml pull
+    working_dir: .
+    availability:
+      restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
+  # CLEANUP: Remove old chain databases (after build, before anvil)
+  # ═══════════════════════════════════════════════════════════════
+  zkos-cleanup:
+    command: rm -rf db
+    working_dir: ./zksync-os-server
+    depends_on:
+      zkos-build:
+        condition: process_completed_successfully
+    availability:
+      restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
+  # LAYER 1: L1 Chain (Anvil) - starts after cleanup
+  # ═══════════════════════════════════════════════════════════════
+  anvil:
+    command: anvil --load-state ./local-chains/v31/zkos-l1-state.json --port 8545
+    working_dir: ./zksync-os-server
+    depends_on:
+      zkos-cleanup:
+        condition: process_completed_successfully
+    readiness_probe:
+      exec:
+        command: 'curl -sf -X POST -H "Content-Type: application/json" --data ''{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'' http://127.0.0.1:8545'
+      initial_delay_seconds: 2
+      period_seconds: 2
+      timeout_seconds: 15
+      failure_threshold: 10
+
+  # ═══════════════════════════════════════════════════════════════
+  # LAYER 2: L2 Chains (parallel after Anvil healthy)
+  # ═══════════════════════════════════════════════════════════════
+  chain1:
+    command: ./target/release/zksync-os-server --config ./local-chains/v31/multiple-chains/chain1.json
+    working_dir: ./zksync-os-server
+    depends_on:
+      anvil:
+        condition: process_healthy
+    readiness_probe:
+      exec:
+        command: 'curl -sf -X POST -H "Content-Type: application/json" --data ''{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'' http://127.0.0.1:3050'
+      initial_delay_seconds: 5
+      period_seconds: 3
+      timeout_seconds: 25
+      failure_threshold: 30
+
+  chain2:
+    command: ./target/release/zksync-os-server --config ./local-chains/v31/multiple-chains/chain2.json
+    working_dir: ./zksync-os-server
+    depends_on:
+      anvil:
+        condition: process_healthy
+    readiness_probe:
+      exec:
+        command: 'curl -sf -X POST -H "Content-Type: application/json" --data ''{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'' http://127.0.0.1:3051'
+      initial_delay_seconds: 5
+      period_seconds: 3
+      timeout_seconds: 25
+      failure_threshold: 30
+
+  # ═══════════════════════════════════════════════════════════════
+  # LAYER 3: Deposit ETH to L2 (after chain1 healthy, before contracts)
+  # ═══════════════════════════════════════════════════════════════
+  deposit:
+    command: |
+      echo "Depositing ETH for deployer on both chains..."
+      ./scripts/deposit.sh $DEPLOYER_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN1_RPC
+      ./scripts/deposit.sh $DEPLOYER_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN2_RPC
+      echo "Depositing ETH for user1 on both chains..."
+      ./scripts/deposit.sh $USER1_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN1_RPC
+      ./scripts/deposit.sh $USER1_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN2_RPC
+      echo "Depositing ETH for user2 on both chains..."
+      ./scripts/deposit.sh $USER2_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN1_RPC
+      ./scripts/deposit.sh $USER2_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN2_RPC
+    working_dir: .
+    depends_on:
+      chain1:
+        condition: process_healthy
+    availability:
+      restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
+  # LAYER 4: Contract Deployment (after deposit)
+  # ═══════════════════════════════════════════════════════════════
+  contracts-deploy:
+    command: |
+      cp -n .env.example .env 2>/dev/null || true
+      echo "Deploying contracts to chain1..."
+      forge script script/Deploy.s.sol:DeployScript --rpc-url $CHAIN1_RPC --broadcast --legacy
+    working_dir: ./contracts
+    depends_on:
+      deposit:
+        condition: process_completed_successfully
+    availability:
+      restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
+  # LAYER 5: Token Minting (after contracts deployed)
+  # ═══════════════════════════════════════════════════════════════
+  mint-tokens:
+    command: |
+      set -e
+      echo "Minting tokens for user1..."
+      ./scripts/mint.sh $USER1_ADDRESS $USDC_ADDRESS $USDC_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
+      ./scripts/mint.sh $USER1_ADDRESS $TUST_ADDRESS $TUST_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
+      ./scripts/mint.sh $USER1_ADDRESS $SGD_ADDRESS $SGD_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
+      echo "Minting tokens for deployer which then will be bridged to user2 on Chain 2..."
+      ./scripts/mint.sh $DEPLOYER_ADDRESS $USDC_ADDRESS $USDC_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
+      ./scripts/mint.sh $DEPLOYER_ADDRESS $TUST_ADDRESS $TUST_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
+      ./scripts/mint.sh $DEPLOYER_ADDRESS $SGD_ADDRESS $SGD_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
+    working_dir: .
+    depends_on:
+      contracts-deploy:
+        condition: process_completed_successfully
+    availability:
+      restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
+  # LAYER 5b: Scripts Dependencies (parallel with mint-tokens)
+  # ═══════════════════════════════════════════════════════════════
+  scripts-deps:
+    command: npm install
+    working_dir: ./scripts
+    depends_on:
+      sdk-build:
+        condition: process_completed_successfully
+    availability:
+      restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
+  # LAYER 6: Bridge Tokens to Chain2 (after minting + interop-relay ready)
+  # ═══════════════════════════════════════════════════════════════
+  bridge-tokens:
+    command: |
+      set -e
+      echo "Bridging USDC to chain2..."
+      npm run bridge-token -- $USDC_ADDRESS $USDC_MINT_AMOUNT $USER2_ADDRESS $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC $CHAIN2_RPC
+      echo "Bridging TUST to chain2..."
+      npm run bridge-token -- $TUST_ADDRESS $TUST_MINT_AMOUNT $USER2_ADDRESS $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC $CHAIN2_RPC
+      echo "Bridging SGD to chain2..."
+      npm run bridge-token -- $SGD_ADDRESS $SGD_MINT_AMOUNT $USER2_ADDRESS $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC $CHAIN2_RPC
+    working_dir: ./scripts
+    depends_on:
+      mint-tokens:
+        condition: process_completed_successfully
+      scripts-deps:
+        condition: process_completed_successfully
+      interop-relay:
+        condition: process_started
+    availability:
+      restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
+  # INTEROP: Cross-chain message relay (needs both chains healthy)
+  # ═══════════════════════════════════════════════════════════════
+  interop-relay:
+    command: ./target/release/cast-interop auto-relay --rpc $CHAIN1_RPC $CHAIN2_RPC --private-key $RELAY_PRIVATE_KEY
+    working_dir: ./cast-interop
+    depends_on:
+      interop-build:
+        condition: process_completed_successfully
+      chain1:
+        condition: process_healthy
+      chain2:
+        condition: process_healthy
+
+  # ═══════════════════════════════════════════════════════════════
+  # DOCKER: Start Prividium services (after chains healthy + cleanup)
+  # ═══════════════════════════════════════════════════════════════
+  prividium:
+    command: docker compose -f ./prividium-utils/docker-compose-prividium.yaml up
+    working_dir: .
+    depends_on:
+      prividium-pull:
+        condition: process_completed_successfully
+      chain1:
+        condition: process_healthy
+      chain2:
+        condition: process_healthy
+    readiness_probe:
+      exec:
+        command: "curl -sf http://localhost:8000/health && curl -sf http://localhost:8300/health"
+      initial_delay_seconds: 10
+      period_seconds: 5
+      timeout_seconds: 10
+      failure_threshold: 60
+
+  # ═══════════════════════════════════════════════════════════════
+  # DOCKER: Seed Prividium permissions databases (after prividium healthy)
+  # ═══════════════════════════════════════════════════════════════
+  prividium-seed:
+    command: |
+      docker exec -i zksync-prividium-institutional-demo-postgres-1 psql -U postgres -d permissions_api_l2a < prividium-utils/dev/seed-permissions-l2a.sql
+      docker exec -i zksync-prividium-institutional-demo-postgres-1 psql -U postgres -d permissions_api_l2b < prividium-utils/dev/seed-permissions-l2b.sql
+    working_dir: .
+    depends_on:
+      prividium:
+        condition: process_healthy
+    availability:
+      restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
+  # PARALLEL TRACK: Install All Dependencies (SDK + Demo App)
+  # ═══════════════════════════════════════════════════════════════
+  install-deps:
+    command: |
+      echo "Installing SDK dependencies..."
+      (cd sdk && npm install)
+      echo "Installing demo app dependencies..."
+      (cd demo-app && cp -n .env.example .env 2>/dev/null || true && pnpm install)
+    working_dir: .
+    availability:
+      restart: "no"
+
+  sdk-build:
+    command: npm run build
+    working_dir: ./sdk
+    depends_on:
+      install-deps:
+        condition: process_completed_successfully
+    availability:
+      restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
+  # FINAL: Demo App (needs SDK + app deps + chains + contracts)
+  # ═══════════════════════════════════════════════════════════════
+  demo-app:
+    command: pnpm dev
+    working_dir: ./demo-app
+    depends_on:
+      install-deps:
+        condition: process_completed_successfully
+      sdk-build:
+        condition: process_completed_successfully
+      bridge-tokens:
+        condition: process_completed_successfully
+      chain1:
+        condition: process_healthy
+      chain2:
+        condition: process_healthy
+      prividium:
+        condition: process_healthy

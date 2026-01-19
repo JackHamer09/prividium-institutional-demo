@@ -1,0 +1,52 @@
+{
+  "name": "prividium-institutional-demo",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "PORT=3004 nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@dutterbutter/zksync-sdk": "0.0.12-alpha",
+    "@headlessui/vue": "^1.7.23",
+    "@heroicons/vue": "^2.2.0",
+    "@nuxt/eslint": "1.10.0",
+    "@nuxt/fonts": "0.12.1",
+    "@pinia/nuxt": "0.11.3",
+    "@simplewebauthn/browser": "^13.2.2",
+    "@simplewebauthn/server": "^13.2.2",
+    "@tailwindcss/vite": "^4.1.17",
+    "@vueuse/nuxt": "14.0.0",
+    "@wagmi/core": "^3.0.0",
+    "date-fns": "^4.1.0",
+    "eslint": "^9.39.1",
+    "interop-sdk": "file:../sdk",
+    "nuxt": "^4.2.1",
+    "pinia": "^3.0.4",
+    "prividium": "^0.1.8",
+    "tailwindcss": "^4.1.17",
+    "viem": "^2.40.2",
+    "vue": "^3.5.25",
+    "vue-router": "^4.6.3",
+    "vue-toastification": "^2.0.0-rc.5",
+    "web3-avatar-vue": "^1.0.5",
+    "zksync-sso": "1.0.0-beta.4",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "sass-embedded": "^1.93.3",
+    "typescript": "^5.9.3",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0"
+  }
+}

@@ -26,6 +26,7 @@ cp .env.example .env
 ```
 
 Edit `.env` and set:
+
 - `PRIVATE_KEY` - Deployer private key (without 0x prefix)
 - `RPC_URL` - Network RPC endpoint (e.g., Sepolia)
 - `ADMIN_ADDRESS` - Admin address for contract management
@@ -42,16 +43,18 @@ forge build
 ## Deploy
 
 ```bash
-forge script script/Deploy.s.sol:DeployScript --rpc-url [PRIVIDIUM_SEQUENCER_RPC_URL] --broadcast
+forge script script/Deploy.s.sol:DeployScript --rpc-url <PRIVIDIUM_SEQUENCER_RPC_URL> --broadcast
 ```
 
 The script will output deployed contract addresses. Copy these addresses to your app's `.env` file:
 
 ```
 RepoContract deployed at: 0x...
-USDC deployed at: 0x...     (if DEPLOY_TEST_TOKENS=true)
-TTBILL deployed at: 0x...   (if DEPLOY_TEST_TOKENS=true)
-SGD deployed at: 0x...      (if DEPLOY_TEST_TOKENS=true)
+
+(if DEPLOY_TEST_TOKENS=true)
+USDC deployed at: 0x...
+TUST deployed at: 0x...
+SGD deployed at: 0x...
 ```
 
 ## Test
@@ -65,6 +68,7 @@ forge test
 ## Contract Overview
 
 **RepoContract** - Native Ethereum intraday lending with collateral:
+
 - Create lending offers (lend tokens, require collateral)
 - Accept offers (provide collateral, receive tokens)
 - Repay loans (return tokens + fee, get collateral back)
