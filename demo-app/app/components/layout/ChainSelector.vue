@@ -40,6 +40,17 @@
             <span class="text-xs text-slate-500 font-medium">Select Chain</span>
           </div>
 
+          <!-- Troubleshooting link when connection issue -->
+          <a
+            v-if="hasConnectionIssue"
+            :href="WALLET_NETWORK_ISSUES_VIDEO_LINK"
+            target="_blank"
+            class="block px-3 py-2 text-sm text-blue-600 underline hover:text-blue-800"
+            @click.stop
+          >
+            Watch troubleshooting video
+          </a>
+
           <MenuItem v-for="chain in chainItems" :key="chain.id" v-slot="{ active }">
             <button
               :class="[
@@ -83,6 +94,7 @@
 <script lang="ts" setup>
 import { Menu, MenuButton, MenuItems, MenuItem } from "@headlessui/vue";
 import { getAllChains } from "~/config/chains";
+import { WALLET_NETWORK_ISSUES_VIDEO_LINK } from "~/utils/links";
 
 const prividiumStore = usePrividiumStore();
 const walletStore = useWalletStore();
@@ -167,6 +179,9 @@ const mainButtonChain = computed(() => {
     isWalletOnChain: false,
   };
 });
+
+// Check if there's a connection issue (for showing troubleshooting link)
+const hasConnectionIssue = computed(() => shouldPoll.value && !isHealthy.value);
 
 /**
  * Handle chain selection from dropdown:

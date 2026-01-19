@@ -173,6 +173,17 @@ npm run bridge-token -- 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0 1000000000 0x
 
 **Note:** The interop-relay must be running to execute the bridge bundle on the destination chain.
 
+## Troubleshooting
+
+If you experience any of the following issues:
+- Unable to add the MetaMask network
+- Unable to send transactions in the app
+- Seeing "Connection issue" warning in the chain selector
+
+Watch the [troubleshooting video](https://www.loom.com/share/7c3bc4d241ac4b8ba78be406dbad96bf) for solutions to the most common problems.
+
+---
+
 ## Tests
 
 Contract tests only. See [contracts/README.md](./contracts/README.md).
