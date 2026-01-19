@@ -33,6 +33,8 @@ cp .env.example .env
 
 ### Start
 
+Would recommend running in larger terminal window for better visibility.
+
 ```bash
 process-compose up
 ```
@@ -144,6 +146,32 @@ Deposit ETH from L1 to L2 via the bridge contract. The script automatically fetc
 ```bash
 ./scripts/deposit.sh 6565 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000000000000000000000 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 http://127.0.0.1:8545 http://127.0.0.1:3050
 ```
+
+### Bridge Token (Cross-chain ERC-20 transfer)
+
+Bridge a token from one chain to another. This approves the Native Token Vault and sends a bridge bundle. The caller must have sufficient token balance on the source chain. Requires the SDK to be built first (`cd sdk && npm install && npm run build`).
+
+```bash
+cd scripts && npm install
+npm run bridge-token -- <TOKEN_ADDRESS> <AMOUNT> <RECIPIENT> <PRIVATE_KEY> <SOURCE_RPC> <DEST_RPC>
+```
+
+**Arguments:**
+
+- `TOKEN_ADDRESS`: Address of the token to bridge on the source chain
+- `AMOUNT`: Amount to bridge (in smallest unit, e.g., wei)
+- `RECIPIENT`: Address to receive tokens on destination chain
+- `PRIVATE_KEY`: Private key for signing transactions
+- `SOURCE_RPC`: RPC URL of the source chain (where token is deployed)
+- `DEST_RPC`: RPC URL of the destination chain
+
+**Example (bridge 1000 USDC from chain 1 to chain 2):**
+
+```bash
+npm run bridge-token -- 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0 1000000000 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 http://localhost:3050 http://localhost:3051
+```
+
+**Note:** The interop-relay must be running to execute the bridge bundle on the destination chain.
 
 ## Tests
 

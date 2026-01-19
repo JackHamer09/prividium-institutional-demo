@@ -69,6 +69,7 @@ export function useTokenAddress() {
   const config = useWagmiConfig();
   const runtimeConfig = useRuntimeConfig();
   const tokens = getTokensConfig(runtimeConfig);
+  const { address: accountAddress } = storeToRefs(useWalletStore());
 
   /**
    * Get token address for an asset ID on a specific chain
@@ -81,6 +82,7 @@ export function useTokenAddress() {
     }
 
     const result = await readContract(config, {
+      account: accountAddress.value,
       address: L2_NATIVE_TOKEN_VAULT_ADDRESS as Address,
       abi: NativeTokenVaultAbi,
       functionName: "tokenAddress",
@@ -113,6 +115,7 @@ export function useTokenAddress() {
     }
 
     const result = await readContract(config, {
+      account: accountAddress.value,
       address: L2_NATIVE_TOKEN_VAULT_ADDRESS as Address,
       abi: NativeTokenVaultAbi,
       functionName: "assetId",

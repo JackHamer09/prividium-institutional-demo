@@ -21,6 +21,14 @@ contract DeployScript is Script {
         RepoContract repoContract = new RepoContract(admin);
         console.log("Intraday Repo deployed at:", address(repoContract));
 
+        // Fund RepoContract with ETH if REPO_FUND_AMOUNT is set
+        uint256 repoFundAmount = vm.envOr("REPO_FUND_AMOUNT", uint256(0));
+        if (repoFundAmount > 0) {
+            (bool success,) = address(repoContract).call{value: repoFundAmount}("");
+            require(success, "Failed to fund RepoContract");
+            console.log("RepoContract funded with:", repoFundAmount);
+        }
+
         // Optionally deploy test tokens (set DEPLOY_TEST_TOKENS=true in .env)
         bool deployTestTokens = vm.envOr("DEPLOY_TEST_TOKENS", false);
 

@@ -6,6 +6,7 @@ export function useTokenContract() {
   const config = useWagmiConfig();
   const toast = useToast();
   const { executeWrite } = usePrividiumWrite();
+  const { address: accountAddress } = storeToRefs(useWalletStore());
 
   /**
    * Resolve assetId to token address (sync, from preloaded cache)
@@ -32,6 +33,7 @@ export function useTokenContract() {
 
     try {
       const balance = await readContract(config, {
+        account: accountAddress.value,
         address: tokenAddress,
         abi: erc20Abi,
         functionName: "balanceOf",
@@ -58,6 +60,7 @@ export function useTokenContract() {
 
     try {
       const allowance = await readContract(config, {
+        account: accountAddress.value,
         address: tokenAddress,
         abi: erc20Abi,
         functionName: "allowance",

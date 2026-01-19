@@ -1,16 +1,15 @@
 #!/bin/bash
 
 # Deposit ETH from L1 to L2 via the bridge contract
-# Usage: ./scripts/deposit.sh <chain-id> <to-address> <amount-in-wei> <private-key> <l1-rpc> <l2-rpc>
+# Usage: ./scripts/deposit.sh <to-address> <amount-in-wei> <private-key> <l1-rpc> <l2-rpc>
 
 set -e
 
 # Check arguments
-if [ "$#" -ne 6 ]; then
-    echo "Usage: $0 <chain-id> <to-address> <amount-in-wei> <private-key> <l1-rpc> <l2-rpc>"
+if [ "$#" -ne 5 ]; then
+    echo "Usage: $0 <to-address> <amount-in-wei> <private-key> <l1-rpc> <l2-rpc>"
     echo ""
     echo "Arguments:"
-    echo "  chain-id       - The L2 chain ID to deposit to"
     echo "  to-address     - The recipient address on L2"
     echo "  amount-in-wei  - Amount to deposit in wei (e.g., 1000000000000000000 for 1 ETH)"
     echo "  private-key    - Private key of the sender (with 0x prefix)"
@@ -18,16 +17,20 @@ if [ "$#" -ne 6 ]; then
     echo "  l2-rpc         - L2 RPC URL (e.g., http://127.0.0.1:3050)"
     echo ""
     echo "Example:"
-    echo "  $0 6565 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000000000000000000000 0xac0974... http://127.0.0.1:8545 http://127.0.0.1:3050"
+    echo "  $0 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000000000000000000000 0xac0974... http://127.0.0.1:8545 http://127.0.0.1:3050"
     exit 1
 fi
 
-CHAIN_ID=$1
-TO_ADDRESS=$2
-AMOUNT=$3
-PRIVATE_KEY=$4
-L1_RPC=$5
-L2_RPC=$6
+TO_ADDRESS=$1
+AMOUNT=$2
+PRIVATE_KEY=$3
+L1_RPC=$4
+L2_RPC=$5
+
+# Get chain ID from L2 RPC
+echo "Fetching chain ID from L2..."
+CHAIN_ID=$(cast chain-id --rpc-url "$L2_RPC")
+echo "Chain ID: $CHAIN_ID"
 
 echo "Fetching Bridgehub contract address from L2..."
 

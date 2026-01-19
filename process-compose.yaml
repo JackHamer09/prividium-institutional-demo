@@ -100,14 +100,14 @@ processes:
   deposit:
     command: |
       echo "Depositing ETH for deployer on both chains..."
-      ./scripts/deposit.sh $MAIN_CHAIN_ID $DEPLOYER_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN1_RPC
-      ./scripts/deposit.sh $MAIN_CHAIN_ID $DEPLOYER_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN2_RPC
+      ./scripts/deposit.sh $DEPLOYER_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN1_RPC
+      ./scripts/deposit.sh $DEPLOYER_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN2_RPC
       echo "Depositing ETH for user1 on both chains..."
-      ./scripts/deposit.sh $MAIN_CHAIN_ID $USER1_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN1_RPC
-      ./scripts/deposit.sh $MAIN_CHAIN_ID $USER1_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN2_RPC
+      ./scripts/deposit.sh $USER1_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN1_RPC
+      ./scripts/deposit.sh $USER1_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN2_RPC
       echo "Depositing ETH for user2 on both chains..."
-      ./scripts/deposit.sh $MAIN_CHAIN_ID $USER2_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN1_RPC
-      ./scripts/deposit.sh $MAIN_CHAIN_ID $USER2_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN2_RPC
+      ./scripts/deposit.sh $USER2_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN1_RPC
+      ./scripts/deposit.sh $USER2_ADDRESS $DEPOSIT_AMOUNT $DEPLOYER_PRIVATE_KEY $L1_RPC $CHAIN2_RPC
     working_dir: .
     depends_on:
       chain1:
@@ -122,7 +122,7 @@ processes:
     command: |
       cp -n .env.example .env 2>/dev/null || true
       echo "Deploying contracts to chain1..."
-      forge script script/Deploy.s.sol:DeployScript --rpc-url $CHAIN1_RPC --broadcast
+      forge script script/Deploy.s.sol:DeployScript --rpc-url $CHAIN1_RPC --broadcast --legacy
     working_dir: ./contracts
     depends_on:
       deposit:
@@ -131,10 +131,19 @@ processes:
       restart: "no"
 
   # ═══════════════════════════════════════════════════════════════
-  # LAYER 5: Fund Repo Contract with ETH (after deployment)
+  # LAYER 5: Token Minting (after contracts deployed)
   # ═══════════════════════════════════════════════════════════════
-  fund-repo:
-    command: cast send -r $CHAIN1_RPC $REPO_CONTRACT_ADDRESS --value $REPO_FUND_AMOUNT --private-key $DEPLOYER_PRIVATE_KEY --legacy
+  mint-tokens:
+    command: |
+      set -e
+      echo "Minting tokens for user1..."
+      ./scripts/mint.sh $USER1_ADDRESS $USDC_ADDRESS $USDC_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
+      ./scripts/mint.sh $USER1_ADDRESS $TTBILL_ADDRESS $TTBILL_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
+      ./scripts/mint.sh $USER1_ADDRESS $SGD_ADDRESS $SGD_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
+      echo "Minting tokens for deployer which then will be bridged to user2 on Chain 2..."
+      ./scripts/mint.sh $DEPLOYER_ADDRESS $USDC_ADDRESS $USDC_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
+      ./scripts/mint.sh $DEPLOYER_ADDRESS $TTBILL_ADDRESS $TTBILL_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
+      ./scripts/mint.sh $DEPLOYER_ADDRESS $SGD_ADDRESS $SGD_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
     working_dir: .
     depends_on:
       contracts-deploy:
@@ -143,52 +152,37 @@ processes:
       restart: "no"
 
   # ═══════════════════════════════════════════════════════════════
-  # LAYER 6: Token Minting (sequential to avoid nonce conflicts)
+  # LAYER 5b: Scripts Dependencies (parallel with mint-tokens)
   # ═══════════════════════════════════════════════════════════════
-  mint-usdc:
-    command: ./scripts/mint.sh $DEPLOYER_ADDRESS $USDC_ADDRESS $USDC_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
-    working_dir: .
+  scripts-deps:
+    command: npm install
+    working_dir: ./scripts
     depends_on:
-      fund-repo:
-        condition: process_completed_successfully
-    availability:
-      restart: "no"
-
-  mint-ttbill:
-    command: ./scripts/mint.sh $DEPLOYER_ADDRESS $TTBILL_ADDRESS $TTBILL_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
-    working_dir: .
-    depends_on:
-      mint-usdc:
-        condition: process_completed_successfully
-    availability:
-      restart: "no"
-
-  mint-sgd:
-    command: ./scripts/mint.sh $DEPLOYER_ADDRESS $SGD_ADDRESS $SGD_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
-    working_dir: .
-    depends_on:
-      mint-ttbill:
+      sdk-build:
         condition: process_completed_successfully
     availability:
       restart: "no"
 
   # ═══════════════════════════════════════════════════════════════
-  # LAYER 7: Token Minting for Demo Users (after deployer minting)
+  # LAYER 6: Bridge Tokens to Chain2 (after minting + interop-relay ready)
   # ═══════════════════════════════════════════════════════════════
-  mint-users:
+  bridge-tokens:
     command: |
-      echo "Minting tokens for user1..."
-      ./scripts/mint.sh $USER1_ADDRESS $USDC_ADDRESS $USDC_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
-      ./scripts/mint.sh $USER1_ADDRESS $TTBILL_ADDRESS $TTBILL_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
-      ./scripts/mint.sh $USER1_ADDRESS $SGD_ADDRESS $SGD_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
-      echo "Minting tokens for user2..."
-      ./scripts/mint.sh $USER2_ADDRESS $USDC_ADDRESS $USDC_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
-      ./scripts/mint.sh $USER2_ADDRESS $TTBILL_ADDRESS $TTBILL_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
-      ./scripts/mint.sh $USER2_ADDRESS $SGD_ADDRESS $SGD_MINT_AMOUNT $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC
-    working_dir: .
+      set -e
+      echo "Bridging USDC to chain2..."
+      npm run bridge-token -- $USDC_ADDRESS $USDC_MINT_AMOUNT $USER2_ADDRESS $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC $CHAIN2_RPC
+      echo "Bridging TTBILL to chain2..."
+      npm run bridge-token -- $TTBILL_ADDRESS $TTBILL_MINT_AMOUNT $USER2_ADDRESS $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC $CHAIN2_RPC
+      echo "Bridging SGD to chain2..."
+      npm run bridge-token -- $SGD_ADDRESS $SGD_MINT_AMOUNT $USER2_ADDRESS $DEPLOYER_PRIVATE_KEY $CHAIN1_RPC $CHAIN2_RPC
+    working_dir: ./scripts
     depends_on:
-      mint-sgd:
+      mint-tokens:
         condition: process_completed_successfully
+      scripts-deps:
+        condition: process_completed_successfully
+      interop-relay:
+        condition: process_started
     availability:
       restart: "no"
 
@@ -242,11 +236,15 @@ processes:
       restart: "no"
 
   # ═══════════════════════════════════════════════════════════════
-  # PARALLEL TRACK: SDK Build (independent of chains)
+  # PARALLEL TRACK: Install All Dependencies (SDK + Demo App)
   # ═══════════════════════════════════════════════════════════════
-  sdk-deps:
-    command: npm install
-    working_dir: ./sdk
+  install-deps:
+    command: |
+      echo "Installing SDK dependencies..."
+      (cd sdk && npm install)
+      echo "Installing demo app dependencies..."
+      (cd demo-app && cp -n .env.example .env 2>/dev/null || true && pnpm install)
+    working_dir: .
     availability:
       restart: "no"
 
@@ -254,19 +252,8 @@ processes:
     command: npm run build
     working_dir: ./sdk
     depends_on:
-      sdk-deps:
+      install-deps:
         condition: process_completed_successfully
-    availability:
-      restart: "no"
-
-  # ═══════════════════════════════════════════════════════════════
-  # PARALLEL TRACK: Demo App Dependencies (can start early)
-  # ═══════════════════════════════════════════════════════════════
-  app-deps:
-    command: |
-      cp -n .env.example .env 2>/dev/null || true
-      pnpm install
-    working_dir: ./demo-app
     availability:
       restart: "no"
 
@@ -277,11 +264,11 @@ processes:
     command: pnpm dev
     working_dir: ./demo-app
     depends_on:
+      install-deps:
+        condition: process_completed_successfully
       sdk-build:
         condition: process_completed_successfully
-      app-deps:
-        condition: process_completed_successfully
-      contracts-deploy:
+      bridge-tokens:
         condition: process_completed_successfully
       chain1:
         condition: process_healthy

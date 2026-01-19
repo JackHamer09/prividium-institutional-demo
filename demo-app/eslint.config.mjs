@@ -25,7 +25,7 @@ export default withNuxt(
       "prefer-const": "error",
       "no-var": "error",
       "eqeqeq": ["error", "always"],
-      "curly": ["error", "all"],
+      "curly": "off",
 
       // Import ordering
       "sort-imports": ["error", {

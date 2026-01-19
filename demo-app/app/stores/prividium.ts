@@ -166,6 +166,14 @@ export const usePrividiumStore = defineStore("prividium", () => {
       state.userProfile = profile;
       return profile;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Handle 401 Unauthorized - session expired
+      if (errorMessage.includes("401")) {
+        handleAuthExpiry(chainId);
+        return null;
+      }
+
       console.error("Failed to fetch user profile:", error);
       state.userProfile = null;
       return null;

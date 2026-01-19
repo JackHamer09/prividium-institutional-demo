@@ -25,7 +25,7 @@ SELECT setval('contract_templates_id_seq', COALESCE((SELECT MAX(id) FROM contrac
 -- USDC token
 INSERT INTO contracts (contract_address, abi, name, description, disclose_erc_20_balance, disclose_bytecode, template_id)
 VALUES (
-    decode('e7f1725e7734ce288f8367e1bb143e90bb3f0512', 'hex'),
+    decode('73a5705f4dc5291c01aa87c32a6d24e4cc3e7dfc', 'hex'),
     '[]',
     'USDC',
     NULL,
@@ -38,7 +38,7 @@ ON CONFLICT (contract_address) DO NOTHING;
 -- TTBILL token
 INSERT INTO contracts (contract_address, abi, name, description, disclose_erc_20_balance, disclose_bytecode, template_id)
 VALUES (
-    decode('9fe46736679d2d9a65f0992f2272de9f3c7fa6e0', 'hex'),
+    decode('a7767efa024f6b26940674dafb4417f371cfa178', 'hex'),
     '[]',
     'TTBILL',
     NULL,
@@ -51,13 +51,26 @@ ON CONFLICT (contract_address) DO NOTHING;
 -- SGD token
 INSERT INTO contracts (contract_address, abi, name, description, disclose_erc_20_balance, disclose_bytecode, template_id)
 VALUES (
-    decode('cf7ed3acca5a467e9e704c703e8d87f634fb0fc9', 'hex'),
+    decode('2cbebada0759d572866c6f6cc2fbd04c295be593', 'hex'),
     '[]',
     'SGD',
     NULL,
     false,
     false,
     1
+)
+ON CONFLICT (contract_address) DO NOTHING;
+
+-- Native Token Vault contract (L2_NATIVE_TOKEN_VAULT_ADDRESS)
+INSERT INTO contracts (contract_address, abi, name, description, disclose_erc_20_balance, disclose_bytecode, template_id)
+VALUES (
+    decode('0000000000000000000000000000000000010004', 'hex'),
+    '[{"type":"function","name":"assetId","inputs":[{"name":"token","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"bytes32","internalType":"bytes32"}],"stateMutability":"view"},{"type":"function","name":"bridgedTokens","inputs":[{"name":"index","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bytes32","internalType":"bytes32"}],"stateMutability":"view"},{"type":"function","name":"bridgedTokensCount","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"ensureTokenIsRegistered","inputs":[{"name":"_nativeToken","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"bytes32","internalType":"bytes32"}],"stateMutability":"nonpayable"},{"type":"function","name":"getERC20Getters","inputs":[{"name":"_token","type":"address","internalType":"address"},{"name":"_originChainId","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bytes","internalType":"bytes"}],"stateMutability":"view"},{"type":"function","name":"originChainId","inputs":[{"name":"assetId","type":"bytes32","internalType":"bytes32"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"originToken","inputs":[{"name":"assetId","type":"bytes32","internalType":"bytes32"}],"outputs":[{"name":"","type":"address","internalType":"address"}],"stateMutability":"view"},{"type":"function","name":"registerToken","inputs":[{"name":"_l1Token","type":"address","internalType":"address"}],"outputs":[],"stateMutability":"nonpayable"},{"type":"function","name":"tokenAddress","inputs":[{"name":"assetId","type":"bytes32","internalType":"bytes32"}],"outputs":[{"name":"","type":"address","internalType":"address"}],"stateMutability":"view"},{"type":"function","name":"tryRegisterTokenFromBurnData","inputs":[{"name":"_burnData","type":"bytes","internalType":"bytes"},{"name":"_expectedAssetId","type":"bytes32","internalType":"bytes32"}],"outputs":[],"stateMutability":"nonpayable"},{"type":"event","name":"BridgedTokenBeaconUpdated","inputs":[{"name":"bridgedTokenBeacon","type":"address","indexed":false,"internalType":"address"},{"name":"bridgedTokenProxyBytecodeHash","type":"bytes32","indexed":false,"internalType":"bytes32"}],"anonymous":false}]',
+    'Native Token Vault',
+    NULL,
+    false,
+    false,
+    NULL
 )
 ON CONFLICT (contract_address) DO NOTHING;
 
@@ -98,7 +111,21 @@ ON CONFLICT (permission_id, argument_index) DO NOTHING;
 SELECT setval('contract_template_argument_restrictions_id_seq', COALESCE((SELECT MAX(id) FROM contract_template_argument_restrictions), 0) + 1, false);
 
 -- ============================================================================
--- 5. Applications (OAuth clients)
+-- 5. Contract Function Permissions (Native Token Vault)
+-- ============================================================================
+INSERT INTO contract_function_permissions (id, contract_address, method_selector, function_signature, rule_type, access_type)
+OVERRIDING SYSTEM VALUE
+VALUES
+    -- Native Token Vault functions (public read)
+    (1, decode('0000000000000000000000000000000000010004', 'hex'), decode('97bb3ce9', 'hex'), 'function tokenAddress(bytes32 assetId) view returns (address)', 'public', 'read'),
+    (2, decode('0000000000000000000000000000000000010004', 'hex'), decode('fd3f60df', 'hex'), 'function assetId(address token) view returns (bytes32)', 'public', 'read')
+ON CONFLICT (contract_address, method_selector) DO NOTHING;
+
+-- Reset sequence for contract_function_permissions
+SELECT setval('contract_permissions_id_seq', COALESCE((SELECT MAX(id) FROM contract_function_permissions), 0) + 1, false);
+
+-- ============================================================================
+-- 6. Applications (OAuth clients)
 -- ============================================================================
 INSERT INTO applications (id, oauth_client_id, oauth_redirect_uris, name, origin)
 VALUES (
@@ -111,14 +138,14 @@ VALUES (
 ON CONFLICT (oauth_client_id) DO NOTHING;
 
 -- ============================================================================
--- 6. Roles
+-- 7. Roles
 -- ============================================================================
 INSERT INTO roles (role_name, system_permissions, is_system_role)
 VALUES ('admin', '{contract_deployment,full_sequencer_rpc_access,full_read_access}', true)
 ON CONFLICT (role_name) DO NOTHING;
 
 -- ============================================================================
--- 7. Users (OIDC users)
+-- 8. Users (OIDC users)
 -- ============================================================================
 -- Admin user
 INSERT INTO users (id, display_name, oidc_sub, source)
@@ -151,7 +178,7 @@ VALUES (
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
--- 8. User Roles
+-- 9. User Roles
 -- ============================================================================
 -- Only admin user gets admin role
 INSERT INTO user_roles (user_id, role_name)
@@ -159,7 +186,7 @@ VALUES ('v3rW8Y-bBmTypyI448Q6A', 'admin')
 ON CONFLICT (user_id, role_name) DO NOTHING;
 
 -- ============================================================================
--- 9. User Wallets
+-- 10. User Wallets
 -- ============================================================================
 -- Admin wallet (Anvil default account #0)
 INSERT INTO user_wallets (wallet_address, user_id)
