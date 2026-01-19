@@ -5,51 +5,51 @@
       #{{ offer.offerId.toString() }}
     </td>
 
-    <!-- Lender -->
+    <!-- Lender (display refund address, not shadow account) -->
     <td class="py-3 px-4">
       <div class="flex items-center gap-2">
-        <Web3Avatar v-if="!isLenderUser" :address="offer.lender" class="size-4" />
+        <Web3Avatar v-if="!isLenderUser" :address="offer.lenderRefundAddress" class="size-4" />
         <div>
-          <div class="font-medium text-slate-900 leading-0">
+          <div class="flex items-center font-medium text-slate-900 leading-0">
             <span v-if="isLenderUser" class="text-sm">You</span>
-            <span v-else class="text-xs">{{ formatAddress(offer.lender) }}</span>
+            <span v-else class="text-xs">{{ formatAddress(offer.lenderRefundAddress) }}</span>
+            <button
+              v-if="!isLenderUser"
+              class="ml-1 text-slate-400 hover:text-slate-600 transition-colors"
+              title="Copy address"
+              @click="copyAddress(offer.lenderRefundAddress)"
+            >
+              <DocumentDuplicateIcon class="h-3.5 w-3.5" />
+            </button>
           </div>
-          <div v-if="lenderChainName" class="text-xs text-slate-500">
+          <div v-if="lenderChainName" class="text-xs text-slate-500 whitespace-nowrap">
             on {{ lenderChainName }}
           </div>
         </div>
-        <button
-          v-if="!isLenderUser"
-          class="text-slate-400 hover:text-slate-600 transition-colors"
-          title="Copy address"
-          @click="copyAddress(offer.lender)"
-        >
-          <DocumentDuplicateIcon class="h-3.5 w-3.5" />
-        </button>
       </div>
     </td>
 
-    <!-- Borrower -->
+    <!-- Borrower (display refund address, not shadow account) -->
     <td class="py-3 px-4">
       <div v-if="hasBorrower" class="flex items-center gap-2">
-        <Web3Avatar v-if="!isBorrowerUser" :address="offer.borrower" class="size-4" />
+        <Web3Avatar v-if="!isBorrowerUser" :address="offer.borrowerRefundAddress" class="size-4" />
         <div>
-          <div class="font-medium text-slate-900 leading-0">
+          <div class="flex items-center font-medium text-slate-900 leading-0">
             <span v-if="isBorrowerUser" class="text-sm">You</span>
-            <span v-else class="text-xs">{{ formatAddress(offer.borrower) }}</span>
+            <span v-else class="text-xs">{{ formatAddress(offer.borrowerRefundAddress) }}</span>
+            <button
+              v-if="!isBorrowerUser"
+              class="ml-1 text-slate-400 hover:text-slate-600 transition-colors"
+              title="Copy address"
+              @click="copyAddress(offer.borrowerRefundAddress)"
+            >
+              <DocumentDuplicateIcon class="h-3.5 w-3.5" />
+            </button>
           </div>
-          <div v-if="borrowerChainName" class="text-xs text-slate-500">
+          <div v-if="borrowerChainName" class="text-xs text-slate-500 whitespace-nowrap">
             on {{ borrowerChainName }}
           </div>
         </div>
-        <button
-          v-if="!isBorrowerUser"
-          class="text-slate-400 hover:text-slate-600 transition-colors"
-          title="Copy address"
-          @click="copyAddress(offer.borrower!)"
-        >
-          <DocumentDuplicateIcon class="h-3.5 w-3.5" />
-        </button>
       </div>
       <span v-else class="text-sm text-slate-400">-</span>
     </td>
@@ -223,17 +223,19 @@ const borrowerChainName = computed(() => {
   return getChainName(Number(props.offer.borrowerChainId));
 });
 
-// User identity checks using viem's isAddressEqual for proper comparison
+// User identity checks using refund addresses (not lender/borrower) because
+// for interop transactions, lender/borrower will be shadow account addresses.
+// TODO: For complete accuracy, fetch shadow account address and also check against it.
 const isLenderUser = computed(() =>
-  props.userAddress && isAddressEqual(props.offer.lender, props.userAddress),
+  props.userAddress && isAddressEqual(props.offer.lenderRefundAddress, props.userAddress),
 );
 const isBorrowerUser = computed(() =>
-  props.userAddress && props.offer.borrower && isAddressEqual(props.offer.borrower, props.userAddress),
+  props.userAddress && props.offer.borrowerRefundAddress && isAddressEqual(props.offer.borrowerRefundAddress, props.userAddress),
 );
 
-// Check if borrower exists (not zero address)
+// Check if borrower exists (not zero address) - use refund address
 const hasBorrower = computed(() =>
-  props.offer.borrower && props.offer.borrower !== "0x0000000000000000000000000000000000000000",
+  props.offer.borrowerRefundAddress && props.offer.borrowerRefundAddress !== "0x0000000000000000000000000000000000000000",
 );
 
 // Live status with countdown

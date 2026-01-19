@@ -18,7 +18,8 @@ export const usePrividiumStore = defineStore("prividium", () => {
   const authStates = ref<Map<number, ChainAuthState>>(new Map());
 
   // Currently selected chain (null = no chain selected yet, forces Step 3)
-  const selectedChainId = ref<number | null>(null);
+  // Persisted to session storage so it survives page refresh within same tab
+  const selectedChainId = useSessionStorage<number | null>("prividium-selected-chain", null);
 
   // Initialize auth states for all chains
   function initializeAuthStates() {

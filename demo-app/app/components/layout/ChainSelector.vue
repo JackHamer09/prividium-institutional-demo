@@ -5,9 +5,9 @@
         class="w-2 h-2 rounded-full shrink-0"
         :class="mainButtonChain.statusDotClass"
       />
-      <div class="text-left">
-        <span class="text-sm font-medium text-slate-900 leading-0">{{ mainButtonChain.name }}</span>
-        <p v-if="mainButtonChain.shortMessage" class="text-xs leading-0" :class="mainButtonChain.statusMessageClass">
+      <div class="flex flex-col text-left">
+        <span class="text-sm font-medium text-slate-900 leading-tight">{{ mainButtonChain.name }}</span>
+        <p v-if="mainButtonChain.shortMessage" class="text-xs" :class="mainButtonChain.statusMessageClass">
           {{ mainButtonChain.shortMessage }}
         </p>
       </div>
@@ -88,6 +88,7 @@ const prividiumStore = usePrividiumStore();
 const walletStore = useWalletStore();
 const { switchToChain } = useChainSwitch();
 const toast = useToast();
+const { isHealthy, shouldPoll } = useChainHealthCheck();
 
 // Get all configured chains
 const allChains = computed(() => {
@@ -112,9 +113,18 @@ const chainItems = computed(() => {
     let longMessage: string | null = null;
 
     if (isSelected && isWalletOnChain) {
-      // Selected and wallet is on this chain - all good
-      statusDotClass = "bg-green-500";
-      statusMessageClass = "";
+      // Selected and wallet is on this chain - check health
+      if (shouldPoll.value && !isHealthy.value) {
+        // Health check active but failing
+        statusDotClass = "bg-yellow-500";
+        statusMessageClass = "text-yellow-600";
+        shortMessage = "Connection issue";
+        longMessage = "Wallet unable to reach network";
+      } else {
+        // Healthy or not yet checked
+        statusDotClass = "bg-green-500";
+        statusMessageClass = "";
+      }
     } else if (isSelected && !isWalletOnChain) {
       // Selected but wallet is on different chain
       statusDotClass = "bg-yellow-500";

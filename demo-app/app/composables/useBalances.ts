@@ -40,17 +40,17 @@ export function useBalances(chainId?: Ref<number> | ComputedRef<number>) {
 
   // Reactive: token balances for current chain (access store directly)
   const tokenBalances = computed(() =>
-    balancesStore.tokenBalances.get(effectiveChainId.value) ?? new Map<Hex, bigint>()
+    balancesStore.tokenBalances.get(effectiveChainId.value) ?? new Map<Hex, bigint>(),
   );
 
   // Reactive: ETH balance for current chain (access store directly)
   const ethBalance = computed(() =>
-    balancesStore.ethBalances.get(effectiveChainId.value) ?? 0n
+    balancesStore.ethBalances.get(effectiveChainId.value) ?? 0n,
   );
 
   // Reactive: L1 ETH balance for bridging (always same L1 chain)
   const l1EthBalance = computed(() =>
-    balancesStore.ethBalances.get(l1ChainId.value) ?? 0n
+    balancesStore.ethBalances.get(l1ChainId.value) ?? 0n,
   );
 
   // Reactive: formatted ETH balances
@@ -97,7 +97,7 @@ export function useBalances(chainId?: Ref<number> | ComputedRef<number>) {
     const tokenAddress = getCachedAddress(targetChainId, token.assetId);
     if (!tokenAddress || tokenAddress === zeroAddress) {
       console.error(
-        `Token address not found: assetId=${token.assetId}, chainId=${targetChainId} (${getChainName(targetChainId) ?? "unknown"}), symbol=${token.symbol}`
+        `Token address not found: assetId=${token.assetId}, chainId=${targetChainId} (${getChainName(targetChainId) ?? "unknown"}), symbol=${token.symbol}`,
       );
       return;
     }
@@ -112,7 +112,7 @@ export function useBalances(chainId?: Ref<number> | ComputedRef<number>) {
     } catch (error) {
       console.error(
         `Failed to fetch ${token.symbol} on chain ${targetChainId} (${getChainName(targetChainId) ?? "unknown"}):`,
-        error
+        error,
       );
     }
   }

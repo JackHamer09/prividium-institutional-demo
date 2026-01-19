@@ -1,23 +1,23 @@
 <template>
   <div class="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
-    <!-- Header: Avatar + ID + Address + Status -->
+    <!-- Header: Avatar + ID + Address + Status (display refund address, not shadow account) -->
     <div class="flex items-center justify-between mb-3">
       <div class="flex items-center gap-2">
-        <Web3Avatar :address="offer.lender" :size="32" />
+        <Web3Avatar :address="offer.lenderRefundAddress" :size="32" />
         <div>
           <div class="flex items-center gap-2">
             <span class="text-sm font-medium text-slate-900">#{{ offer.offerId.toString() }}</span>
             <button
-              v-if="offer.lender"
+              v-if="offer.lenderRefundAddress"
               class="text-slate-400 hover:text-slate-600 transition-colors"
               title="Copy lender address"
-              @click="copyAddress(offer.lender)"
+              @click="copyAddress(offer.lenderRefundAddress)"
             >
               <DocumentDuplicateIcon class="h-4 w-4" />
             </button>
           </div>
           <div class="text-xs text-slate-500">
-            {{ isLenderUser ? 'You' : formatAddress(offer.lender) }}
+            {{ isLenderUser ? 'You' : formatAddress(offer.lenderRefundAddress) }}
           </div>
         </div>
       </div>
@@ -28,17 +28,17 @@
       </CommonBadge>
     </div>
 
-    <!-- Borrower Info (when loan is active) -->
+    <!-- Borrower Info (when loan is active) - display refund address -->
     <div v-if="hasBorrower" class="flex items-center gap-2 mb-3 pl-10">
-      <Web3Avatar :address="offer.borrower" :size="24" />
+      <Web3Avatar :address="offer.borrowerRefundAddress" :size="24" />
       <div class="text-xs">
         <span class="text-slate-500">Borrower: </span>
-        <span class="font-medium">{{ isBorrowerUser ? 'You' : formatAddress(offer.borrower) }}</span>
+        <span class="font-medium">{{ isBorrowerUser ? 'You' : formatAddress(offer.borrowerRefundAddress) }}</span>
         <button
-          v-if="offer.borrower"
+          v-if="offer.borrowerRefundAddress"
           class="ml-1 text-slate-400 hover:text-slate-600 transition-colors inline-block"
           title="Copy borrower address"
-          @click="copyAddress(offer.borrower)"
+          @click="copyAddress(offer.borrowerRefundAddress)"
         >
           <DocumentDuplicateIcon class="h-3 w-3" />
         </button>
@@ -189,17 +189,19 @@ const mainChainId = getMainChainId();
 const lendTokenConfig = useTokenConfig(mainChainId, computed(() => props.offer.lendToken));
 const collateralTokenConfig = useTokenConfig(mainChainId, computed(() => props.offer.collateralToken));
 
-// User identity checks using viem's isAddressEqual for proper comparison
+// User identity checks using refund addresses (not lender/borrower) because
+// for interop transactions, lender/borrower will be shadow account addresses.
+// TODO: For complete accuracy, fetch shadow account address and also check against it.
 const isLenderUser = computed(() =>
-  props.userAddress && isAddressEqual(props.offer.lender, props.userAddress),
+  props.userAddress && isAddressEqual(props.offer.lenderRefundAddress, props.userAddress),
 );
 const isBorrowerUser = computed(() =>
-  props.userAddress && props.offer.borrower && isAddressEqual(props.offer.borrower, props.userAddress),
+  props.userAddress && props.offer.borrowerRefundAddress && isAddressEqual(props.offer.borrowerRefundAddress, props.userAddress),
 );
 
-// Check if borrower exists (not zero address)
+// Check if borrower exists (not zero address) - use refund address
 const hasBorrower = computed(() =>
-  props.offer.borrower && props.offer.borrower !== "0x0000000000000000000000000000000000000000",
+  props.offer.borrowerRefundAddress && props.offer.borrowerRefundAddress !== "0x0000000000000000000000000000000000000000",
 );
 
 // Live status with countdown

@@ -139,7 +139,6 @@
 </template>
 
 <script lang="ts" setup>
-import type { Hex } from "viem";
 import { ChevronDownIcon } from "@heroicons/vue/20/solid";
 import { getL1Chain, getMainChainId, getAllChains } from "~/config/chains";
 import { BALANCE_REFRESH_INTERVAL_MS } from "~/config/repo";

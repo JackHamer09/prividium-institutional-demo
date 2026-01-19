@@ -125,7 +125,7 @@
       </div>
 
       <!-- Step 3: Chain Selection -->
-      <div v-else class="space-y-4">
+      <div v-else class="space-y-3">
         <p class="text-sm text-slate-600 mb-4">Select which chain to use:</p>
 
         <!-- Main chain option -->
@@ -149,8 +149,7 @@
         </div>
 
         <!-- Other chains -->
-        <div v-if="otherChains.length > 0" class="space-y-2 mt-4">
-          <p class="text-sm text-slate-600 mb-2">Or select another chain:</p>
+        <div v-if="otherChains.length > 0" class="space-y-2">
           <div
             v-for="chain in otherChains"
             :key="chain.id"

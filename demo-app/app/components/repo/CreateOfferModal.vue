@@ -138,8 +138,7 @@ const emit = defineEmits<{
 }>();
 
 const { tokens, refresh: refreshBalances } = useBalances();
-const { createOffer, repoAddress, mainChainId } = useRepoContract();
-const { ensureApproval } = useTokenContract();
+const { createOffer } = useRepoContract();
 const walletStore = useWalletStore();
 const toast = useToast();
 
@@ -254,18 +253,7 @@ async function handleSubmit() {
     // Convert duration to seconds (validated by isFormValid)
     const durationInSeconds = convertDurationToSeconds(form.durationValue!, form.durationUnit);
 
-    // Ensure approval for lend token before creating offer
-    const approved = await ensureApproval({
-      chainId: mainChainId,
-      assetId: form.lendToken as Hex,
-      owner: walletStore.address,
-      spender: repoAddress,
-      amount: lendAmount,
-    });
-
-    if (!approved) return;
-
-    // Create offer using asset IDs (createOffer resolves to addresses internally)
+    // Create offer - approval is handled internally for both same-chain and cross-chain
     const result = await createOffer({
       lendAssetId: form.lendToken as Hex,
       lendAmount,

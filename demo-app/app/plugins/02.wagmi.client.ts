@@ -1,14 +1,24 @@
 import { createConfig, injected, reconnect } from "@wagmi/core";
 import { callPolicy, zksyncSsoConnector } from "zksync-sso/connector";
 import type { PrividiumChain } from "prividium";
-import { http, type Address, type Chain, /* erc20Abi, */ parseEther, type Transport } from "viem";
+import {
+  type Address,
+  type Chain,
+  http,
+  /* erc20Abi, */
+  parseEther,
+  type Transport,
+} from "viem";
 import { INTRADAY_REPO_ABI } from "../contracts/intraday-repo";
 import { getL1Chain } from "~/config/chains";
 /* import { mintAbi } from "../config/tokens"; */
 
 export default defineNuxtPlugin(async (nuxtApp) => {
   // Get all Prividium instances from earlier plugin
-  const prividiumChains = nuxtApp.$prividiumChains as Map<number, PrividiumChain>;
+  const prividiumChains = nuxtApp.$prividiumChains as Map<
+    number,
+    PrividiumChain
+  >;
   const runtimeConfig = useRuntimeConfig();
 
   // Collect all chains and transports
@@ -30,17 +40,28 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   transports[l1Chain.id] = http(l1Chain.rpcUrls.default.http[0]);
 
   // Get repo contract address for session policies
-  const repoAddress = runtimeConfig.public.intradayRepoContractAddress as Address;
+  const repoAddress = runtimeConfig.public
+    .intradayRepoContractAddress as Address;
 
   // Create SSO connector with auth server URL from environment
-  const authServerUrl = runtimeConfig.public.zksyncSsoAuthServerUrl as string | undefined;
+  const authServerUrl = runtimeConfig.public.zksyncSsoAuthServerUrl as
+    | string
+    | undefined;
   const ssoConnector = zksyncSsoConnector({
     authServerUrl: authServerUrl || undefined,
     session: {
       feeLimit: parseEther("0.1"),
       contractCalls: [
         // Repo contract calls
-        ...(["createOffer", "acceptOffer", "cancelOffer", "repayLoan", "claimCollateral"] as const).map((functionName) =>
+        ...(
+          [
+            "createOffer",
+            "acceptOffer",
+            "cancelOffer",
+            "repayLoan",
+            "claimCollateral",
+          ] as const
+        ).map((functionName) =>
           callPolicy({
             address: repoAddress,
             abi: INTRADAY_REPO_ABI,

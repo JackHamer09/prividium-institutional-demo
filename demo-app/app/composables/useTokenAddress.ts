@@ -90,6 +90,7 @@ export function useTokenAddress() {
       chainId,
     });
 
+    // eslint-disable-next-line no-console
     console.log(`Fetched token address for assetId ${assetId} on chain ${chainId}: ${result}`);
 
     // Normalize the returned address
@@ -104,87 +105,25 @@ export function useTokenAddress() {
   }
 
   /**
-   * Get asset ID for a token address on a specific chain
-   */
-  async function getAssetId(chainId: number, address: Address): Promise<Hex> {
-    const normalizedAddress = getAddress(address);
-    const cacheKey = addressCacheKey(chainId, normalizedAddress);
-
-    if (assetIdCache.has(cacheKey)) {
-      return assetIdCache.get(cacheKey)!;
-    }
-
-    const result = await readContract(config, {
-      account: accountAddress.value,
-      address: L2_NATIVE_TOKEN_VAULT_ADDRESS as Address,
-      abi: NativeTokenVaultAbi,
-      functionName: "assetId",
-      args: [normalizedAddress],
-      chainId,
-    });
-
-    const assetId = result as Hex;
-    assetIdCache.set(cacheKey, assetId);
-
-    // Also cache the reverse mapping
-    const reverseCacheKey = assetIdCacheKey(chainId, assetId);
-    addressCache.set(reverseCacheKey, normalizedAddress);
-
-    return assetId;
-  }
-
-  /**
    * Preload all token addresses for a specific chain
    * Should be called after authorization and before showing main UI
    */
   async function preloadAddressesForChain(chainId: number): Promise<void> {
     if (preloadedChains.has(chainId)) {
+      // eslint-disable-next-line no-console
       console.log(`Token addresses for chain ${chainId} already preloaded.`);
       return;
     }
 
     const promises = tokens.map((token) => getTokenAddress(chainId, token.assetId));
     await Promise.all(promises);
+    // eslint-disable-next-line no-console
     console.log(`Preloaded token addresses for chain ${chainId}.`);
     preloadedChains.add(chainId);
   }
 
-  /**
-   * Check if a chain has been preloaded
-   */
-  function isPreloaded(chainId: number): boolean {
-    return preloadedChains.has(chainId);
-  }
-
-  /**
-   * Clear the cache (for testing or when needed)
-   */
-  function clearCache() {
-    addressCache.clear();
-    assetIdCache.clear();
-    preloadedChains.clear();
-  }
-
-  /**
-   * Get all token addresses for a chain (returns from cache if preloaded)
-   */
-  async function getAllTokenAddresses(chainId: number): Promise<Map<Hex, Address>> {
-    const result = new Map<Hex, Address>();
-
-    for (const token of tokens) {
-      const address = await getTokenAddress(chainId, token.assetId);
-      result.set(token.assetId, address);
-    }
-
-    return result;
-  }
-
   return {
     getTokenAddress,
-    getAssetId,
     preloadAddressesForChain,
-    isPreloaded,
-    clearCache,
-    getAllTokenAddresses,
   };
 }

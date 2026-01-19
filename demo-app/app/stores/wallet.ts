@@ -76,10 +76,7 @@ export const useWalletStore = defineStore("wallet", () => {
       if (!connector) {
         throw new Error(`No ${type} connector available`);
       }
-      await connect(config, {
-        connector,
-        chainId: config.chains[0].id,
-      });
+      await connect(config, { connector });
     } catch (error) {
       console.error("Failed to connect wallet:", error);
       throw error;

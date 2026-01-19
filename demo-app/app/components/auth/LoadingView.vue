@@ -56,7 +56,7 @@ const emit = defineEmits<{
 }>();
 
 const prividiumStore = usePrividiumStore();
-const { preloadAddressesForChain, isPreloaded } = useTokenAddress();
+const { preloadAddressesForChain } = useTokenAddress();
 
 const loadingMessage = ref("Loading...");
 const error = ref<string | null>(null);
@@ -87,9 +87,7 @@ async function preloadAllChains() {
     loadingMessage.value = "Loading token addresses...";
     await Promise.all(
       authorizedChains.map(async (chainId) => {
-        if (!isPreloaded(chainId)) {
-          await preloadAddressesForChain(chainId);
-        }
+        await preloadAddressesForChain(chainId);
       }),
     );
 

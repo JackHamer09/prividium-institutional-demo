@@ -112,12 +112,8 @@
 
 <script lang="ts" setup>
 import { isAddressEqual } from "viem";
-import { getMainChainId } from "~/config/chains";
-import { getCachedAssetId } from "~/composables/useTokenAddress";
 import { isOfferFinished } from "~/utils/repo-status";
 import { OFFERS_REFRESH_INTERVAL_MS } from "~/config/repo";
-
-const mainChainId = getMainChainId();
 
 const tabs = [
   { id: "current", name: "Current Offers" },
@@ -133,8 +129,7 @@ const processingOffers = ref<Set<string>>(new Set());
 const walletStore = useWalletStore();
 const repoStore = useRepoStore();
 const { refresh: refreshBalances } = useBalances();
-const { repoAddress, getOpenOffers, getLenderOffers, getBorrowerOffers, getGracePeriod, acceptOffer, repayLoan, claimCollateral, cancelOffer } = useRepoContract();
-const { ensureApproval } = useTokenContract();
+const { getOpenOffers, getLenderOffers, getBorrowerOffers, getGracePeriod, acceptOffer, repayLoan, claimCollateral, cancelOffer } = useRepoContract();
 const toast = useToast();
 
 // Current (active) offers for the user, including sticky recently-inactive ones
@@ -147,12 +142,13 @@ const currentMyOffers = computed(() => {
 });
 
 // Available offers (from other users) - only show open/active ones
+// Use lenderRefundAddress instead of lender because for interop tx lender is shadow account
 const availableOffers = computed(() => {
   if (!walletStore.address) return [];
   return repoStore.allOffers.filter(
     (offer) =>
       !isOfferFinished(offer) &&
-      !isAddressEqual(offer.lender, walletStore.address!),
+      !isAddressEqual(offer.lenderRefundAddress, walletStore.address!),
   );
 });
 
@@ -199,29 +195,11 @@ async function refreshOffers() {
 async function handleAcceptOffer(offerId: bigint) {
   if (!walletStore.address) return;
 
-  const offer = repoStore.getOfferById(offerId);
-  if (!offer) return;
-
   const offerKey = offerId.toString();
   processingOffers.value.add(offerKey);
 
   try {
-    const collateralAssetId = getCachedAssetId(mainChainId, offer.collateralToken);
-    if (!collateralAssetId) {
-      toast.error("Token not found in cache");
-      return;
-    }
-
-    const approved = await ensureApproval({
-      chainId: mainChainId,
-      assetId: collateralAssetId,
-      owner: walletStore.address,
-      spender: repoAddress,
-      amount: offer.collateralAmount,
-    });
-
-    if (!approved) return;
-
+    // Approval is handled internally by acceptOffer for both same-chain and cross-chain
     const success = await acceptOffer(offerId);
     if (success) {
       await Promise.all([refreshOffers(), refreshBalances()]);
@@ -236,31 +214,11 @@ async function handleAcceptOffer(offerId: bigint) {
 async function handleRepayLoan(offerId: bigint) {
   if (!walletStore.address) return;
 
-  const offer = repoStore.getOfferById(offerId);
-  if (!offer) return;
-
   const offerKey = offerId.toString();
   processingOffers.value.add(offerKey);
 
   try {
-    const repaymentAmount = offer.lendAmount + (offer.lendAmount * offer.lenderFee) / BigInt(10000);
-
-    const lendAssetId = getCachedAssetId(mainChainId, offer.lendToken);
-    if (!lendAssetId) {
-      toast.error("Token not found in cache");
-      return;
-    }
-
-    const approved = await ensureApproval({
-      chainId: mainChainId,
-      assetId: lendAssetId,
-      owner: walletStore.address,
-      spender: repoAddress,
-      amount: repaymentAmount,
-    });
-
-    if (!approved) return;
-
+    // Approval is handled internally by repayLoan for both same-chain and cross-chain
     const success = await repayLoan(offerId);
     if (success) {
       await Promise.all([refreshOffers(), refreshBalances()]);
