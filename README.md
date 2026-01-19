@@ -71,28 +71,29 @@ process-compose up
 
 ### Steps:
 1. **Login to Prividium User Panel:**
-    - Open [Prividium User Panel - Chain 1](http://localhost:3001) in Browser/Profile 1
-    - Click on OIDC login button
-    - Use credentials:
-      - Email: `admin@local.dev`
-      - Password: `password`
-      - Confirm login
-    - Repeat the same for [Prividium User Panel - Chain 2](http://localhost:3301) in Browser/Profile 2
-1. **Setup MetaMask for both chains:**
-    - Open MetaMask extension
-    - Click on account dropdown
-    - `Add Wallet` -> `Import an account`
-    - Use private key (Anvil #0 account): `0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110`
-    - Repeat for both browsers/profiles
+    - **Browser/Profile 1:**
+      - Open [Prividium User Panel - Chain 1](http://localhost:3001)
+      - Click on OIDC login button
+      - Use credentials: `user1@local.dev` / `password`
+    - **Browser/Profile 2:**
+      - Open [Prividium User Panel - Chain 2](http://localhost:3301)
+      - Click on OIDC login button
+      - Use credentials: `user2@local.dev` / `password`
+1. **Setup MetaMask with demo accounts:**
+    - **Browser/Profile 1 (user1):**
+      - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
+      - Use private key: `0x6a657d9f98808f0d551411319b851b35e9ef6fca68f38ccc9b92871ec61e1efb`
+    - **Browser/Profile 2 (user2):**
+      - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
+      - Use private key: `0x93dd39ca8b2666c9bf1cee643f18df4fef6ca96668302978675af1d717459706`
 1. **Add Prividium chains to MetaMask:**
     - Go to [User Panel - Chain 1](http://localhost:3001)
     - In the `Network Configuration` section, click `Add to Network to Wallet` -> Confirm in MetaMask
     - Repeat for [User Panel - Chain 2](http://localhost:3301)
 1. **Login to Intraday Repo App:**
-    - Open [Intraday Repo App](http://localhost:3004) in Browser/Profile 1
-    - Login with Prividium
-    - Connect previously imported MetaMask account
-    - Repeat for Browser/Profile 2
+    - Open [Intraday Repo App](http://localhost:3004) in both browsers
+    - Login with Prividium (user1 in Browser 1, user2 in Browser 2)
+    - Connect the corresponding MetaMask account
 1. **Start using the app!**
     - Create lending offers, accept them, repay loans, and claim collateral if needed.
 
@@ -100,7 +101,8 @@ process-compose up
 
 ## Permissions
 
-1. Login to
+1. Login to Admin Panel with credentials: `admin@local.dev` / `password`
+    - *Note: Use a separate browser/profile or logout from demo user first via Prividium User Panel.*
     - [Prividium Admin Panel - Chain 1](http://localhost:3000)
     - [Prividium Admin Panel - Chain 2](http://localhost:3300)
 1. Go to `Contracts` page to view and manage permissions that are setup for each chain.

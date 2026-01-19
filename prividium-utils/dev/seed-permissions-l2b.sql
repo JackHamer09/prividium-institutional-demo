@@ -118,8 +118,9 @@ VALUES ('admin', '{contract_deployment,full_sequencer_rpc_access,full_read_acces
 ON CONFLICT (role_name) DO NOTHING;
 
 -- ============================================================================
--- 7. Users (OIDC admin user)
+-- 7. Users (OIDC users)
 -- ============================================================================
+-- Admin user
 INSERT INTO users (id, display_name, oidc_sub, source)
 VALUES (
     'v3rW8Y-bBmTypyI448Q6A',
@@ -129,17 +130,48 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- Demo User 1 (Lender)
+INSERT INTO users (id, display_name, oidc_sub, source)
+VALUES (
+    'u1Xe7K-cDnUzqyJ559R7B',
+    'user1@local.dev',
+    '00000000-0000-0000-0000-000000000002',
+    'oidc'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Demo User 2 (Borrower)
+INSERT INTO users (id, display_name, oidc_sub, source)
+VALUES (
+    'u2Yf8L-dEoVarxK660S8C',
+    'user2@local.dev',
+    '00000000-0000-0000-0000-000000000003',
+    'oidc'
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- ============================================================================
 -- 8. User Roles
 -- ============================================================================
+-- Only admin user gets admin role
 INSERT INTO user_roles (user_id, role_name)
 VALUES ('v3rW8Y-bBmTypyI448Q6A', 'admin')
 ON CONFLICT (user_id, role_name) DO NOTHING;
 
 -- ============================================================================
 -- 9. User Wallets
--- Address derived from e2e test mnemonic: 'test test test test test test test test test test test junk'
 -- ============================================================================
+-- Admin wallet (Anvil default account #0)
 INSERT INTO user_wallets (wallet_address, user_id)
 VALUES (decode('f39Fd6e51aad88F6F4ce6aB8827279cffFb92266', 'hex'), 'v3rW8Y-bBmTypyI448Q6A')
+ON CONFLICT (wallet_address) DO NOTHING;
+
+-- User 1 wallet (Lender)
+INSERT INTO user_wallets (wallet_address, user_id)
+VALUES (decode('AD350E768913dAc29b8113C571fB3321c9d01495', 'hex'), 'u1Xe7K-cDnUzqyJ559R7B')
+ON CONFLICT (wallet_address) DO NOTHING;
+
+-- User 2 wallet (Borrower)
+INSERT INTO user_wallets (wallet_address, user_id)
+VALUES (decode('cFB389324aCf2e0Aad3aC5073166fe428f57fA89', 'hex'), 'u2Yf8L-dEoVarxK660S8C')
 ON CONFLICT (wallet_address) DO NOTHING;

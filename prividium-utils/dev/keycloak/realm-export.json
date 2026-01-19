@@ -113,12 +113,12 @@
         },
         {
             "id": "00000000-0000-0000-0000-000000000002",
-            "username": "user@local.dev",
-            "email": "user@local.dev",
+            "username": "user1@local.dev",
+            "email": "user1@local.dev",
             "emailVerified": true,
             "enabled": true,
-            "firstName": "Regular",
-            "lastName": "User",
+            "firstName": "User",
+            "lastName": "One",
             "credentials": [
                 {
                     "type": "password",
@@ -130,12 +130,12 @@
         },
         {
             "id": "00000000-0000-0000-0000-000000000003",
-            "username": "test@local.dev",
-            "email": "test@local.dev",
+            "username": "user2@local.dev",
+            "email": "user2@local.dev",
             "emailVerified": true,
             "enabled": true,
-            "firstName": "Test",
-            "lastName": "User",
+            "firstName": "User",
+            "lastName": "Two",
             "credentials": [
                 {
                     "type": "password",
