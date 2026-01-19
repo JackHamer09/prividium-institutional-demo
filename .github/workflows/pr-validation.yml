@@ -27,12 +27,12 @@ jobs:
           cache: pnpm
           cache-dependency-path: demo-app/pnpm-lock.yaml
 
-      - name: Install dependencies
-        run: pnpm install
-
       - name: Build SDK
         working-directory: sdk
         run: npm ci && npm run build
+
+      - name: Install dependencies
+        run: pnpm install
 
       - name: Run lint
         run: pnpm lint
