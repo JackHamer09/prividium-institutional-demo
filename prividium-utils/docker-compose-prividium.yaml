@@ -6,8 +6,7 @@ name: zksync-prividium-institutional-demo
 # ═══════════════════════════════════════════════════════════════
 # Shared environment variables for setup/init containers
 # ═══════════════════════════════════════════════════════════════
-x-setup-env: &setup-env
-  # Deployer (Anvil default account #0)
+x-setup-env: &setup-env # Deployer (Anvil default account #0)
   DEPLOYER_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
   DEPLOYER_ADDRESS: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
   # Demo User 1
@@ -16,9 +15,9 @@ x-setup-env: &setup-env
   USER2_ADDRESS: "0xcFB389324aCf2e0Aad3aC5073166fe428f57fA89"
   # Contract Addresses
   REPO_CONTRACT_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
-  USDC_ADDRESS: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
-  TUST_ADDRESS: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
-  SGD_ADDRESS: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+  USDC_ADDRESS: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+  TUST_ADDRESS: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+  SGD_ADDRESS: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
   # Mint Amounts (USDC: 6 decimals → 10,000 USDC; TUST/SGD: 18 decimals → 100 tokens)
   USDC_MINT_AMOUNT: "10000000000"
   TUST_MINT_AMOUNT: "100000000000000000000"
@@ -55,9 +54,10 @@ x-permissions-api: &permissions-api
   platform: linux/amd64
   restart: unless-stopped
   depends_on:
-    - postgres
-    - chain1
-    - chain2
+    postgres:
+      condition: service_healthy
+    wait-for-chains:
+      condition: service_completed_successfully
   environment: &permissions-api-env
     PORT: 8000
     METRICS_PORT: 9091
@@ -111,7 +111,10 @@ x-block-explorer-api: &block-explorer-api
     API_LIMITED_PAGINATION_MAX_ITEMS: "1000"
     DISABLE_BFF_API_SCHEMA_DOCS: "true"
   depends_on:
-    - postgres
+    postgres:
+      condition: service_healthy
+    wait-for-chains:
+      condition: service_completed_successfully
 
 x-block-explorer-app: &block-explorer-app
   image: ghcr.io/matter-labs/block-explorer-app@sha256:cd1ffe953935709b7e62ed30ef3eda8eee42c537bb2c6f5d65ecb67f5459a724
@@ -138,14 +141,21 @@ x-block-explorer-worker: &block-explorer-worker
     BLOCKS_PROCESSING_BATCH_SIZE: "10"
     NUMBER_OF_BLOCKS_PER_DB_TRANSACTION: "10"
   depends_on:
-    - postgres
-    - block-explorer-data-fetcher
+    postgres:
+      condition: service_healthy
+    block-explorer-data-fetcher:
+      condition: service_started
+    wait-for-chains:
+      condition: service_completed_successfully
 
 x-block-explorer-data-fetcher: &block-explorer-data-fetcher
   image: ghcr.io/matter-labs/block-explorer-data-fetcher@sha256:4c7a3021d7888661cac81b60168eeb57d3b59f52f5f7ffce249c76a2529cae91
   platform: linux/amd64
   extra_hosts:
     - host.docker.internal:host-gateway
+  depends_on:
+    wait-for-chains:
+      condition: service_completed_successfully
   environment: &block-explorer-data-fetcher-env
     NETWORK_NAME: testnet
     BLOCKCHAIN_RPC_URL: http://host.docker.internal:3050
@@ -167,9 +177,19 @@ services:
     volumes:
       - ../zksync-os-server/local-chains:/app/local-chains
     entrypoint: []
-    command: ["anvil", "--host", "0.0.0.0", "--load-state", "/app/local-chains/v31/multiple-chains/zkos-l1-state.json", "--port", "8545"]
+    command:
+      [
+        "anvil",
+        "--host",
+        "0.0.0.0",
+        "--load-state",
+        "/app/local-chains/v31/multiple-chains/zkos-l1-state.json",
+        "--port",
+        "8545",
+      ]
     healthcheck:
-      test: ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:8545"]
+      test:
+        ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:8545"]
       interval: 2s
       timeout: 15s
       retries: 10
@@ -184,12 +204,6 @@ services:
     ports:
       - 3050:3050
     command: --config ./local-chains/v31/multiple-chains/chain1.json
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf -X POST -H 'Content-Type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' http://localhost:3050 || exit 1"]
-      interval: 3s
-      timeout: 5s
-      retries: 30
-      start_period: 5s
 
   chain2:
     <<: *zksync-os-server
@@ -197,12 +211,26 @@ services:
     ports:
       - 3051:3051
     command: --config ./local-chains/v31/multiple-chains/chain2.json
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf -X POST -H 'Content-Type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' http://localhost:3051 || exit 1"]
-      interval: 3s
-      timeout: 5s
-      retries: 30
-      start_period: 5s
+
+  # Waits for both L2 chains to be responsive (setup-tools image has curl)
+  wait-for-chains:
+    image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    platform: linux/amd64
+    command: >-
+      bash -c "
+      echo 'Waiting for chain1...' &&
+      until curl -sf -X POST -H 'Content-Type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' http://chain1:3050 > /dev/null 2>&1; do sleep 2; done &&
+      echo 'chain1 is ready!' &&
+      echo 'Waiting for chain2...' &&
+      until curl -sf -X POST -H 'Content-Type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' http://chain2:3051 > /dev/null 2>&1; do sleep 2; done &&
+      echo 'chain2 is ready!'
+      "
+    depends_on:
+      chain1:
+        condition: service_started
+      chain2:
+        condition: service_started
+    restart: "no"
 
   postgres:
     image: postgres:15
@@ -491,22 +519,25 @@ services:
   # ═══════════════════════════════════════════════════════════════
   interop-relay:
     image: ghcr.io/jackhamer09/cast-interop:latest
+    platform: linux/amd64
     environment:
       RELAY_PRIVATE_KEY: "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110"
     entrypoint: ["/bin/sh", "-c"]
-    command: ["cast-interop auto-relay --rpc http://chain1:3050 http://chain2:3051 --private-key $$RELAY_PRIVATE_KEY"]
+    command:
+      [
+        "cast-interop auto-relay --rpc http://chain1:3050 http://chain2:3051 --private-key $$RELAY_PRIVATE_KEY",
+      ]
     restart: unless-stopped
     depends_on:
-      chain1:
-        condition: service_healthy
-      chain2:
-        condition: service_healthy
+      wait-for-chains:
+        condition: service_completed_successfully
 
   # ═══════════════════════════════════════════════════════════════
   # SETUP: One-shot init containers (run in order, then exit)
   # ═══════════════════════════════════════════════════════════════
   deposit:
     image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    platform: linux/amd64
     environment:
       <<: *setup-env
     command: >-
@@ -522,14 +553,13 @@ services:
       ./scripts/deposit.sh $$USER2_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://anvil:8545 http://chain2:3051
       "
     depends_on:
-      chain1:
-        condition: service_healthy
-      chain2:
-        condition: service_healthy
+      wait-for-chains:
+        condition: service_completed_successfully
     restart: "no"
 
   contracts-deploy:
     image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    platform: linux/amd64
     working_dir: /workspace/contracts
     environment:
       <<: *setup-env
@@ -547,6 +577,7 @@ services:
 
   mint-tokens:
     image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    platform: linux/amd64
     environment:
       <<: *setup-env
     command: >-
@@ -568,6 +599,7 @@ services:
 
   bridge-tokens:
     image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    platform: linux/amd64
     working_dir: /workspace/scripts
     environment:
       <<: *setup-env
@@ -590,8 +622,17 @@ services:
 
   prividium-seed:
     image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    platform: linux/amd64
     command: >-
       bash -c "
+      echo 'Waiting for permissions API migrations to complete...' &&
+      until PGPASSWORD=postgres psql -h postgres -U postgres -d permissions_api_l2a -c 'SELECT 1 FROM users LIMIT 1' > /dev/null 2>&1; do
+        echo 'Waiting for permissions_api_l2a tables...'; sleep 3;
+      done &&
+      until PGPASSWORD=postgres psql -h postgres -U postgres -d permissions_api_l2b -c 'SELECT 1 FROM users LIMIT 1' > /dev/null 2>&1; do
+        echo 'Waiting for permissions_api_l2b tables...'; sleep 3;
+      done &&
+      echo 'Tables ready, seeding...' &&
       PGPASSWORD=postgres psql -h postgres -U postgres -d permissions_api_l2a < /workspace/prividium-utils/dev/seed-permissions-l2a.sql &&
       PGPASSWORD=postgres psql -h postgres -U postgres -d permissions_api_l2b < /workspace/prividium-utils/dev/seed-permissions-l2b.sql
       "
@@ -607,14 +648,15 @@ services:
   # ═══════════════════════════════════════════════════════════════
   demo-app:
     image: ghcr.io/jackhamer09/prividium-demo-app:latest
+    platform: linux/amd64
     ports:
       - 3004:3004
     environment:
       NUXT_PUBLIC_INTRADAY_REPO_CONTRACT_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
       NUXT_PUBLIC_MAIN_CHAIN_ID: 6565
-      NUXT_PUBLIC_USDC_ASSET_ID: "0x77baed655828a3026a312e17aab097575a2cb78962e977ff57a940df969fd88d"
-      NUXT_PUBLIC_TUST_ASSET_ID: "0xb40c1d8f7cc6220ae72d6fc26ac5ac9267166abe7fce03ee92575a7b67d522a7"
-      NUXT_PUBLIC_SGD_ASSET_ID: "0x8a0022ba69551f46435ad4858532e8d55d16adf705d3da4f5237003feac26a3b"
+      NUXT_PUBLIC_USDC_ASSET_ID: "0x8442d3800cd5cdec4c635bcbf29eca2a0d2912f96f2f2549fbd66d95e16b7036"
+      NUXT_PUBLIC_TUST_ASSET_ID: "0x77baed655828a3026a312e17aab097575a2cb78962e977ff57a940df969fd88d"
+      NUXT_PUBLIC_SGD_ASSET_ID: "0xb40c1d8f7cc6220ae72d6fc26ac5ac9267166abe7fce03ee92575a7b67d522a7"
       NUXT_PUBLIC_L1_CHAIN_ID: 31337
       NUXT_PUBLIC_L1_CHAIN_NAME: Local L1
       NUXT_PUBLIC_L1_RPC_URL: http://localhost:8545
@@ -637,10 +679,6 @@ services:
     depends_on:
       bridge-tokens:
         condition: service_completed_successfully
-      chain1:
-        condition: service_healthy
-      chain2:
-        condition: service_healthy
     restart: unless-stopped
 
 volumes:
