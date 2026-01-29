@@ -8,16 +8,7 @@ log_length: 3000
 
 processes:
   # ═══════════════════════════════════════════════════════════════
-  # BUILD: Compile zksync-os-server (runs first, parallel with SDK/app deps)
-  # ═══════════════════════════════════════════════════════════════
-  zkos-build:
-    command: cargo build --release
-    working_dir: ./zksync-os-server
-    availability:
-      restart: "no"
-
-  # ═══════════════════════════════════════════════════════════════
-  # BUILD: Compile cast-interop (parallel with zkos-build)
+  # BUILD: Compile cast-interop (parallel with docker services)
   # ═══════════════════════════════════════════════════════════════
   interop-build:
     command: cargo build --release
@@ -26,52 +17,19 @@ processes:
       restart: "no"
 
   # ═══════════════════════════════════════════════════════════════
-  # DOCKER: Pull Prividium images (starts immediately, parallel with builds)
+  # DOCKER: Start all Docker services (anvil, chains, prividium)
   # ═══════════════════════════════════════════════════════════════
-  prividium-pull:
-    command: docker compose -f ./prividium-utils/docker-compose-prividium.yaml pull
-    working_dir: .
-    availability:
-      restart: "no"
+  docker-services:
+    command: docker compose -f ./prividium-utils/docker-compose-prividium.yaml up
 
   # ═══════════════════════════════════════════════════════════════
-  # CLEANUP: Remove old chain databases (after build, before anvil)
-  # ═══════════════════════════════════════════════════════════════
-  zkos-cleanup:
-    command: rm -rf db
-    working_dir: ./zksync-os-server
-    depends_on:
-      zkos-build:
-        condition: process_completed_successfully
-    availability:
-      restart: "no"
-
-  # ═══════════════════════════════════════════════════════════════
-  # LAYER 1: L1 Chain (Anvil) - starts after cleanup
-  # ═══════════════════════════════════════════════════════════════
-  anvil:
-    command: anvil --load-state ./local-chains/v31/zkos-l1-state.json --port 8545
-    working_dir: ./zksync-os-server
-    depends_on:
-      zkos-cleanup:
-        condition: process_completed_successfully
-    readiness_probe:
-      exec:
-        command: 'curl -sf -X POST -H "Content-Type: application/json" --data ''{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'' http://127.0.0.1:8545'
-      initial_delay_seconds: 2
-      period_seconds: 2
-      timeout_seconds: 15
-      failure_threshold: 10
-
-  # ═══════════════════════════════════════════════════════════════
-  # LAYER 2: L2 Chains (parallel after Anvil healthy)
+  # HEALTH: Wait for L2 chains to be ready (used for dependency ordering)
   # ═══════════════════════════════════════════════════════════════
   chain1:
-    command: ./target/release/zksync-os-server --config ./local-chains/v31/multiple-chains/chain1.json
-    working_dir: ./zksync-os-server
+    command: tail -f /dev/null
     depends_on:
-      anvil:
-        condition: process_healthy
+      docker-services:
+        condition: process_started
     readiness_probe:
       exec:
         command: 'curl -sf -X POST -H "Content-Type: application/json" --data ''{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'' http://127.0.0.1:3050'
@@ -81,11 +39,10 @@ processes:
       failure_threshold: 30
 
   chain2:
-    command: ./target/release/zksync-os-server --config ./local-chains/v31/multiple-chains/chain2.json
-    working_dir: ./zksync-os-server
+    command: tail -f /dev/null
     depends_on:
-      anvil:
-        condition: process_healthy
+      docker-services:
+        condition: process_started
     readiness_probe:
       exec:
         command: 'curl -sf -X POST -H "Content-Type: application/json" --data ''{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'' http://127.0.0.1:3051'
@@ -93,6 +50,22 @@ processes:
       period_seconds: 3
       timeout_seconds: 25
       failure_threshold: 30
+
+  # ═══════════════════════════════════════════════════════════════
+  # HEALTH: Wait for Prividium services to be ready
+  # ═══════════════════════════════════════════════════════════════
+  prividium:
+    command: tail -f /dev/null
+    depends_on:
+      docker-services:
+        condition: process_started
+    readiness_probe:
+      exec:
+        command: "curl -sf http://localhost:8000/health && curl -sf http://localhost:8300/health"
+      initial_delay_seconds: 10
+      period_seconds: 5
+      timeout_seconds: 10
+      failure_threshold: 60
 
   # ═══════════════════════════════════════════════════════════════
   # LAYER 3: Deposit ETH to L2 (after chain1 healthy, before contracts)
@@ -199,27 +172,6 @@ processes:
         condition: process_healthy
       chain2:
         condition: process_healthy
-
-  # ═══════════════════════════════════════════════════════════════
-  # DOCKER: Start Prividium services (after chains healthy + cleanup)
-  # ═══════════════════════════════════════════════════════════════
-  prividium:
-    command: docker compose -f ./prividium-utils/docker-compose-prividium.yaml up
-    working_dir: .
-    depends_on:
-      prividium-pull:
-        condition: process_completed_successfully
-      chain1:
-        condition: process_healthy
-      chain2:
-        condition: process_healthy
-    readiness_probe:
-      exec:
-        command: "curl -sf http://localhost:8000/health && curl -sf http://localhost:8300/health"
-      initial_delay_seconds: 10
-      period_seconds: 5
-      timeout_seconds: 10
-      failure_threshold: 60
 
   # ═══════════════════════════════════════════════════════════════
   # DOCKER: Seed Prividium permissions databases (after prividium healthy)

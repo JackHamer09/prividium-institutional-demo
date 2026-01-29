@@ -1,7 +1,20 @@
-# Starts 2 prividiums on the local machine.
-# Assumes that L1 and 2 L2s are already present and running on port 3050 and 3051 respectively.
+# Starts L1 (Anvil), 2 L2s (ZKsync OS), and 2 Prividium instances.
 
 name: zksync-prividium-institutional-demo
+
+x-zksync-os-server: &zksync-os-server
+  image: ghcr.io/matter-labs/zksync-os-server:test-only-interop-demo@sha256:cc9d5d6f792e97ca6d86d908a9d19411d70e62a8d08cf82ed2acfb5c45216c95
+  platform: linux/amd64
+  restart: unless-stopped
+  extra_hosts:
+    - host.docker.internal:host-gateway
+  volumes:
+    - ../zksync-os-server/local-chains:/app/local-chains
+  tmpfs:
+    - /app/db:mode=1777
+  depends_on:
+    anvil:
+      condition: service_healthy
 
 x-admin-panel: &admin-panel
   image: quay.io/matterlabs_enterprise/prividium-adminv2@sha256:1ee8b6d581186de72f1f92ae71708be90af078168cd7e674dcd9189c1e78c949
@@ -19,6 +32,8 @@ x-permissions-api: &permissions-api
   restart: unless-stopped
   depends_on:
     - postgres
+    - chain1
+    - chain2
   environment: &permissions-api-env
     PORT: 8000
     METRICS_PORT: 9091
@@ -114,6 +129,45 @@ x-block-explorer-data-fetcher: &block-explorer-data-fetcher
     PRIVIDIUM_PERMISSIONS_API_URL: http://permissions-api:8000/api
 
 services:
+  # ═══════════════════════════════════════════════════════════════
+  # LAYER 1: L1 Chain (Anvil)
+  # ═══════════════════════════════════════════════════════════════
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:v1.3.4
+    platform: linux/amd64
+    environment:
+      - DOCKER_DEFAULT_PLATFORM=linux/amd64
+    container_name: zkos-anvil
+    ports:
+      - 8545:8545
+    volumes:
+      - ../zksync-os-server/local-chains:/app/local-chains
+    entrypoint: []
+    command: ["anvil", "--host", "0.0.0.0", "--load-state", "/app/local-chains/v31/multiple-chains/zkos-l1-state.json", "--port", "8545"]
+    healthcheck:
+      test: ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:8545"]
+      interval: 2s
+      timeout: 15s
+      retries: 10
+      start_period: 2s
+
+  # ═══════════════════════════════════════════════════════════════
+  # LAYER 2: L2 Chains (ZKsync OS)
+  # ═══════════════════════════════════════════════════════════════
+  chain1:
+    <<: *zksync-os-server
+    container_name: zkos-chain1
+    ports:
+      - 3050:3050
+    command: --config ./local-chains/v31/multiple-chains/chain1.json
+
+  chain2:
+    <<: *zksync-os-server
+    container_name: zkos-chain2
+    ports:
+      - 3051:3051
+    command: --config ./local-chains/v31/multiple-chains/chain2.json
+
   postgres:
     image: postgres:15
     restart: unless-stopped
