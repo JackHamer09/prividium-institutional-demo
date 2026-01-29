@@ -1,6 +1,30 @@
 # Starts L1 (Anvil), 2 L2s (ZKsync OS), and 2 Prividium instances.
+# Run from repo root: docker compose -f ./prividium-utils/docker-compose-prividium.yaml up
 
 name: zksync-prividium-institutional-demo
+
+# ═══════════════════════════════════════════════════════════════
+# Shared environment variables for setup/init containers
+# ═══════════════════════════════════════════════════════════════
+x-setup-env: &setup-env
+  # Deployer (Anvil default account #0)
+  DEPLOYER_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+  DEPLOYER_ADDRESS: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+  # Demo User 1
+  USER1_ADDRESS: "0xAD350E768913dAc29b8113C571fB3321c9d01495"
+  # Demo User 2
+  USER2_ADDRESS: "0xcFB389324aCf2e0Aad3aC5073166fe428f57fA89"
+  # Contract Addresses
+  REPO_CONTRACT_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+  USDC_ADDRESS: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+  TUST_ADDRESS: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+  SGD_ADDRESS: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+  # Mint Amounts (USDC: 6 decimals → 10,000 USDC; TUST/SGD: 18 decimals → 100 tokens)
+  USDC_MINT_AMOUNT: "10000000000"
+  TUST_MINT_AMOUNT: "100000000000000000000"
+  SGD_MINT_AMOUNT: "100000000000000000000"
+  # Deposit Amount (1100 ETH in wei)
+  DEPOSIT_AMOUNT: "1100000000000000000000"
 
 x-zksync-os-server: &zksync-os-server
   image: ghcr.io/matter-labs/zksync-os-server:test-only-interop-demo@sha256:cc9d5d6f792e97ca6d86d908a9d19411d70e62a8d08cf82ed2acfb5c45216c95
@@ -467,7 +491,10 @@ services:
   # ═══════════════════════════════════════════════════════════════
   interop-relay:
     image: ghcr.io/jackhamer09/cast-interop:latest
-    command: ["auto-relay", "--rpc", "http://chain1:3050", "http://chain2:3051", "--private-key", "${RELAY_PRIVATE_KEY}"]
+    environment:
+      RELAY_PRIVATE_KEY: "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110"
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["cast-interop auto-relay --rpc http://chain1:3050 http://chain2:3051 --private-key $$RELAY_PRIVATE_KEY"]
     restart: unless-stopped
     depends_on:
       chain1:
@@ -480,7 +507,8 @@ services:
   # ═══════════════════════════════════════════════════════════════
   deposit:
     image: ghcr.io/jackhamer09/prividium-setup-tools:latest
-    env_file: ../.env
+    environment:
+      <<: *setup-env
     command: >-
       bash -c "
       echo 'Depositing ETH for deployer on both chains...' &&
@@ -503,11 +531,11 @@ services:
   contracts-deploy:
     image: ghcr.io/jackhamer09/prividium-setup-tools:latest
     working_dir: /workspace/contracts
-    env_file: ../.env
     environment:
-      PRIVATE_KEY: ${DEPLOYER_PRIVATE_KEY}
+      <<: *setup-env
     command: >-
       bash -c "
+      export PRIVATE_KEY=$$DEPLOYER_PRIVATE_KEY &&
       cp -n .env.example .env 2>/dev/null || true &&
       echo 'Deploying contracts to chain1...' &&
       forge script script/Deploy.s.sol:DeployScript --rpc-url http://chain1:3050 --broadcast --legacy
@@ -519,7 +547,8 @@ services:
 
   mint-tokens:
     image: ghcr.io/jackhamer09/prividium-setup-tools:latest
-    env_file: ../.env
+    environment:
+      <<: *setup-env
     command: >-
       bash -c "
       set -e &&
@@ -540,7 +569,8 @@ services:
   bridge-tokens:
     image: ghcr.io/jackhamer09/prividium-setup-tools:latest
     working_dir: /workspace/scripts
-    env_file: ../.env
+    environment:
+      <<: *setup-env
     command: >-
       bash -c "
       set -e &&
@@ -560,7 +590,6 @@ services:
 
   prividium-seed:
     image: ghcr.io/jackhamer09/prividium-setup-tools:latest
-    env_file: ../.env
     command: >-
       bash -c "
       PGPASSWORD=postgres psql -h postgres -U postgres -d permissions_api_l2a < /workspace/prividium-utils/dev/seed-permissions-l2a.sql &&
@@ -581,7 +610,7 @@ services:
     ports:
       - 3004:3004
     environment:
-      NUXT_PUBLIC_INTRADAY_REPO_CONTRACT_ADDRESS: ${REPO_CONTRACT_ADDRESS}
+      NUXT_PUBLIC_INTRADAY_REPO_CONTRACT_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
       NUXT_PUBLIC_MAIN_CHAIN_ID: 6565
       NUXT_PUBLIC_USDC_ASSET_ID: "0x77baed655828a3026a312e17aab097575a2cb78962e977ff57a940df969fd88d"
       NUXT_PUBLIC_TUST_ASSET_ID: "0xb40c1d8f7cc6220ae72d6fc26ac5ac9267166abe7fce03ee92575a7b67d522a7"

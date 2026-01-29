@@ -16,10 +16,6 @@ Lenders create offers specifying loan terms (amount, collateral, duration, fee).
 ```bash
 # Clone repo with submodules
 git clone --recurse-submodules https://github.com/JackHamer09/prividium-institutional-demo
-
-# Copy environment config
-# has working default values out-of-the-box
-cp .env.example .env
 ```
 
 ### Start
