@@ -160,6 +160,12 @@ services:
     ports:
       - 3050:3050
     command: --config ./local-chains/v31/multiple-chains/chain1.json
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -X POST -H 'Content-Type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' http://localhost:3050 || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
 
   chain2:
     <<: *zksync-os-server
@@ -167,6 +173,12 @@ services:
     ports:
       - 3051:3051
     command: --config ./local-chains/v31/multiple-chains/chain2.json
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -X POST -H 'Content-Type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' http://localhost:3051 || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
 
   postgres:
     image: postgres:15
@@ -449,6 +461,158 @@ services:
     networks:
       default:
         aliases: [l2b-block-explorer-data-fetcher]
+
+  # ═══════════════════════════════════════════════════════════════
+  # INTEROP: Cross-chain message relay
+  # ═══════════════════════════════════════════════════════════════
+  interop-relay:
+    image: ghcr.io/jackhamer09/cast-interop:latest
+    command: ["auto-relay", "--rpc", "http://chain1:3050", "http://chain2:3051", "--private-key", "${RELAY_PRIVATE_KEY}"]
+    restart: unless-stopped
+    depends_on:
+      chain1:
+        condition: service_healthy
+      chain2:
+        condition: service_healthy
+
+  # ═══════════════════════════════════════════════════════════════
+  # SETUP: One-shot init containers (run in order, then exit)
+  # ═══════════════════════════════════════════════════════════════
+  deposit:
+    image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    env_file: ../.env
+    command: >-
+      bash -c "
+      echo 'Depositing ETH for deployer on both chains...' &&
+      ./scripts/deposit.sh $$DEPLOYER_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://anvil:8545 http://chain1:3050 &&
+      ./scripts/deposit.sh $$DEPLOYER_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://anvil:8545 http://chain2:3051 &&
+      echo 'Depositing ETH for user1 on both chains...' &&
+      ./scripts/deposit.sh $$USER1_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://anvil:8545 http://chain1:3050 &&
+      ./scripts/deposit.sh $$USER1_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://anvil:8545 http://chain2:3051 &&
+      echo 'Depositing ETH for user2 on both chains...' &&
+      ./scripts/deposit.sh $$USER2_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://anvil:8545 http://chain1:3050 &&
+      ./scripts/deposit.sh $$USER2_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://anvil:8545 http://chain2:3051
+      "
+    depends_on:
+      chain1:
+        condition: service_healthy
+      chain2:
+        condition: service_healthy
+    restart: "no"
+
+  contracts-deploy:
+    image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    working_dir: /workspace/contracts
+    env_file: ../.env
+    environment:
+      PRIVATE_KEY: ${DEPLOYER_PRIVATE_KEY}
+    command: >-
+      bash -c "
+      cp -n .env.example .env 2>/dev/null || true &&
+      echo 'Deploying contracts to chain1...' &&
+      forge script script/Deploy.s.sol:DeployScript --rpc-url http://chain1:3050 --broadcast --legacy
+      "
+    depends_on:
+      deposit:
+        condition: service_completed_successfully
+    restart: "no"
+
+  mint-tokens:
+    image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    env_file: ../.env
+    command: >-
+      bash -c "
+      set -e &&
+      echo 'Minting tokens for user1...' &&
+      ./scripts/mint.sh $$USER1_ADDRESS $$USDC_ADDRESS $$USDC_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://chain1:3050 &&
+      ./scripts/mint.sh $$USER1_ADDRESS $$TUST_ADDRESS $$TUST_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://chain1:3050 &&
+      ./scripts/mint.sh $$USER1_ADDRESS $$SGD_ADDRESS $$SGD_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://chain1:3050 &&
+      echo 'Minting tokens for deployer (will be bridged to user2 on Chain 2)...' &&
+      ./scripts/mint.sh $$DEPLOYER_ADDRESS $$USDC_ADDRESS $$USDC_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://chain1:3050 &&
+      ./scripts/mint.sh $$DEPLOYER_ADDRESS $$TUST_ADDRESS $$TUST_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://chain1:3050 &&
+      ./scripts/mint.sh $$DEPLOYER_ADDRESS $$SGD_ADDRESS $$SGD_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://chain1:3050
+      "
+    depends_on:
+      contracts-deploy:
+        condition: service_completed_successfully
+    restart: "no"
+
+  bridge-tokens:
+    image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    working_dir: /workspace/scripts
+    env_file: ../.env
+    command: >-
+      bash -c "
+      set -e &&
+      echo 'Bridging USDC to chain2...' &&
+      npm run bridge-token -- $$USDC_ADDRESS $$USDC_MINT_AMOUNT $$USER2_ADDRESS $$DEPLOYER_PRIVATE_KEY http://chain1:3050 http://chain2:3051 &&
+      echo 'Bridging TUST to chain2...' &&
+      npm run bridge-token -- $$TUST_ADDRESS $$TUST_MINT_AMOUNT $$USER2_ADDRESS $$DEPLOYER_PRIVATE_KEY http://chain1:3050 http://chain2:3051 &&
+      echo 'Bridging SGD to chain2...' &&
+      npm run bridge-token -- $$SGD_ADDRESS $$SGD_MINT_AMOUNT $$USER2_ADDRESS $$DEPLOYER_PRIVATE_KEY http://chain1:3050 http://chain2:3051
+      "
+    depends_on:
+      mint-tokens:
+        condition: service_completed_successfully
+      interop-relay:
+        condition: service_started
+    restart: "no"
+
+  prividium-seed:
+    image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    env_file: ../.env
+    command: >-
+      bash -c "
+      PGPASSWORD=postgres psql -h postgres -U postgres -d permissions_api_l2a < /workspace/prividium-utils/dev/seed-permissions-l2a.sql &&
+      PGPASSWORD=postgres psql -h postgres -U postgres -d permissions_api_l2b < /workspace/prividium-utils/dev/seed-permissions-l2b.sql
+      "
+    depends_on:
+      permissions-api-l2a:
+        condition: service_started
+      permissions-api-l2b:
+        condition: service_started
+    restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
+  # APP: Demo frontend (production build)
+  # ═══════════════════════════════════════════════════════════════
+  demo-app:
+    image: ghcr.io/jackhamer09/prividium-demo-app:latest
+    ports:
+      - 3004:3004
+    environment:
+      NUXT_PUBLIC_INTRADAY_REPO_CONTRACT_ADDRESS: ${REPO_CONTRACT_ADDRESS}
+      NUXT_PUBLIC_MAIN_CHAIN_ID: 6565
+      NUXT_PUBLIC_USDC_ASSET_ID: "0x77baed655828a3026a312e17aab097575a2cb78962e977ff57a940df969fd88d"
+      NUXT_PUBLIC_TUST_ASSET_ID: "0xb40c1d8f7cc6220ae72d6fc26ac5ac9267166abe7fce03ee92575a7b67d522a7"
+      NUXT_PUBLIC_SGD_ASSET_ID: "0x8a0022ba69551f46435ad4858532e8d55d16adf705d3da4f5237003feac26a3b"
+      NUXT_PUBLIC_L1_CHAIN_ID: 31337
+      NUXT_PUBLIC_L1_CHAIN_NAME: Local L1
+      NUXT_PUBLIC_L1_RPC_URL: http://localhost:8545
+      NUXT_PUBLIC_L1_BLOCK_EXPLORER_URL: http://localhost
+      NUXT_PUBLIC_L1_BLOCK_EXPLORER_NAME: Block Explorer
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_ID: 6565
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_NAME: Chain 1
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_OAUTH_CLIENT_ID: IjRacE3lJ8vF85jJ
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_AUTH_BASE_URL: http://localhost:3001
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_PRIVIDIUM_API_BASE_URL: http://localhost:8000
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_BLOCK_EXPLORER_URL: http://localhost:3010
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_BLOCK_EXPLORER_NAME: Block Explorer 1
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_ID: 6566
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_NAME: Chain 2
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_OAUTH_CLIENT_ID: IjRacE3lJ8vF85jJ
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_AUTH_BASE_URL: http://localhost:3301
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_PRIVIDIUM_API_BASE_URL: http://localhost:8300
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_BLOCK_EXPLORER_URL: http://localhost:3310
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_BLOCK_EXPLORER_NAME: Block Explorer 2
+    depends_on:
+      bridge-tokens:
+        condition: service_completed_successfully
+      chain1:
+        condition: service_healthy
+      chain2:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres:

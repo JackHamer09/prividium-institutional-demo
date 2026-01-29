@@ -8,23 +8,14 @@ Lenders create offers specifying loan terms (amount, collateral, duration, fee).
 
 ### Prerequisites:
 
+- [Docker](https://docs.docker.com/get-docker/) with Docker Compose v2.20+ — the only required dependency
 - Prividium Docker Images access - described [here](https://github.com/matter-labs/local-prividium?tab=readme-ov-file#1-authenticate-with-docker-registry)
-- [Rust](https://www.rust-lang.org/tools/install) - recommended version ~`1.92`
-- [Forge](https://github.com/foundry-rs/foundry) - version `1.3.4`
-- [Node.js](https://nodejs.org/en/download/) - recommended version `22.x`
-- [Docker](https://docs.docker.com/get-docker/) - to run Prividium services
-- [Homebrew](https://brew.sh/) - to install `process-compose` for easy local setup
-- Demo was tested on macOS ARM system
 
 ### Setup
 
 ```bash
 # Clone repo with submodules
 git clone --recurse-submodules https://github.com/JackHamer09/prividium-institutional-demo
-
-# Install `process-compose`
-# a process orchestration tool for easy local setup
-brew install f1bonacc1/tap/process-compose
 
 # Copy environment config
 # has working default values out-of-the-box
@@ -33,19 +24,14 @@ cp .env.example .env
 
 ### Start
 
-Would recommend running in larger terminal window for better visibility.
-
 ```bash
-process-compose up
+docker compose -f ./prividium-utils/docker-compose-prividium.yaml up
 ```
 
-1. Wait for all services to start and commands to complete
-   - The process list is scrollable, use navigation buttons to see all processes
-
+1. Wait for all services to start — init containers (deposit, deploy, mint, bridge) will run automatically in order
 1. Continue to Prividium and apps by checking sections [Links](#links) and [Demo](#demo) below
 
-- **Navigation**: Arrow keys to switch between processes, mouse can also be used
-- **Quit**: Press `F10` to stop all processes and exit
+- **Stop**: Press `Ctrl+C` or run `docker compose -f ./prividium-utils/docker-compose-prividium.yaml down`
 - **Note:** Chain data is not persisted between restarts, except Prividium related data (users, contracts, permissions, etc).
 
 ## Links:
