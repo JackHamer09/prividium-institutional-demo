@@ -33,6 +33,8 @@ x-zksync-os-server: &zksync-os-server
     - host.docker.internal:host-gateway
   volumes:
     - ../zksync-os-server/local-chains:/app/local-chains
+    - ./chain-configs/chain1.json:/app/local-chains/v31/multiple-chains/chain1.json:ro
+    - ./chain-configs/chain2.json:/app/local-chains/v31/multiple-chains/chain2.json:ro
   tmpfs:
     - /app/db:mode=1777
   depends_on:
@@ -623,6 +625,9 @@ services:
   prividium-seed:
     image: ghcr.io/jackhamer09/prividium-setup-tools:latest
     platform: linux/amd64
+    volumes:
+      - ./dev/seed-permissions-l2a.sql:/workspace/prividium-utils/dev/seed-permissions-l2a.sql:ro
+      - ./dev/seed-permissions-l2b.sql:/workspace/prividium-utils/dev/seed-permissions-l2b.sql:ro
     command: >-
       bash -c "
       echo 'Waiting for permissions API migrations to complete...' &&

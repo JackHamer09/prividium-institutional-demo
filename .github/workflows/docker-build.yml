@@ -2,7 +2,7 @@ name: Build and Push Docker Images
 
 on:
   push:
-    branches: [main, dockerize-everything]
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
     inputs:

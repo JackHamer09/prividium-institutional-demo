@@ -8,8 +8,14 @@ Lenders create offers specifying loan terms (amount, collateral, duration, fee).
 
 ### Prerequisites:
 
-- [Docker](https://docs.docker.com/get-docker/) with Docker Compose v2.20+ — the only required dependency
-- Prividium Docker Images access - described [here](https://github.com/matter-labs/local-prividium?tab=readme-ov-file#1-authenticate-with-docker-registry)
+- [Docker](https://www.docker.com/products/docker-desktop)
+- Prividium Docker Images access (provided by the MatterLabs team):
+```bash
+DOCKER_USERNAME=matterlabs_enterprise+your_username
+DOCKER_PASSWORD=super_secret_provided_by_matterlabs
+
+docker login -u=$DOCKER_USERNAME -p=$DOCKER_PASSWORD quay.io
+```
 
 ### Setup
 
@@ -21,26 +27,17 @@ git clone --recurse-submodules https://github.com/JackHamer09/prividium-institut
 ### Start
 
 ```bash
-docker compose -f ./prividium-utils/docker-compose-prividium.yaml up
+docker compose -f ./prividium-utils/docker-compose-prividium.yaml up -d
 ```
 
 1. Wait for all services to start — init containers (deposit, deploy, mint, bridge) will run automatically in order
-1. Continue to Prividium and apps by checking sections [Links](#links) and [Demo](#demo) below
+1. Continue by checking section [Demo](#demo) below
 
-- **Stop**: Press `Ctrl+C` or run `docker compose -f ./prividium-utils/docker-compose-prividium.yaml down`
-- **Note:** Chain data is not persisted between restarts, except Prividium related data (users, contracts, permissions, etc).
+- **Note:** Chain data is not persisted between restarts. To run again you will firstly need to reset the environment:
 
-## Links:
-
-- Intraday Repo App - [localhost:3004](http://localhost:3004)
-- **Chain 1**
-  - Prividium User Panel - [localhost:3001](http://localhost:3001)
-  - Prividium Admin Panel - [localhost:3000](http://localhost:3000)
-  - Block Explorer - [localhost:3010](http://localhost:3010)
-- **Chain 2**
-  - Prividium User Panel - [localhost:3301](http://localhost:3301)
-  - Prividium Admin Panel - [localhost:3300](http://localhost:3300)
-  - Block Explorer - [localhost:3310](http://localhost:3310)
+```bash
+docker compose -f ./prividium-utils/docker-compose-prividium.yaml down -v
+```
 
 ---
 
@@ -54,6 +51,13 @@ docker compose -f ./prividium-utils/docker-compose-prividium.yaml up
 
 ### Steps:
 
+1. **Setup MetaMask with demo accounts:**
+   - **Browser/Profile 1 (user1):**
+     - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
+     - Use private key: `0x6a657d9f98808f0d551411319b851b35e9ef6fca68f38ccc9b92871ec61e1efb`
+   - **Browser/Profile 2 (user2):**
+     - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
+     - Use private key: `0x93dd39ca8b2666c9bf1cee643f18df4fef6ca96668302978675af1d717459706`
 1. **Login to Prividium User Panel:**
    - **Browser/Profile 1:**
      - Open [Prividium User Panel - Chain 1](http://localhost:3001)
@@ -63,13 +67,6 @@ docker compose -f ./prividium-utils/docker-compose-prividium.yaml up
      - Open [Prividium User Panel - Chain 2](http://localhost:3301)
      - Click on OIDC login button
      - Use credentials: `user2@local.dev` / `password`
-1. **Setup MetaMask with demo accounts:**
-   - **Browser/Profile 1 (user1):**
-     - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
-     - Use private key: `0x6a657d9f98808f0d551411319b851b35e9ef6fca68f38ccc9b92871ec61e1efb`
-   - **Browser/Profile 2 (user2):**
-     - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
-     - Use private key: `0x93dd39ca8b2666c9bf1cee643f18df4fef6ca96668302978675af1d717459706`
 1. **Add Prividium chains to MetaMask:**
    - Go to [User Panel - Chain 1](http://localhost:3001)
    - In the `Network Configuration` section, click `Add to Network to Wallet` -> Confirm in MetaMask
@@ -80,6 +77,20 @@ docker compose -f ./prividium-utils/docker-compose-prividium.yaml up
    - Connect the corresponding MetaMask account
 1. **Start using the app!**
    - Create lending offers, accept them, repay loans, and claim collateral if needed.
+
+---
+
+## Links:
+
+- Intraday Repo App - [localhost:3004](http://localhost:3004)
+- **Chain 1**
+  - Prividium User Panel - [localhost:3001](http://localhost:3001)
+  - Prividium Admin Panel - [localhost:3000](http://localhost:3000)
+  - Block Explorer - [localhost:3010](http://localhost:3010)
+- **Chain 2**
+  - Prividium User Panel - [localhost:3301](http://localhost:3301)
+  - Prividium Admin Panel - [localhost:3300](http://localhost:3300)
+  - Block Explorer - [localhost:3310](http://localhost:3310)
 
 ---
 

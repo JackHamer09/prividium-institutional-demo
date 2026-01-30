@@ -1,0 +1,20 @@
+{
+  "general": {
+    "sandbox": true,
+    "l1_rpc_url": "http://anvil:8545"
+  },
+  "genesis": {
+    "bridgehub_address": "0x78b8b2dbaf2cb50b69a4a0ceee217b926c8520d2",
+    "bytecode_supplier_address": "0x76ce7b125966cfc367fb3cb529e8a1bad3ecd88e",
+    "genesis_input_path": "./local-chains/v31/genesis.json",
+    "chain_id": 6566
+  },
+  "l1_sender": {
+    "operator_commit_pk": "0x0a4cd3c3bf8b1e98d7fd075eccbc20f724b537c248ea0f87d0fed717b72c5220",
+    "operator_prove_pk": "0x7040160e041abfb51da73b4e9e9105b2e5b0626f74a56064ff92197438bbcedd",
+    "operator_execute_pk": "0xa4a09d7441e1465b1155cd6e1b9125cc7c4f6661f6ef41586ab7bb7fc756a85a"
+  },
+  "rpc": {
+    "address": "0.0.0.0:3051"
+  }
+}
