@@ -32,7 +32,7 @@
     "interop-sdk": "file:../sdk",
     "nuxt": "^4.2.1",
     "pinia": "^3.0.4",
-    "prividium": "^0.2.0",
+    "prividium": "^0.2.1",
     "tailwindcss": "^4.1.17",
     "viem": "^2.40.2",
     "vue": "^3.5.25",
