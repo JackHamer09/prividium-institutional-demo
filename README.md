@@ -61,16 +61,17 @@ docker compose -f ./prividium-utils/docker-compose-prividium.yaml down -v
 1. **Login to Prividium User Panel:**
    - **Browser/Profile 1:**
      - Open [Prividium User Panel - Chain 1](http://localhost:3001)
-     - Click on OIDC login button
+     - Click on `Sign in with Keycloack` button
      - Use credentials: `user1@local.dev` / `password`
    - **Browser/Profile 2:**
      - Open [Prividium User Panel - Chain 2](http://localhost:3301)
-     - Click on OIDC login button
+     - Click on `Sign in with Keycloack` button
      - Use credentials: `user2@local.dev` / `password`
+     - Repeat same on [Prividium User Panel - Chain 1](http://localhost:3001)
 1. **Add Prividium chains to MetaMask:**
-   - Go to [User Panel - Chain 1](http://localhost:3001)
+   - Go to [User Panel - Chain 1](http://localhost:3001/wallets) wallets page
    - In the `Network Configuration` section, click `Add to Network to Wallet` -> Confirm in MetaMask
-   - Repeat for [User Panel - Chain 2](http://localhost:3301)
+   - Repeat for [User Panel - Chain 2](http://localhost:3301/wallets) wallets page
 1. **Login to Intraday Repo App:**
    - Open [Intraday Repo App](http://localhost:3004) in both browsers
    - Login with Prividium (user1 in Browser 1, user2 in Browser 2)

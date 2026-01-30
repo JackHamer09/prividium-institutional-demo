@@ -57,8 +57,8 @@ importers:
         specifier: ^3.0.4
         version: 3.0.4(typescript@5.9.3)(vue@3.5.25(typescript@5.9.3))
       prividium:
-        specifier: ^0.1.8
-        version: 0.1.8(@fastify/swagger@9.6.1)(openapi-types@12.1.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13))
+        specifier: ^0.2.0
+        version: 0.2.0(@fastify/swagger@9.6.1)(openapi-types@12.1.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13))
       tailwindcss:
         specifier: ^4.1.17
         version: 4.1.17
@@ -2897,8 +2897,8 @@ packages:
       openapi-types: ^12.1.3
       zod: '>=4.1.5'
 
-  fastify@5.7.0:
-    resolution: {integrity: sha512-EA1WUXWhvo+G3ed9TUm+jd8UYdnSGMpCywM1A1CtZtb+h0cKnLb0t8w3TWPN3/w55JfzKZxd959ENp2nOKnZQw==}
+  fastify@5.7.2:
+    resolution: {integrity: sha512-dBJolW+hm6N/yJVf6J5E1BxOBNkuXNl405nrfeR8SpvGWG3aCC2XDHyiFBdow8Win1kj7sjawQc257JlYY6M/A==}
 
   fastq@1.19.1:
     resolution: {integrity: sha512-GwLTyxkCXjXbxqIhTsMI2Nui8huMPtnxg7krajPJAjnEG/iiOS7i+zCtWGZR9G0NBKbXKh6X9m9UIsYX/N6vvQ==}
@@ -4056,8 +4056,8 @@ packages:
     resolution: {integrity: sha512-nODzvTiYVRGRqAOvE84Vk5JDPyyxsVk0/fbA/bq7RqlnhksGpset09XTxbpvLTIjoaF7K8Z8DG8yHtKGTPSYRw==}
     engines: {node: '>=20'}
 
-  prividium@0.1.8:
-    resolution: {integrity: sha512-Y/A0eQCZSxidRmT55J3Z5OCrDuzil7lrWk8Q4sSfcT/sqDWVkkQk8wHI8dnF2bEYC/A5GLMT6exEvVse+OTdog==}
+  prividium@0.2.0:
+    resolution: {integrity: sha512-7zvsItvzbSGm7FSN8mkg9McbeoBzBnAWjNdblo7jbcUGnR38iPb4HbSSN6y2ghjCgZc28qWaX0nKTrD1emTLCw==}
     hasBin: true
     peerDependencies:
       viem: '>=2.0.0'
@@ -8204,15 +8204,15 @@ snapshots:
 
   fastify-plugin@5.1.0: {}
 
-  fastify-type-provider-zod@6.1.0(@fastify/swagger@9.6.1)(fastify@5.7.0)(openapi-types@12.1.3)(zod@4.1.13):
+  fastify-type-provider-zod@6.1.0(@fastify/swagger@9.6.1)(fastify@5.7.2)(openapi-types@12.1.3)(zod@4.1.13):
     dependencies:
       '@fastify/error': 4.2.0
       '@fastify/swagger': 9.6.1
-      fastify: 5.7.0
+      fastify: 5.7.2
       openapi-types: 12.1.3
       zod: 4.1.13
 
-  fastify@5.7.0:
+  fastify@5.7.2:
     dependencies:
       '@fastify/ajv-compiler': 4.0.5
       '@fastify/error': 4.2.0
@@ -9582,14 +9582,14 @@ snapshots:
 
   pretty-bytes@7.1.0: {}
 
-  prividium@0.1.8(@fastify/swagger@9.6.1)(openapi-types@12.1.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13)):
+  prividium@0.2.0(@fastify/swagger@9.6.1)(openapi-types@12.1.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13)):
     dependencies:
       '@clack/prompts': 0.11.0
       '@fastify/http-proxy': 11.4.1
       '@fastify/static': 8.3.0
       appdirsjs: 1.2.7
-      fastify: 5.7.0
-      fastify-type-provider-zod: 6.1.0(@fastify/swagger@9.6.1)(fastify@5.7.0)(openapi-types@12.1.3)(zod@4.1.13)
+      fastify: 5.7.2
+      fastify-type-provider-zod: 6.1.0(@fastify/swagger@9.6.1)(fastify@5.7.2)(openapi-types@12.1.3)(zod@4.1.13)
       kleur: 4.1.5
       open: 10.2.0
       viem: 2.40.2(typescript@5.9.3)(zod@4.1.13)
