@@ -25,7 +25,7 @@ SELECT setval('contract_templates_id_seq', COALESCE((SELECT MAX(id) FROM contrac
 -- USDC token
 INSERT INTO contracts (contract_address, abi, name, description, disclose_erc_20_balance, disclose_bytecode, template_id)
 VALUES (
-    decode('73a5705f4dc5291c01aa87c32a6d24e4cc3e7dfc', 'hex'),
+    decode('7d25763311e526942b0df8c4ed2056b1117c6c68', 'hex'),
     '[]',
     'USDC',
     NULL,
@@ -38,7 +38,7 @@ ON CONFLICT (contract_address) DO NOTHING;
 -- TUST token
 INSERT INTO contracts (contract_address, abi, name, description, disclose_erc_20_balance, disclose_bytecode, template_id)
 VALUES (
-    decode('a7767efa024f6b26940674dafb4417f371cfa178', 'hex'),
+    decode('73a5705f4dc5291c01aa87c32a6d24e4cc3e7dfc', 'hex'),
     '[]',
     'TUST',
     NULL,
@@ -51,7 +51,7 @@ ON CONFLICT (contract_address) DO NOTHING;
 -- SGD token
 INSERT INTO contracts (contract_address, abi, name, description, disclose_erc_20_balance, disclose_bytecode, template_id)
 VALUES (
-    decode('2cbebada0759d572866c6f6cc2fbd04c295be593', 'hex'),
+    decode('a7767efa024f6b26940674dafb4417f371cfa178', 'hex'),
     '[]',
     'SGD',
     NULL,

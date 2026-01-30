@@ -1,0 +1,77 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Optional image tag override"
+        required: false
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: cast-interop
+            image: ghcr.io/jackhamer09/cast-interop
+            context: ./cast-interop
+            dockerfile: ./docker/cast-interop.Dockerfile
+          - component: prividium-demo-app
+            image: ghcr.io/jackhamer09/prividium-demo-app
+            context: .
+            dockerfile: ./demo-app/Dockerfile
+          - component: prividium-setup-tools
+            image: ghcr.io/jackhamer09/prividium-setup-tools
+            context: .
+            dockerfile: ./docker/setup-tools.Dockerfile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ matrix.image }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=
+            type=semver,pattern={{version}}
+            type=raw,value=${{ inputs.tag }},enable=${{ inputs.tag != '' }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ matrix.image }}:buildcache
+          cache-to: type=registry,ref=${{ matrix.image }}:buildcache,mode=max

@@ -1,10 +1,48 @@
-# Starts 2 prividiums on the local machine.
-# Assumes that L1 and 2 L2s are already present and running on port 3050 and 3051 respectively.
+# Starts L1 (Anvil), 2 L2s (ZKsync OS), and 2 Prividium instances.
+# Run from repo root: docker compose -f ./prividium-utils/docker-compose-prividium.yaml up
 
 name: zksync-prividium-institutional-demo
 
+# ═══════════════════════════════════════════════════════════════
+# Shared environment variables for setup/init containers
+# ═══════════════════════════════════════════════════════════════
+x-setup-env: &setup-env # Deployer (Anvil default account #0)
+  DEPLOYER_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+  DEPLOYER_ADDRESS: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+  # Demo User 1
+  USER1_ADDRESS: "0xAD350E768913dAc29b8113C571fB3321c9d01495"
+  # Demo User 2
+  USER2_ADDRESS: "0xcFB389324aCf2e0Aad3aC5073166fe428f57fA89"
+  # Contract Addresses
+  REPO_CONTRACT_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+  USDC_ADDRESS: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+  TUST_ADDRESS: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+  SGD_ADDRESS: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+  # Mint Amounts (USDC: 6 decimals → 10,000 USDC; TUST/SGD: 18 decimals → 100 tokens)
+  USDC_MINT_AMOUNT: "10000000000"
+  TUST_MINT_AMOUNT: "100000000000000000000"
+  SGD_MINT_AMOUNT: "100000000000000000000"
+  # Deposit Amount (1100 ETH in wei)
+  DEPOSIT_AMOUNT: "1100000000000000000000"
+
+x-zksync-os-server: &zksync-os-server
+  image: ghcr.io/matter-labs/zksync-os-server:test-only-interop-demo@sha256:cc9d5d6f792e97ca6d86d908a9d19411d70e62a8d08cf82ed2acfb5c45216c95
+  platform: linux/amd64
+  restart: unless-stopped
+  extra_hosts:
+    - host.docker.internal:host-gateway
+  volumes:
+    - ../zksync-os-server/local-chains:/app/local-chains
+    - ./chain-configs/chain1.json:/app/local-chains/v31/multiple-chains/chain1.json:ro
+    - ./chain-configs/chain2.json:/app/local-chains/v31/multiple-chains/chain2.json:ro
+  tmpfs:
+    - /app/db:mode=1777
+  depends_on:
+    anvil:
+      condition: service_healthy
+
 x-admin-panel: &admin-panel
-  image: quay.io/matterlabs_enterprise/prividium-adminv2@sha256:1ee8b6d581186de72f1f92ae71708be90af078168cd7e674dcd9189c1e78c949
+  image: quay.io/matterlabs_enterprise/prividium-adminv2@sha256:5f4296b58c029f6a5b28d92d9f29355bc4cff9ee585757776b71d0e6ff0f6899
   platform: linux/amd64
   restart: unless-stopped
   environment: &admin-panel-env
@@ -14,11 +52,14 @@ x-admin-panel: &admin-panel
     - user-panel
 
 x-permissions-api: &permissions-api
-  image: quay.io/matterlabs_enterprise/prividium-permissions-api@sha256:f20a348fcce32f3c2f43d981236799892e11fa4680ffcc7c5654e516938c5052
+  image: quay.io/matterlabs_enterprise/prividium-permissions-api@sha256:153f9103ccfc1f712b4322c465c61dd4f900e5987420cc28082ec445fef01b6b
   platform: linux/amd64
   restart: unless-stopped
   depends_on:
-    - postgres
+    postgres:
+      condition: service_healthy
+    wait-for-chains:
+      condition: service_completed_successfully
   environment: &permissions-api-env
     PORT: 8000
     METRICS_PORT: 9091
@@ -33,7 +74,7 @@ x-permissions-api: &permissions-api
     USER_SESSION_DURATION_SECONDS: 86400 # 24 hours
 
 x-user-panel: &user-panel
-  image: quay.io/matterlabs_enterprise/prividium-user-panel@sha256:3e181ae58c720d232ca3312ccf62e98d5dade67bd716791b782567fec4cd7d33
+  image: quay.io/matterlabs_enterprise/prividium-user-panel@sha256:8456cdf3585878a21ff00ea9fbc44132c9c1528014e7d41a11ac0c78a4a8cdc5
   platform: linux/amd64
   restart: unless-stopped
   environment: &user-panel-env
@@ -51,7 +92,7 @@ x-user-panel: &user-panel
     - permissions-api
 
 x-block-explorer-api: &block-explorer-api
-  image: ghcr.io/matter-labs/block-explorer-api@sha256:6d5ebc5dfce80fd48f6ea534d795f98e13dc109625c09626b5cbdf074315efa4
+  image: ghcr.io/matter-labs/block-explorer-api@sha256:6f6ed4d80280af84f8304ce6772c24faa6a9666622007ebc22ab1612128e257f
   platform: linux/amd64
   extra_hosts:
     - host.docker.internal:host-gateway
@@ -72,10 +113,13 @@ x-block-explorer-api: &block-explorer-api
     API_LIMITED_PAGINATION_MAX_ITEMS: "1000"
     DISABLE_BFF_API_SCHEMA_DOCS: "true"
   depends_on:
-    - postgres
+    postgres:
+      condition: service_healthy
+    wait-for-chains:
+      condition: service_completed_successfully
 
 x-block-explorer-app: &block-explorer-app
-  image: ghcr.io/matter-labs/block-explorer-app@sha256:cd1ffe953935709b7e62ed30ef3eda8eee42c537bb2c6f5d65ecb67f5459a724
+  image: ghcr.io/matter-labs/block-explorer-app@sha256:1e123174ee30524825d19fdd0193dcee5f00a8868211482e2c04f79583381db9
   platform: linux/amd64
   environment: &block-explorer-app-env
     PORT: 3010
@@ -84,7 +128,7 @@ x-block-explorer-app: &block-explorer-app
     - block-explorer-api
 
 x-block-explorer-worker: &block-explorer-worker
-  image: ghcr.io/matter-labs/block-explorer-worker@sha256:ae4eb8b27b2762dfb4a7115bbafa7fe1473ecb502594b0aa31ba324c4ef68561
+  image: ghcr.io/matter-labs/block-explorer-worker@sha256:11fa4c45ad3d7c7f7760e4625338eae6c3c6f6dc0e885344b05256de402f7742
   platform: linux/amd64
   extra_hosts:
     - host.docker.internal:host-gateway
@@ -99,21 +143,97 @@ x-block-explorer-worker: &block-explorer-worker
     BLOCKS_PROCESSING_BATCH_SIZE: "10"
     NUMBER_OF_BLOCKS_PER_DB_TRANSACTION: "10"
   depends_on:
-    - postgres
-    - block-explorer-data-fetcher
+    postgres:
+      condition: service_healthy
+    block-explorer-data-fetcher:
+      condition: service_started
+    wait-for-chains:
+      condition: service_completed_successfully
 
 x-block-explorer-data-fetcher: &block-explorer-data-fetcher
-  image: ghcr.io/matter-labs/block-explorer-data-fetcher@sha256:4c7a3021d7888661cac81b60168eeb57d3b59f52f5f7ffce249c76a2529cae91
+  image: ghcr.io/matter-labs/block-explorer-data-fetcher@sha256:a42753bde2444e9db04e142a78d5244bead5c7b070f19ed2cf096abdf6c26338
   platform: linux/amd64
   extra_hosts:
     - host.docker.internal:host-gateway
+  depends_on:
+    wait-for-chains:
+      condition: service_completed_successfully
   environment: &block-explorer-data-fetcher-env
     NETWORK_NAME: testnet
-    BLOCKCHAIN_RPC_URL: http://host.docker.internal:3050
+    BLOCKCHAIN_RPC_URL: http://chain1:3050
     PRIVIDIUM: "true"
     PRIVIDIUM_PERMISSIONS_API_URL: http://permissions-api:8000/api
 
 services:
+  # ═══════════════════════════════════════════════════════════════
+  # LAYER 1: L1 Chain (Anvil)
+  # ═══════════════════════════════════════════════════════════════
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:v1.3.4
+    platform: linux/amd64
+    environment:
+      - DOCKER_DEFAULT_PLATFORM=linux/amd64
+    container_name: zkos-anvil
+    ports:
+      - 8545:8545
+    volumes:
+      - ../zksync-os-server/local-chains:/app/local-chains
+    entrypoint: []
+    command:
+      [
+        "anvil",
+        "--host",
+        "0.0.0.0",
+        "--load-state",
+        "/app/local-chains/v31/multiple-chains/zkos-l1-state.json",
+        "--port",
+        "8545",
+      ]
+    healthcheck:
+      test:
+        ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:8545"]
+      interval: 2s
+      timeout: 15s
+      retries: 10
+      start_period: 2s
+
+  # ═══════════════════════════════════════════════════════════════
+  # LAYER 2: L2 Chains (ZKsync OS)
+  # ═══════════════════════════════════════════════════════════════
+  chain1:
+    <<: *zksync-os-server
+    container_name: zkos-chain1
+    ports:
+      - 3050:3050
+    command: --config ./local-chains/v31/multiple-chains/chain1.json
+
+  chain2:
+    <<: *zksync-os-server
+    container_name: zkos-chain2
+    ports:
+      - 3051:3051
+    command: --config ./local-chains/v31/multiple-chains/chain2.json
+
+  # Waits for both L2 chains to be responsive (setup-tools image has curl)
+  wait-for-chains:
+    image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    platform: linux/amd64
+    command: >-
+      bash -c "
+      echo 'Waiting for chain1...' &&
+      until curl -sf -X POST -H 'Content-Type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' http://chain1:3050 > /dev/null 2>&1; do sleep 2; done &&
+      echo 'chain1 is ready!' &&
+      echo 'Waiting for chain2...' &&
+      until curl -sf -X POST -H 'Content-Type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' http://chain2:3051 > /dev/null 2>&1; do sleep 2; done &&
+      echo 'chain2 is ready!'
+      "
+    depends_on:
+      chain1:
+        condition: service_started
+      chain2:
+        condition: service_started
+    restart: "no"
+
   postgres:
     image: postgres:15
     restart: unless-stopped
@@ -187,7 +307,7 @@ services:
     container_name: prividium-permissions-api-l2a
     environment:
       <<: *permissions-api-env
-      SEQUENCER_RPC_URL: http://host.docker.internal:3050
+      SEQUENCER_RPC_URL: http://chain1:3050
       CORS_ORIGIN: http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3004
       ADMIN_PANEL_REDIRECT_URLS: http://localhost:3000/callback
       BLOCK_EXPLORER_REDIRECT_URLS: http://localhost:3010/auth/callback
@@ -211,8 +331,8 @@ services:
       VITE_CHAIN_NAME: "Chain 1"
       VITE_OIDC_REDIRECT_URI: http://localhost:3001/callback
       VITE_OIDC_POST_LOGOUT_REDIRECT_URI: http://localhost:3001/login
-      VITE_PORTAL_REDIRECT_URI: http://localhost:3002/callback
       VITE_ADMIN_PANEL_REDIRECT_URI: http://localhost:3000/callback
+      VITE_ADMIN_PANEL_URL: http://localhost:3000
       VITE_BLOCK_EXPLORER_REDIRECT_URI: http://localhost:3010/auth/callback
       VITE_PRIVIDIUM_API_URL: http://localhost:8000
       VITE_EXPLORER_URL: http://localhost:3010
@@ -230,7 +350,7 @@ services:
     environment:
       <<: *block-explorer-api-env
       PRIVIDIUM_APP_URL: http://localhost:3010
-      PRIVIDIUM_PERMISSIONS_API_URL: http://host.docker.internal:8000
+      PRIVIDIUM_PERMISSIONS_API_URL: http://permissions-api-l2a:8000
       DATABASE_NAME: prividium_block_explorer_l2a
 
     ports:
@@ -247,7 +367,7 @@ services:
     depends_on:
       - block-explorer-api-l2a
     volumes:
-      - ./dev/block-explorer/block-explorer-config.js:/usr/src/app/packages/app/dist/config.js:ro
+      - ./dev/block-explorer/block-explorer-config.js:/usr/share/nginx/html/config.js:ro
     networks:
       default:
         aliases: [l2a-block-explorer-app]
@@ -257,7 +377,7 @@ services:
     container_name: prividium-block-explorer-worker-l2a
     environment:
       <<: *block-explorer-worker-env
-      BLOCKCHAIN_RPC_URL: http://host.docker.internal:3050
+      BLOCKCHAIN_RPC_URL: http://chain1:3050
       DATA_FETCHER_URL: http://block-explorer-data-fetcher-l2a:3040
       PRIVIDIUM_PERMISSIONS_API_URL: http://permissions-api-l2a:8000/api
       DATABASE_NAME: prividium_block_explorer_l2a
@@ -273,7 +393,7 @@ services:
     container_name: prividium-block-explorer-data-fetcher-l2a
     environment:
       <<: *block-explorer-data-fetcher-env
-      BLOCKCHAIN_RPC_URL: http://host.docker.internal:3050
+      BLOCKCHAIN_RPC_URL: http://chain1:3050
       PRIVIDIUM_PERMISSIONS_API_URL: http://permissions-api-l2a:8000/api
     ports:
       - 3040:3040
@@ -303,7 +423,7 @@ services:
     container_name: prividium-permissions-api-l2b
     environment:
       <<: *permissions-api-env
-      SEQUENCER_RPC_URL: http://host.docker.internal:3051
+      SEQUENCER_RPC_URL: http://chain2:3051
       CORS_ORIGIN: http://localhost:3300,http://localhost:3301,http://localhost:3302,http://localhost:3004
       ADMIN_PANEL_REDIRECT_URLS: http://localhost:3300/callback
       BLOCK_EXPLORER_REDIRECT_URLS: http://localhost:3310/auth/callback
@@ -327,8 +447,8 @@ services:
       VITE_CHAIN_NAME: "Chain 2"
       VITE_OIDC_REDIRECT_URI: http://localhost:3301/callback
       VITE_OIDC_POST_LOGOUT_REDIRECT_URI: http://localhost:3301/login
-      VITE_PORTAL_REDIRECT_URI: http://localhost:3302/callback
       VITE_ADMIN_PANEL_REDIRECT_URI: http://localhost:3300/callback
+      VITE_ADMIN_PANEL_URL: http://localhost:3300
       VITE_BLOCK_EXPLORER_REDIRECT_URI: http://localhost:3310/auth/callback
       VITE_PRIVIDIUM_API_URL: http://localhost:8300
       VITE_EXPLORER_URL: http://localhost:3310
@@ -346,7 +466,7 @@ services:
     environment:
       <<: *block-explorer-api-env
       PRIVIDIUM_APP_URL: http://localhost:3310
-      PRIVIDIUM_PERMISSIONS_API_URL: http://host.docker.internal:8300
+      PRIVIDIUM_PERMISSIONS_API_URL: http://permissions-api-l2b:8000
       DATABASE_NAME: prividium_block_explorer_l2b
     ports:
       - 3302:3000
@@ -362,7 +482,7 @@ services:
     depends_on:
       - block-explorer-api-l2b
     volumes:
-      - ./dev/block-explorer/block-explorer-config-b.js:/usr/src/app/packages/app/dist/config.js:ro
+      - ./dev/block-explorer/block-explorer-config-b.js:/usr/share/nginx/html/config.js:ro
     networks:
       default:
         aliases: [l2b-block-explorer-app]
@@ -372,7 +492,7 @@ services:
     container_name: prividium-block-explorer-worker-l2b
     environment:
       <<: *block-explorer-worker-env
-      BLOCKCHAIN_RPC_URL: http://host.docker.internal:3051
+      BLOCKCHAIN_RPC_URL: http://chain2:3051
       DATA_FETCHER_URL: http://block-explorer-data-fetcher-l2b:3040
       PRIVIDIUM_PERMISSIONS_API_URL: http://permissions-api-l2b:8000/api
       DATABASE_NAME: prividium_block_explorer_l2b
@@ -388,13 +508,183 @@ services:
     container_name: prividium-block-explorer-data-fetcher-l2b
     environment:
       <<: *block-explorer-data-fetcher-env
-      BLOCKCHAIN_RPC_URL: http://host.docker.internal:3051
+      BLOCKCHAIN_RPC_URL: http://chain2:3051
       PRIVIDIUM_PERMISSIONS_API_URL: http://permissions-api-l2b:8000/api
     ports:
       - 3340:3040
     networks:
       default:
         aliases: [l2b-block-explorer-data-fetcher]
+
+  # ═══════════════════════════════════════════════════════════════
+  # INTEROP: Cross-chain message relay
+  # ═══════════════════════════════════════════════════════════════
+  interop-relay:
+    image: ghcr.io/jackhamer09/cast-interop:latest
+    platform: linux/amd64
+    environment:
+      RELAY_PRIVATE_KEY: "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      [
+        "cast-interop auto-relay --rpc http://chain1:3050 http://chain2:3051 --private-key $$RELAY_PRIVATE_KEY",
+      ]
+    restart: unless-stopped
+    depends_on:
+      wait-for-chains:
+        condition: service_completed_successfully
+
+  # ═══════════════════════════════════════════════════════════════
+  # SETUP: One-shot init containers (run in order, then exit)
+  # ═══════════════════════════════════════════════════════════════
+  deposit:
+    image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    platform: linux/amd64
+    environment:
+      <<: *setup-env
+    command: >-
+      bash -c "
+      echo 'Depositing ETH for deployer on both chains...' &&
+      ./scripts/deposit.sh $$DEPLOYER_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://anvil:8545 http://chain1:3050 &&
+      ./scripts/deposit.sh $$DEPLOYER_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://anvil:8545 http://chain2:3051 &&
+      echo 'Depositing ETH for user1 on both chains...' &&
+      ./scripts/deposit.sh $$USER1_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://anvil:8545 http://chain1:3050 &&
+      ./scripts/deposit.sh $$USER1_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://anvil:8545 http://chain2:3051 &&
+      echo 'Depositing ETH for user2 on both chains...' &&
+      ./scripts/deposit.sh $$USER2_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://anvil:8545 http://chain1:3050 &&
+      ./scripts/deposit.sh $$USER2_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://anvil:8545 http://chain2:3051
+      "
+    depends_on:
+      wait-for-chains:
+        condition: service_completed_successfully
+    restart: "no"
+
+  contracts-deploy:
+    image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    platform: linux/amd64
+    working_dir: /workspace/contracts
+    environment:
+      <<: *setup-env
+    command: >-
+      bash -c "
+      export PRIVATE_KEY=$$DEPLOYER_PRIVATE_KEY &&
+      cp -n .env.example .env 2>/dev/null || true &&
+      echo 'Deploying contracts to chain1...' &&
+      forge script script/Deploy.s.sol:DeployScript --rpc-url http://chain1:3050 --broadcast --legacy
+      "
+    depends_on:
+      deposit:
+        condition: service_completed_successfully
+    restart: "no"
+
+  mint-tokens:
+    image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    platform: linux/amd64
+    environment:
+      <<: *setup-env
+    command: >-
+      bash -c "
+      set -e &&
+      echo 'Minting tokens for user1...' &&
+      ./scripts/mint.sh $$USER1_ADDRESS $$USDC_ADDRESS $$USDC_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://chain1:3050 &&
+      ./scripts/mint.sh $$USER1_ADDRESS $$TUST_ADDRESS $$TUST_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://chain1:3050 &&
+      ./scripts/mint.sh $$USER1_ADDRESS $$SGD_ADDRESS $$SGD_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://chain1:3050 &&
+      echo 'Minting tokens for deployer (will be bridged to user2 on Chain 2)...' &&
+      ./scripts/mint.sh $$DEPLOYER_ADDRESS $$USDC_ADDRESS $$USDC_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://chain1:3050 &&
+      ./scripts/mint.sh $$DEPLOYER_ADDRESS $$TUST_ADDRESS $$TUST_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://chain1:3050 &&
+      ./scripts/mint.sh $$DEPLOYER_ADDRESS $$SGD_ADDRESS $$SGD_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://chain1:3050
+      "
+    depends_on:
+      contracts-deploy:
+        condition: service_completed_successfully
+    restart: "no"
+
+  bridge-tokens:
+    image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    platform: linux/amd64
+    working_dir: /workspace/scripts
+    environment:
+      <<: *setup-env
+    command: >-
+      bash -c "
+      set -e &&
+      echo 'Bridging USDC to chain2...' &&
+      npm run bridge-token -- $$USDC_ADDRESS $$USDC_MINT_AMOUNT $$USER2_ADDRESS $$DEPLOYER_PRIVATE_KEY http://chain1:3050 http://chain2:3051 &&
+      echo 'Bridging TUST to chain2...' &&
+      npm run bridge-token -- $$TUST_ADDRESS $$TUST_MINT_AMOUNT $$USER2_ADDRESS $$DEPLOYER_PRIVATE_KEY http://chain1:3050 http://chain2:3051 &&
+      echo 'Bridging SGD to chain2...' &&
+      npm run bridge-token -- $$SGD_ADDRESS $$SGD_MINT_AMOUNT $$USER2_ADDRESS $$DEPLOYER_PRIVATE_KEY http://chain1:3050 http://chain2:3051
+      "
+    depends_on:
+      mint-tokens:
+        condition: service_completed_successfully
+      interop-relay:
+        condition: service_started
+    restart: "no"
+
+  prividium-seed:
+    image: ghcr.io/jackhamer09/prividium-setup-tools:latest
+    platform: linux/amd64
+    volumes:
+      - ./dev/seed-permissions-l2a.sql:/workspace/prividium-utils/dev/seed-permissions-l2a.sql:ro
+      - ./dev/seed-permissions-l2b.sql:/workspace/prividium-utils/dev/seed-permissions-l2b.sql:ro
+    command: >-
+      bash -c "
+      echo 'Waiting for permissions API migrations to complete...' &&
+      until PGPASSWORD=postgres psql -h postgres -U postgres -d permissions_api_l2a -c 'SELECT 1 FROM users LIMIT 1' > /dev/null 2>&1; do
+        echo 'Waiting for permissions_api_l2a tables...'; sleep 3;
+      done &&
+      until PGPASSWORD=postgres psql -h postgres -U postgres -d permissions_api_l2b -c 'SELECT 1 FROM users LIMIT 1' > /dev/null 2>&1; do
+        echo 'Waiting for permissions_api_l2b tables...'; sleep 3;
+      done &&
+      echo 'Tables ready, seeding...' &&
+      PGPASSWORD=postgres psql -h postgres -U postgres -d permissions_api_l2a < /workspace/prividium-utils/dev/seed-permissions-l2a.sql &&
+      PGPASSWORD=postgres psql -h postgres -U postgres -d permissions_api_l2b < /workspace/prividium-utils/dev/seed-permissions-l2b.sql
+      "
+    depends_on:
+      permissions-api-l2a:
+        condition: service_started
+      permissions-api-l2b:
+        condition: service_started
+    restart: "no"
+
+  # ═══════════════════════════════════════════════════════════════
+  # APP: Demo frontend (production build)
+  # ═══════════════════════════════════════════════════════════════
+  demo-app:
+    image: ghcr.io/jackhamer09/prividium-demo-app:latest
+    platform: linux/amd64
+    ports:
+      - 3004:3004
+    environment:
+      NUXT_PUBLIC_INTRADAY_REPO_CONTRACT_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+      NUXT_PUBLIC_MAIN_CHAIN_ID: 6565
+      NUXT_PUBLIC_USDC_ASSET_ID: "0x8442d3800cd5cdec4c635bcbf29eca2a0d2912f96f2f2549fbd66d95e16b7036"
+      NUXT_PUBLIC_TUST_ASSET_ID: "0x77baed655828a3026a312e17aab097575a2cb78962e977ff57a940df969fd88d"
+      NUXT_PUBLIC_SGD_ASSET_ID: "0xb40c1d8f7cc6220ae72d6fc26ac5ac9267166abe7fce03ee92575a7b67d522a7"
+      NUXT_PUBLIC_L1_CHAIN_ID: 31337
+      NUXT_PUBLIC_L1_CHAIN_NAME: Local L1
+      NUXT_PUBLIC_L1_RPC_URL: http://localhost:8545
+      NUXT_PUBLIC_L1_BLOCK_EXPLORER_URL: http://localhost
+      NUXT_PUBLIC_L1_BLOCK_EXPLORER_NAME: Block Explorer
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_ID: 6565
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_NAME: Chain 1
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_OAUTH_CLIENT_ID: IjRacE3lJ8vF85jJ
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_AUTH_BASE_URL: http://localhost:3001
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_PRIVIDIUM_API_BASE_URL: http://localhost:8000
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_BLOCK_EXPLORER_URL: http://localhost:3010
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN1_BLOCK_EXPLORER_NAME: Block Explorer 1
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_ID: 6566
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_NAME: Chain 2
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_OAUTH_CLIENT_ID: IjRacE3lJ8vF85jJ
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_AUTH_BASE_URL: http://localhost:3301
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_PRIVIDIUM_API_BASE_URL: http://localhost:8300
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_BLOCK_EXPLORER_URL: http://localhost:3310
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN2_BLOCK_EXPLORER_NAME: Block Explorer 2
+    depends_on:
+      bridge-tokens:
+        condition: service_completed_successfully
+    restart: unless-stopped
 
 volumes:
   postgres:

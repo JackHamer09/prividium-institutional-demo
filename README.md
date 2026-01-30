@@ -8,57 +8,36 @@ Lenders create offers specifying loan terms (amount, collateral, duration, fee).
 
 ### Prerequisites:
 
-- Prividium Docker Images access - described [here](https://github.com/matter-labs/local-prividium?tab=readme-ov-file#1-authenticate-with-docker-registry)
-- [Rust](https://www.rust-lang.org/tools/install) - recommended version ~`1.92`
-- [Forge](https://github.com/foundry-rs/foundry) - version `1.3.4`
-- [Node.js](https://nodejs.org/en/download/) - recommended version `22.x`
-- [Docker](https://docs.docker.com/get-docker/) - to run Prividium services
-- [Homebrew](https://brew.sh/) - to install `process-compose` for easy local setup
-- Demo was tested on macOS ARM system
+- [Docker](https://www.docker.com/products/docker-desktop)
+- Prividium Docker Images access (provided by the MatterLabs team):
+```bash
+DOCKER_USERNAME=matterlabs_enterprise+your_username
+DOCKER_PASSWORD=super_secret_provided_by_matterlabs
+
+docker login -u=$DOCKER_USERNAME -p=$DOCKER_PASSWORD quay.io
+```
 
 ### Setup
 
 ```bash
 # Clone repo with submodules
 git clone --recurse-submodules https://github.com/JackHamer09/prividium-institutional-demo
-
-# Install `process-compose`
-# a process orchestration tool for easy local setup
-brew install f1bonacc1/tap/process-compose
-
-# Copy environment config
-# has working default values out-of-the-box
-cp .env.example .env
 ```
 
 ### Start
 
-Would recommend running in larger terminal window for better visibility.
-
 ```bash
-process-compose up
+docker compose -f ./prividium-utils/docker-compose-prividium.yaml up -d
 ```
 
-1. Wait for all services to start and commands to complete
-   - The process list is scrollable, use navigation buttons to see all processes
+1. Wait for all services to start — init containers (deposit, deploy, mint, bridge) will run automatically in order
+1. Continue by checking section [Demo](#demo) below
 
-1. Continue to Prividium and apps by checking sections [Links](#links) and [Demo](#demo) below
+- **Note:** Chain data is not persisted between restarts. To run again you will firstly need to reset the environment:
 
-- **Navigation**: Arrow keys to switch between processes, mouse can also be used
-- **Quit**: Press `F10` to stop all processes and exit
-- **Note:** Chain data is not persisted between restarts, except Prividium related data (users, contracts, permissions, etc).
-
-## Links:
-
-- Intraday Repo App - [localhost:3004](http://localhost:3004)
-- **Chain 1**
-  - Prividium User Panel - [localhost:3001](http://localhost:3001)
-  - Prividium Admin Panel - [localhost:3000](http://localhost:3000)
-  - Block Explorer - [localhost:3010](http://localhost:3010)
-- **Chain 2**
-  - Prividium User Panel - [localhost:3301](http://localhost:3301)
-  - Prividium Admin Panel - [localhost:3300](http://localhost:3300)
-  - Block Explorer - [localhost:3310](http://localhost:3310)
+```bash
+docker compose -f ./prividium-utils/docker-compose-prividium.yaml down -v
+```
 
 ---
 
@@ -72,15 +51,6 @@ process-compose up
 
 ### Steps:
 
-1. **Login to Prividium User Panel:**
-   - **Browser/Profile 1:**
-     - Open [Prividium User Panel - Chain 1](http://localhost:3001)
-     - Click on OIDC login button
-     - Use credentials: `user1@local.dev` / `password`
-   - **Browser/Profile 2:**
-     - Open [Prividium User Panel - Chain 2](http://localhost:3301)
-     - Click on OIDC login button
-     - Use credentials: `user2@local.dev` / `password`
 1. **Setup MetaMask with demo accounts:**
    - **Browser/Profile 1 (user1):**
      - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
@@ -88,16 +58,40 @@ process-compose up
    - **Browser/Profile 2 (user2):**
      - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
      - Use private key: `0x93dd39ca8b2666c9bf1cee643f18df4fef6ca96668302978675af1d717459706`
+1. **Login to Prividium User Panel:**
+   - **Browser/Profile 1:**
+     - Open [Prividium User Panel - Chain 1](http://localhost:3001)
+     - Click on `Sign in with Keycloack` button
+     - Use credentials: `user1@local.dev` / `password`
+   - **Browser/Profile 2:**
+     - Open [Prividium User Panel - Chain 2](http://localhost:3301)
+     - Click on `Sign in with Keycloack` button
+     - Use credentials: `user2@local.dev` / `password`
+     - Repeat same on [Prividium User Panel - Chain 1](http://localhost:3001)
 1. **Add Prividium chains to MetaMask:**
-   - Go to [User Panel - Chain 1](http://localhost:3001)
+   - Go to [User Panel - Chain 1](http://localhost:3001/wallets) wallets page
    - In the `Network Configuration` section, click `Add to Network to Wallet` -> Confirm in MetaMask
-   - Repeat for [User Panel - Chain 2](http://localhost:3301)
+   - Repeat for [User Panel - Chain 2](http://localhost:3301/wallets) wallets page
 1. **Login to Intraday Repo App:**
    - Open [Intraday Repo App](http://localhost:3004) in both browsers
    - Login with Prividium (user1 in Browser 1, user2 in Browser 2)
    - Connect the corresponding MetaMask account
 1. **Start using the app!**
    - Create lending offers, accept them, repay loans, and claim collateral if needed.
+
+---
+
+## Links:
+
+- Intraday Repo App - [localhost:3004](http://localhost:3004)
+- **Chain 1**
+  - Prividium User Panel - [localhost:3001](http://localhost:3001)
+  - Prividium Admin Panel - [localhost:3000](http://localhost:3000)
+  - Block Explorer - [localhost:3010](http://localhost:3010)
+- **Chain 2**
+  - Prividium User Panel - [localhost:3301](http://localhost:3301)
+  - Prividium Admin Panel - [localhost:3300](http://localhost:3300)
+  - Block Explorer - [localhost:3310](http://localhost:3310)
 
 ---
 
@@ -168,7 +162,7 @@ npm run bridge-token -- <TOKEN_ADDRESS> <AMOUNT> <RECIPIENT> <PRIVATE_KEY> <SOUR
 **Example (bridge 1000 USDC from chain 1 to chain 2):**
 
 ```bash
-npm run bridge-token -- 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0 1000000000 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 http://localhost:3050 http://localhost:3051
+npm run bridge-token -- 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 1000000000 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 http://localhost:3050 http://localhost:3051
 ```
 
 **Note:** The interop-relay must be running to execute the bridge bundle on the destination chain.
