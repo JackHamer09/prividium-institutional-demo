@@ -131,7 +131,8 @@ export function useL1Bridge() {
       const client = createViemClient({
         l1: l1PublicClient,
         l2: l2PublicClient,
-        l1Wallet: l1WalletClient,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        l1Wallet: l1WalletClient as any,
       });
       const sdk = createViemSdk(client);
 
