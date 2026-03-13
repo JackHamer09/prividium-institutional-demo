@@ -11,7 +11,7 @@ export interface TokenConfig {
 interface RuntimeConfig {
   public: {
     usdcAddress: string;
-    ttbillAddress: string;
+    tustAddress: string;
     sgdAddress: string;
   };
 }
@@ -30,11 +30,11 @@ export function getTokensConfig(runtimeConfig: RuntimeConfig): TokenConfig[] {
       iconUrl: "tokens/usdc.webp",
     },
     {
-      address: runtimeConfig.public.ttbillAddress as Address,
-      symbol: "TTBILL",
-      name: "Tokenized Treasury Bill",
+      address: runtimeConfig.public.tustAddress as Address,
+      symbol: "TUST",
+      name: "Tokenized US Treasuries",
       decimals: 18,
-      iconUrl: "tokens/ttbill.png",
+      iconUrl: "tokens/tust.png",
     },
     {
       address: runtimeConfig.public.sgdAddress as Address,

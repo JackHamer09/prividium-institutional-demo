@@ -24,9 +24,9 @@ contract DeployScript is Script {
             TestnetERC20Token usdc = new TestnetERC20Token("USD Coin", "USDC", 6);
             console.log("USDC deployed at:", address(usdc));
 
-            // Deploy TTBILL (18 decimals)
-            TestnetERC20Token ttbill = new TestnetERC20Token("Tokenized Treasury Bill", "TTBILL", 18);
-            console.log("TTBILL deployed at:", address(ttbill));
+            // Deploy TUST (18 decimals)
+            TestnetERC20Token tust = new TestnetERC20Token("Tokenized US Treasuries", "TUST", 18);
+            console.log("TUST deployed at:", address(tust));
 
             // Deploy SGD (18 decimals)
             TestnetERC20Token sgd = new TestnetERC20Token("Singapore Dollar", "SGD", 18);

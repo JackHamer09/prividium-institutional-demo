@@ -50,7 +50,7 @@ The script will output deployed contract addresses. Copy these addresses to your
 ```
 RepoContract deployed at: 0x...
 USDC deployed at: 0x...     (if DEPLOY_TEST_TOKENS=true)
-TTBILL deployed at: 0x...   (if DEPLOY_TEST_TOKENS=true)
+TUST deployed at: 0x...   (if DEPLOY_TEST_TOKENS=true)
 SGD deployed at: 0x...      (if DEPLOY_TEST_TOKENS=true)
 ```
 

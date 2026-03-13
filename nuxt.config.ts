@@ -54,7 +54,7 @@ export default defineNuxtConfig({
     public: {
       intradayRepoContractAddress: "",
       usdcAddress: "",
-      ttbillAddress: "",
+      tustAddress: "",
       sgdAddress: "",
       // Prividium Configuration
       prividiumClientId: "",

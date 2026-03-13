@@ -145,7 +145,7 @@ const toast = useToast();
 
 // Get default tokens
 const defaultLendToken = tokens.find((t) => t.symbol === "USDC");
-const defaultCollateralToken = tokens.find((t) => t.symbol === "TTBILL");
+const defaultCollateralToken = tokens.find((t) => t.symbol === "TUST");
 
 const form = reactive({
   lendToken: (defaultLendToken?.address || "") as Address | "",

@@ -96,7 +96,7 @@ Required env vars (see `.env.example`):
 - `NUXT_PUBLIC_SEPOLIA_RPC_URL`
 - `NUXT_PUBLIC_INTRADAY_REPO_CONTRACT_ADDRESS`
 - `NUXT_PUBLIC_USDC_ADDRESS`
-- `NUXT_PUBLIC_TTBILL_ADDRESS`
+- `NUXT_PUBLIC_TUST_ADDRESS`
 - `NUXT_PUBLIC_SGD_ADDRESS`
 
 Validated with Zod at runtime (`utils/validation.ts`).
