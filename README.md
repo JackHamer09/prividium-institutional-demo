@@ -55,10 +55,10 @@ docker compose -f ./prividium-utils/docker-compose.yaml down -v
 1. **Setup MetaMask with demo accounts:**
    - **Browser/Profile 1 (user1):**
      - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
-     - Use private key: `0x6a657d9f98808f0d551411319b851b35e9ef6fca68f38ccc9b92871ec61e1efb`
+     - Use private key: `0x93dd39ca8b2666c9bf1cee643f18df4fef6ca96668302978675af1d717459706`
    - **Browser/Profile 2 (user2):**
      - Open MetaMask -> Account dropdown -> `Add Wallet` -> `Import an account`
-     - Use private key: `0x93dd39ca8b2666c9bf1cee643f18df4fef6ca96668302978675af1d717459706`
+     - Use private key: `0x6a657d9f98808f0d551411319b851b35e9ef6fca68f38ccc9b92871ec61e1efb`
 1. **Login to Prividium User Panel:**
    - **Browser/Profile 1:**
      - Open [Prividium User Panel](http://localhost:3001)
