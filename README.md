@@ -8,6 +8,7 @@ Lenders create offers specifying loan terms (amount, collateral, duration, fee).
 
 ### Prerequisites:
 
+- [Git](https://git-scm.com/downloads) (or e.g. [GitHub Desktop](https://desktop.github.com/))
 - [Docker](https://www.docker.com/products/docker-desktop)
 - Prividium Docker Images access (provided by the MatterLabs team):
 ```bash
