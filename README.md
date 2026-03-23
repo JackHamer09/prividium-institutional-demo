@@ -31,7 +31,7 @@ git clone --recurse-submodules https://github.com/JackHamer09/prividium-institut
 docker compose -f ./prividium-utils/docker-compose.yaml up -d
 ```
 
-1. Wait for all services to start — init containers (deposit, deploy, mint) will run automatically in order
+1. Wait for all services to start — init containers (fund-accounts, deploy, mint) will run automatically in order
 1. Continue by checking section [Demo](#demo) below
 
 - **Note:** Chain data is not persisted between restarts. To run again you will firstly need to reset the environment:
@@ -87,8 +87,7 @@ docker compose -f ./prividium-utils/docker-compose.yaml down -v
 - Prividium Admin Panel - [localhost:3000](http://localhost:3000)
 - Block Explorer - [localhost:3010](http://localhost:3010)
 - Keycloak - [localhost:5080](http://localhost:5080)
-- L2 RPC - [localhost:5050](http://localhost:5050)
-- L1 RPC (Anvil) - [localhost:5010](http://localhost:5010)
+- Besu RPC - [localhost:8545](http://localhost:8545)
 
 ---
 
@@ -120,21 +119,7 @@ Mint test tokens to any address (only works with [TestnetERC20Token](./contracts
 **Example (mint 1000 USDC):**
 
 ```bash
-./scripts/mint.sh 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 1000000000 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 http://localhost:5050
-```
-
-### Deposit ETH (L1 to L2)
-
-Deposit ETH from L1 to L2 via the bridge contract. The script automatically fetches the Bridgehub contract address from L2:
-
-```bash
-./scripts/deposit.sh <TO_ADDRESS> <AMOUNT_IN_WEI> <PRIVATE_KEY> <L1_RPC> <L2_RPC>
-```
-
-**Example (deposit 1000 ETH):**
-
-```bash
-./scripts/deposit.sh 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000000000000000000000 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 http://localhost:5010 http://localhost:5050
+./scripts/mint.sh 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 1000000000 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 http://localhost:8545
 ```
 
 ---

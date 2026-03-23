@@ -44,29 +44,17 @@
         </div>
 
         <!-- Wallet Connection Options -->
-        <div class="space-y-3">        
-          <!-- ZKsync SSO Option (Primary) -->
-          <CommonButton
-            variant="primary"
-            size="lg"
-            full-width
-            :loading="walletStore.isConnecting && connectingType === 'zksync-sso'"
-            :disabled="walletStore.isConnecting && connectingType !== 'zksync-sso'"
-            @click="handleConnect('zksync-sso')"
-          >
-            Continue with ZKsync SSO
-          </CommonButton>
-
+        <div class="space-y-3">
           <!-- Browser Wallet Option -->
           <CommonButton
-            variant="secondary"
+            variant="primary"
             size="lg"
             full-width
             :loading="walletStore.isConnecting && connectingType === 'injected'"
             :disabled="walletStore.isConnecting && connectingType !== 'injected'"
             @click="handleConnect('injected')"
           >
-            Browser Wallet
+            Connect Wallet
           </CommonButton>
         </div>
 

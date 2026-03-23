@@ -45,8 +45,7 @@ cast send \
     "mint(address,uint256)" \
     "$TO_ADDRESS" "$AMOUNT" \
     --private-key "$PRIVATE_KEY" \
-    --gas-limit 10000000 \
-    --legacy
+    --gas-limit 10000000
 
 echo ""
 echo "Mint transaction sent!"

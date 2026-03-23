@@ -24,8 +24,8 @@ COPY contracts/ ./contracts/
 RUN cp -n ./contracts/.env.example ./contracts/.env 2>/dev/null || true
 
 # Copy shell scripts
-COPY scripts/deposit.sh scripts/mint.sh ./scripts/
-RUN chmod +x ./scripts/deposit.sh ./scripts/mint.sh
+COPY scripts/mint.sh ./scripts/
+RUN chmod +x ./scripts/mint.sh
 
 # Copy prividium seed SQL file
 COPY prividium-utils/dev/seed-permissions.sql ./prividium-utils/dev/seed-permissions.sql

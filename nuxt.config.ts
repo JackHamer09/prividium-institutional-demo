@@ -66,8 +66,6 @@ export default defineNuxtConfig({
       prividiumChainName: "",
       prividiumBlockExplorerUrl: "",
       prividiumBlockExplorerName: "",
-      // ZKsync SSO Configuration
-      zksyncSsoAuthServerUrl: "",
     },
   },
   vite: {

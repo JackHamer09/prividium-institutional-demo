@@ -1,17 +1,20 @@
-# Starts L1 (Anvil), L2 (ZKsync OS), and Prividium services.
+# Starts Besu (local EVM chain) and Prividium services.
 # Run from repo root: docker compose -f ./prividium-utils/docker-compose.yaml up
 
-name: zksync-prividium-single-chain
+name: besu-prividium
 
 # ═══════════════════════════════════════════════════════════════
 # Shared environment variables for setup/init containers
 # ═══════════════════════════════════════════════════════════════
-x-setup-env: &setup-env # Deployer (Anvil default account #0)
+x-setup-env: &setup-env # Clique signer account (pre-funded in genesis)
+  SIGNER_PRIVATE_KEY: "0xc87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3"
+  SIGNER_ADDRESS: "0x627306090abaB3A6e1400e9345bC60c78a8BEf57"
+  # Deployer (pre-funded in genesis)
   DEPLOYER_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
   DEPLOYER_ADDRESS: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
-  # Demo User 1
+  # Demo User 1 (pre-funded in genesis)
   USER1_ADDRESS: "0xAD350E768913dAc29b8113C571fB3321c9d01495"
-  # Demo User 2
+  # Demo User 2 (pre-funded in genesis)
   USER2_ADDRESS: "0xcFB389324aCf2e0Aad3aC5073166fe428f57fA89"
   # Contract Addresses (deterministic from deployer nonce)
   REPO_CONTRACT_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
@@ -22,63 +25,35 @@ x-setup-env: &setup-env # Deployer (Anvil default account #0)
   USDC_MINT_AMOUNT: "10000000000"
   TUST_MINT_AMOUNT: "100000000000000000000"
   SGD_MINT_AMOUNT: "100000000000000000000"
-  # Deposit Amount (1100 ETH in wei)
-  DEPOSIT_AMOUNT: "1100000000000000000000"
 
 services:
   # ═══════════════════════════════════════════════════════════════
-  # LAYER 1: L1 Chain (Anvil)
+  # CHAIN: Hyperledger Besu (Clique PoA, single signer)
   # ═══════════════════════════════════════════════════════════════
-  l1:
-    image: ghcr.io/foundry-rs/foundry:v1.3.4
-    platform: linux/amd64
-    container_name: zkos-l1
+  besu:
+    image: hyperledger/besu:24.12.2
+    container_name: besu-chain
     ports:
-      - 5010:5010
+      - 8545:8545
     volumes:
-      - ./dev/zksyncos:/app/zksyncos
-    entrypoint: []
+      - ./dev/besu/genesis.json:/config/genesis.json:ro
+      - ./dev/besu/signer-key:/config/signer-key:ro
     command:
-      [
-        "anvil",
-        "--host",
-        "0.0.0.0",
-        "--load-state",
-        "/app/zksyncos/zkos-l1-state.json",
-        "--port",
-        "5010",
-      ]
+      - --genesis-file=/config/genesis.json
+      - --rpc-http-enabled
+      - --rpc-http-host=0.0.0.0
+      - --rpc-http-port=8545
+      - --rpc-http-cors-origins=*
+      - --rpc-http-api=ETH,NET,WEB3,DEBUG,ADMIN,TXPOOL
+      - --host-allowlist=*
+      - --p2p-enabled=false
+      - --node-private-key-file=/config/signer-key
     healthcheck:
       test:
-        ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:5010"]
-      interval: 2s
-      timeout: 15s
-      retries: 10
-      start_period: 2s
-
-  # ═══════════════════════════════════════════════════════════════
-  # LAYER 2: L2 Chain (ZKsync OS)
-  # ═══════════════════════════════════════════════════════════════
-  zksyncos:
-    image: ghcr.io/matter-labs/zksync-os-server:v0.12.0
-    platform: linux/amd64
-    container_name: zkos-chain
-    user: root
-    restart: unless-stopped
-    extra_hosts:
-      - host.docker.internal:host-gateway
-    ports:
-      - 5050:3050
-    environment:
-      GENERAL_L1_RPC_URL: http://l1:5010
-    volumes:
-      - zksyncos:/app/db
-    depends_on:
-      l1:
-        condition: service_healthy
-    healthcheck:
-      test:
-        ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/3050' 2>/dev/null"]
+        [
+          "CMD-SHELL",
+          "bash -c 'echo > /dev/tcp/localhost/8545' 2>/dev/null",
+        ]
       interval: 5s
       timeout: 10s
       retries: 30
@@ -142,13 +117,13 @@ services:
   # PRIVIDIUM SERVICES
   # ═══════════════════════════════════════════════════════════════
   prividium-api:
-    image: quay.io/matterlabs_enterprise/prividium-permissions-api:v1.153.1
+    image: quay.io/matterlabs_enterprise/prividium-permissions-api:v1.163.1
     platform: linux/amd64
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
-      zksyncos:
+      besu:
         condition: service_healthy
       keycloak:
         condition: service_healthy
@@ -158,13 +133,13 @@ services:
       WALLETS_API_ENABLED: "true"
       AUTH_METHODS: oidc,crypto_native
       NODE_ENV: production
-      SEQUENCER_RPC_URL: http://zksyncos:3050
+      SEQUENCER_RPC_URL: http://besu:8545
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/prividium_api
       CORS_ORIGIN: http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003
       ADMIN_PANEL_REDIRECT_URLS: http://localhost:3000/callback
       BLOCK_EXPLORER_REDIRECT_URLS: http://localhost:3010/auth/callback
       SIWE_VALID_DOMAINS: localhost:3000,localhost:3001,localhost:3003
-      SIWE_CHAIN_ID: 6565
+      SIWE_CHAIN_ID: 1337
       OIDC_JWKS_URI: http://keycloak:8080/realms/prividium/protocol/openid-connect/certs
       OIDC_JWT_AUD: prividium-client
       OIDC_JWT_ISSUER: http://localhost:5080/realms/prividium
@@ -181,7 +156,7 @@ services:
       - 9091:9091
 
   admin-panel:
-    image: quay.io/matterlabs_enterprise/prividium-adminv2:v1.153.1
+    image: quay.io/matterlabs_enterprise/prividium-adminv2:v1.163.1
     platform: linux/amd64
     container_name: prividium-admin-panel
     restart: unless-stopped
@@ -197,7 +172,7 @@ services:
       - 3000:3000
 
   user-panel:
-    image: quay.io/matterlabs_enterprise/prividium-user-panel:v1.153.1
+    image: quay.io/matterlabs_enterprise/prividium-user-panel:v1.163.1
     platform: linux/amd64
     container_name: prividium-user-panel
     restart: unless-stopped
@@ -208,8 +183,8 @@ services:
       VITE_AUTH_METHODS: oidc,crypto_native
       VITE_WALLETS_ENABLED: "true"
       PORT: 3000
-      VITE_CHAIN_ID: 6565
-      VITE_CHAIN_NAME: "Local Prividium"
+      VITE_CHAIN_ID: 1337
+      VITE_CHAIN_NAME: "Local Besu"
       VITE_OIDC_REDIRECT_URI: http://localhost:3001/callback
       VITE_OIDC_POST_LOGOUT_REDIRECT_URI: http://localhost:3001/login
       VITE_ADMIN_PANEL_REDIRECT_URI: http://localhost:3000/callback
@@ -218,9 +193,7 @@ services:
       VITE_PRIVIDIUM_API_URL: http://localhost:8000
       VITE_EXPLORER_URL: http://localhost:3010
       VITE_BRIDGING_ENABLED: "false"
-      VITE_L1_RPC_URL: http://localhost:5010
-      VITE_L1_CHAIN_ID: 31337
-      VITE_L1_CHAIN_NAME: Anvil Localhost
+      VITE_REOWN_PROJECT_ID: "a4160dbab1f9822e5798a1579d8c4ae7"
     depends_on:
       - prividium-api
     ports:
@@ -256,7 +229,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      zksyncos:
+      besu:
         condition: service_healthy
     ports:
       - 3002:3000
@@ -287,7 +260,7 @@ services:
       DATABASE_PASSWORD: postgres
       DATABASE_NAME: prividium_block_explorer
       DATABASE_ENABLE_SSL: "false"
-      BLOCKCHAIN_RPC_URL: http://zksyncos:3050
+      BLOCKCHAIN_RPC_URL: http://besu:8545
       DATA_FETCHER_URL: http://block-explorer-data-fetcher:3040
       NETWORK_NAME: testnet
       PRIVIDIUM: "true"
@@ -300,7 +273,7 @@ services:
         condition: service_healthy
       block-explorer-data-fetcher:
         condition: service_started
-      zksyncos:
+      besu:
         condition: service_healthy
 
   block-explorer-data-fetcher:
@@ -310,11 +283,11 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     depends_on:
-      zksyncos:
+      besu:
         condition: service_healthy
     environment:
       NETWORK_NAME: testnet
-      BLOCKCHAIN_RPC_URL: http://zksyncos:3050
+      BLOCKCHAIN_RPC_URL: http://besu:8545
       PRIVIDIUM: "true"
       PRIVIDIUM_PERMISSIONS_API_URL: http://prividium-api:8000/api
     ports:
@@ -323,28 +296,6 @@ services:
   # ═══════════════════════════════════════════════════════════════
   # SETUP: One-shot init containers (run in order, then exit)
   # ═══════════════════════════════════════════════════════════════
-  deposit:
-    image: ghcr.io/jackhamer09/prividium-setup-tools:single-chain
-    build:
-      context: ..
-      dockerfile: docker/setup-tools.Dockerfile
-    platform: linux/amd64
-    environment:
-      <<: *setup-env
-    command: >-
-      bash -c "
-      echo 'Depositing ETH for deployer...' &&
-      ./scripts/deposit.sh $$DEPLOYER_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://l1:5010 http://zksyncos:3050 &&
-      echo 'Depositing ETH for user1...' &&
-      ./scripts/deposit.sh $$USER1_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://l1:5010 http://zksyncos:3050 &&
-      echo 'Depositing ETH for user2...' &&
-      ./scripts/deposit.sh $$USER2_ADDRESS $$DEPOSIT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://l1:5010 http://zksyncos:3050
-      "
-    depends_on:
-      zksyncos:
-        condition: service_healthy
-    restart: "no"
-
   contracts-deploy:
     image: ghcr.io/jackhamer09/prividium-setup-tools:single-chain
     build:
@@ -361,11 +312,11 @@ services:
       export DEPLOY_TEST_TOKENS=true &&
       cp -n .env.example .env 2>/dev/null || true &&
       echo 'Deploying contracts...' &&
-      forge script script/Deploy.s.sol:DeployScript --rpc-url http://zksyncos:3050 --broadcast --legacy
+      forge script script/Deploy.s.sol:DeployScript --rpc-url http://besu:8545 --broadcast
       "
     depends_on:
-      deposit:
-        condition: service_completed_successfully
+      besu:
+        condition: service_healthy
     restart: "no"
 
   mint-tokens:
@@ -380,13 +331,13 @@ services:
       bash -c "
       set -e &&
       echo 'Minting tokens for user1...' &&
-      ./scripts/mint.sh $$USER1_ADDRESS $$USDC_ADDRESS $$USDC_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://zksyncos:3050 &&
-      ./scripts/mint.sh $$USER1_ADDRESS $$TUST_ADDRESS $$TUST_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://zksyncos:3050 &&
-      ./scripts/mint.sh $$USER1_ADDRESS $$SGD_ADDRESS $$SGD_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://zksyncos:3050 &&
+      ./scripts/mint.sh $$USER1_ADDRESS $$USDC_ADDRESS $$USDC_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://besu:8545 &&
+      ./scripts/mint.sh $$USER1_ADDRESS $$TUST_ADDRESS $$TUST_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://besu:8545 &&
+      ./scripts/mint.sh $$USER1_ADDRESS $$SGD_ADDRESS $$SGD_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://besu:8545 &&
       echo 'Minting tokens for user2...' &&
-      ./scripts/mint.sh $$USER2_ADDRESS $$USDC_ADDRESS $$USDC_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://zksyncos:3050 &&
-      ./scripts/mint.sh $$USER2_ADDRESS $$TUST_ADDRESS $$TUST_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://zksyncos:3050 &&
-      ./scripts/mint.sh $$USER2_ADDRESS $$SGD_ADDRESS $$SGD_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://zksyncos:3050
+      ./scripts/mint.sh $$USER2_ADDRESS $$USDC_ADDRESS $$USDC_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://besu:8545 &&
+      ./scripts/mint.sh $$USER2_ADDRESS $$TUST_ADDRESS $$TUST_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://besu:8545 &&
+      ./scripts/mint.sh $$USER2_ADDRESS $$SGD_ADDRESS $$SGD_MINT_AMOUNT $$DEPLOYER_PRIVATE_KEY http://besu:8545
       "
     depends_on:
       contracts-deploy:
@@ -435,11 +386,10 @@ services:
       NUXT_PUBLIC_PRIVIDIUM_RPC_URL: http://localhost:8000/rpc
       NUXT_PUBLIC_PRIVIDIUM_AUTH_BASE_URL: http://localhost:3001
       NUXT_PUBLIC_PRIVIDIUM_PERMISSIONS_API_BASE_URL: http://localhost:8000
-      NUXT_PUBLIC_PRIVIDIUM_CHAIN_ID: 6565
-      NUXT_PUBLIC_PRIVIDIUM_CHAIN_NAME: Local Prividium
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN_ID: 1337
+      NUXT_PUBLIC_PRIVIDIUM_CHAIN_NAME: Local Besu
       NUXT_PUBLIC_PRIVIDIUM_BLOCK_EXPLORER_URL: http://localhost:3010
       NUXT_PUBLIC_PRIVIDIUM_BLOCK_EXPLORER_NAME: Block Explorer
-      NUXT_PUBLIC_ZKSYNC_SSO_AUTH_SERVER_URL: http://localhost:3001/confirm
     depends_on:
       mint-tokens:
         condition: service_completed_successfully
@@ -449,4 +399,3 @@ services:
 
 volumes:
   postgres:
-  zksyncos:

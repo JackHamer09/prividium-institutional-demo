@@ -221,15 +221,15 @@ ON CONFLICT (user_id, role_name) DO NOTHING;
 -- ============================================================================
 -- Admin wallet (Anvil default account #0)
 INSERT INTO user_wallets (wallet_address, user_id)
-VALUES (decode('f39Fd6e51aad88F6F4ce6aB8827279cffFb92266', 'hex'), 'v3rW8Y-bBmTypyI448Q6A')
-ON CONFLICT ON CONSTRAINT user_wallets_address_active_unique DO NOTHING;
+VALUES (decode('f39fd6e51aad88f6f4ce6ab8827279cfffb92266', 'hex'), 'v3rW8Y-bBmTypyI448Q6A')
+ON CONFLICT (wallet_address) WHERE deleted_at IS NULL DO NOTHING;
 
 -- User 1 wallet (Lender)
 INSERT INTO user_wallets (wallet_address, user_id)
-VALUES (decode('AD350E768913dAc29b8113C571fB3321c9d01495', 'hex'), 'u1Xe7K-cDnUzqyJ559R7B')
-ON CONFLICT ON CONSTRAINT user_wallets_address_active_unique DO NOTHING;
+VALUES (decode('ad350e768913dac29b8113c571fb3321c9d01495', 'hex'), 'u1Xe7K-cDnUzqyJ559R7B')
+ON CONFLICT (wallet_address) WHERE deleted_at IS NULL DO NOTHING;
 
 -- User 2 wallet (Borrower)
 INSERT INTO user_wallets (wallet_address, user_id)
-VALUES (decode('cFB389324aCf2e0Aad3aC5073166fe428f57fA89', 'hex'), 'u2Yf8L-dEoVarxK660S8C')
-ON CONFLICT ON CONSTRAINT user_wallets_address_active_unique DO NOTHING;
+VALUES (decode('cfb389324acf2e0aad3ac5073166fe428f57fa89', 'hex'), 'u2Yf8L-dEoVarxK660S8C')
+ON CONFLICT (wallet_address) WHERE deleted_at IS NULL DO NOTHING;
