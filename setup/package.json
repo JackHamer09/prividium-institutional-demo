@@ -1,0 +1,17 @@
+{
+  "name": "@repo/institutional-demo-setup",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "tsx scripts/deploy-contracts.ts",
+    "seed": "tsx scripts/setup-permissions.ts"
+  },
+  "dependencies": {
+    "postgres": "^3.4.0",
+    "viem": "^2.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}
