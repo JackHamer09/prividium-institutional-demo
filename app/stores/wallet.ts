@@ -12,6 +12,7 @@ export const useWalletStore = defineStore("wallet", () => {
   const isConnecting = ref(false);
   const chainId = ref<number | undefined>(undefined);
   const connectorType = ref<WalletConnectorType | undefined>(undefined);
+  const isZksyncSso = computed(() => connectorType.value === "zksync-sso");
 
   let unwatchConnections: (() => void) | undefined;
 
@@ -124,6 +125,7 @@ export const useWalletStore = defineStore("wallet", () => {
     isConnecting,
     chainId,
     connectorType,
+    isZksyncSso,
     initialize,
     connectWallet,
     disconnectWallet,

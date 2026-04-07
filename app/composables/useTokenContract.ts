@@ -9,8 +9,7 @@ export function useTokenContract() {
   const toast = useToast();
   const { ensureCorrectChain, getChainId } = useChainSwitch();
   const { executeWrite } = usePrividiumWrite();
-  const { address, connectorType } = storeToRefs(useWalletStore());
-  const isZksyncSso = computed(() => connectorType.value === "zksync-sso");
+  const { address, isZksyncSso } = storeToRefs(useWalletStore());
 
   /**
    * Get token balance for an address
@@ -75,9 +74,10 @@ export function useTokenContract() {
         chainId: getChainId(),
       });
 
-      if (!isZksyncSso.value) {toast.loading("Approving token...");}
-
-      await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+      if (!isZksyncSso.value) {
+        await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+        toast.loading("Approving token...");
+      }
 
       if (!isZksyncSso.value) {toast.success("Token approved successfully");}
       return true;

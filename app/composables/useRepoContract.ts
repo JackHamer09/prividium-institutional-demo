@@ -12,7 +12,7 @@ export function useRepoContract() {
   const toast = useToast();
   const { ensureCorrectChain, getChainId } = useChainSwitch();
   const { executeWrite } = usePrividiumWrite();
-  const { address } = storeToRefs(useWalletStore());
+  const { address, isZksyncSso } = storeToRefs(useWalletStore());
   const repoAddress = runtimeConfig.public.intradayRepoContractAddress as Address;
 
   /**
@@ -146,7 +146,9 @@ export function useRepoContract() {
         chainId: getChainId(),
       });
 
-      await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+      if (!isZksyncSso.value) {
+        await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+      }
 
       toast.success("Offer created successfully");
 
@@ -178,7 +180,9 @@ export function useRepoContract() {
         chainId: getChainId(),
       });
 
-      await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+      if (!isZksyncSso.value) {
+        await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+      }
 
       toast.success("Offer accepted successfully");
       return true;
@@ -208,7 +212,9 @@ export function useRepoContract() {
         chainId: getChainId(),
       });
 
-      await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+      if (!isZksyncSso.value) {
+        await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+      }
 
       toast.success("Loan repaid successfully");
       return true;
@@ -238,7 +244,9 @@ export function useRepoContract() {
         chainId: getChainId(),
       });
 
-      await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+      if (!isZksyncSso.value) {
+        await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+      }
 
       toast.success("Collateral claimed successfully");
       return true;
@@ -268,7 +276,9 @@ export function useRepoContract() {
         chainId: getChainId(),
       });
 
-      await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+      if (!isZksyncSso.value) {
+        await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+      }
 
       toast.success("Offer cancelled successfully");
       return true;

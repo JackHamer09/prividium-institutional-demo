@@ -162,9 +162,9 @@ INSERT INTO applications (id, oauth_client_id, oauth_redirect_uris, name, origin
 VALUES (
     '7Zac5yyApwCYdGDH20NSf',
     'IjRacE3lJ8vF85jJ',
-    ARRAY['http://localhost:3003/auth/callback'],
+    ARRAY['http://localhost:3500/auth/callback'],
     'Intraday Repo',
-    'http://localhost:3003'
+    'http://localhost:3500'
 )
 ON CONFLICT (oauth_client_id) DO NOTHING;
 

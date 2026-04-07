@@ -21,9 +21,8 @@ export default defineNuxtPlugin(() => {
   const prividium = createPrividiumChain({
     clientId: config.public.prividiumClientId,
     chain: prividiumChain,
-    rpcUrl: config.public.prividiumRpcUrl,
     authBaseUrl: config.public.prividiumAuthBaseUrl,
-    permissionsApiBaseUrl: config.public.prividiumPermissionsApiBaseUrl,
+    prividiumApiBaseUrl: config.public.prividiumApiBaseUrl,
     redirectUrl: `${window.location.origin}/auth/callback`,
     onAuthExpiry: () => {
       // Get store and trigger expiry handling

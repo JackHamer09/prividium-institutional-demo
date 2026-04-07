@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Seeds institutional demo permissions into the Prividium postgres database:
  *   1. Token contracts (USDC, TUST, SGD) linked to the core 'erc-20' template

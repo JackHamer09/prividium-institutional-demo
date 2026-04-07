@@ -19,8 +19,8 @@ FROM node:22-alpine AS runtime
 WORKDIR /app
 COPY --from=app-builder /app/.output ./.output
 
-ENV PORT=3003
-EXPOSE 3003
+ENV PORT=3500
+EXPOSE 3500
 
 # NUXT_PUBLIC_* env vars are picked up at runtime by Nuxt
 CMD ["node", ".output/server/index.mjs"]

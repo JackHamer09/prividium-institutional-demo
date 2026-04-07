@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Deploys the institutional demo contracts to the local ZKsync chain:
  *   1. Funds demo user EOAs on L2 (ETH transfer from deployer)

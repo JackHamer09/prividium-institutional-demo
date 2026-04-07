@@ -49,7 +49,6 @@ export function usePrividiumWrite() {
         data: calldata,
         chainId: params.chainId,
       });
-
       return hash;
     }
 

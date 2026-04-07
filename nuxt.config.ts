@@ -6,7 +6,7 @@ import topLevelAwait from "vite-plugin-top-level-await";
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   ssr: false,
-  devtools: { enabled: true },
+  devtools: { enabled: false },
 
   app: {
     head: {
@@ -58,9 +58,8 @@ export default defineNuxtConfig({
       sgdAddress: "",
       // Prividium Configuration
       prividiumClientId: "",
-      prividiumRpcUrl: "",
       prividiumAuthBaseUrl: "",
-      prividiumPermissionsApiBaseUrl: "",
+      prividiumApiBaseUrl: "",
       // Prividium Chain Configuration
       prividiumChainId: "",
       prividiumChainName: "",

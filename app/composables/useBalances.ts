@@ -10,6 +10,7 @@ export function useBalances() {
   const tokens = getTokensConfig(runtimeConfig);
   const balancesStore = useBalancesStore();
   const walletStore = useWalletStore();
+  const { isZksyncSso } = storeToRefs(walletStore);
   const { getBalance } = useTokenContract();
   const { executeWrite } = usePrividiumWrite();
   const { ensureCorrectChain, getChainId } = useChainSwitch();
@@ -90,7 +91,9 @@ export function useBalances() {
           chainId: getChainId(),
         });
 
-        await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+        if (!isZksyncSso.value) {
+          await waitForTransactionReceipt(config, { hash, chainId: getChainId() });
+        }
       }
 
       toast.success("Tokens minted successfully!");

@@ -160,10 +160,10 @@ services:
       NODE_ENV: production
       SEQUENCER_RPC_URL: http://zksyncos:3050
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/prividium_api
-      CORS_ORIGIN: http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003
+      CORS_ORIGIN: http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3500
       ADMIN_PANEL_REDIRECT_URLS: http://localhost:3000/callback
       BLOCK_EXPLORER_REDIRECT_URLS: http://localhost:3010/auth/callback
-      SIWE_VALID_DOMAINS: localhost:3000,localhost:3001,localhost:3003
+      SIWE_VALID_DOMAINS: localhost:3000,localhost:3001,localhost:3500
       SIWE_CHAIN_ID: 6565
       OIDC_JWKS_URI: http://keycloak:8080/realms/prividium/protocol/openid-connect/certs
       OIDC_JWT_AUD: prividium-client
@@ -425,16 +425,15 @@ services:
       dockerfile: Dockerfile
     platform: linux/amd64
     ports:
-      - 3003:3003
+      - 3500:3500
     environment:
       NUXT_PUBLIC_INTRADAY_REPO_CONTRACT_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
       NUXT_PUBLIC_USDC_ADDRESS: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
       NUXT_PUBLIC_TUST_ADDRESS: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
       NUXT_PUBLIC_SGD_ADDRESS: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
       NUXT_PUBLIC_PRIVIDIUM_CLIENT_ID: IjRacE3lJ8vF85jJ
-      NUXT_PUBLIC_PRIVIDIUM_RPC_URL: http://localhost:8000/rpc
       NUXT_PUBLIC_PRIVIDIUM_AUTH_BASE_URL: http://localhost:3001
-      NUXT_PUBLIC_PRIVIDIUM_PERMISSIONS_API_BASE_URL: http://localhost:8000
+      NUXT_PUBLIC_PRIVIDIUM_API_BASE_URL: http://localhost:8000
       NUXT_PUBLIC_PRIVIDIUM_CHAIN_ID: 6565
       NUXT_PUBLIC_PRIVIDIUM_CHAIN_NAME: Local Prividium
       NUXT_PUBLIC_PRIVIDIUM_BLOCK_EXPLORER_URL: http://localhost:3010

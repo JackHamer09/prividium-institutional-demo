@@ -72,7 +72,7 @@ docker compose -f ./prividium-utils/docker-compose.yaml down -v
    - Go to [User Panel - Wallets](http://localhost:3001/wallets) page
    - In the `Network Configuration` section, click `Add Network to Wallet` -> Confirm in MetaMask
 1. **Login to Intraday Repo App:**
-   - Open [Intraday Repo App](http://localhost:3003) in both browsers
+   - Open [Intraday Repo App](http://localhost:3500) in both browsers
    - Login with Prividium (user1 in Browser 1, user2 in Browser 2)
    - Connect the corresponding MetaMask account
 1. **Start using the app!**
@@ -82,7 +82,7 @@ docker compose -f ./prividium-utils/docker-compose.yaml down -v
 
 ## Links:
 
-- Intraday Repo App - [localhost:3003](http://localhost:3003)
+- Intraday Repo App - [localhost:3500](http://localhost:3500)
 - Prividium User Panel - [localhost:3001](http://localhost:3001)
 - Prividium Admin Panel - [localhost:3000](http://localhost:3000)
 - Block Explorer - [localhost:3010](http://localhost:3010)

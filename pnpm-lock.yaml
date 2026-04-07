@@ -39,8 +39,8 @@ importers:
         specifier: 14.0.0
         version: 14.0.0(magicast@0.5.1)(nuxt@4.2.1(@parcel/watcher@2.5.1)(@vue/compiler-sfc@3.5.25)(db0@0.3.4)(eslint@9.39.1(jiti@2.6.1))(ioredis@5.8.2)(lightningcss@1.30.2)(magicast@0.5.1)(optionator@0.9.4)(rollup@4.53.3)(sass-embedded@1.93.3)(sass@1.93.3)(terser@5.44.1)(typescript@5.9.3)(vite@7.2.4(jiti@2.6.1)(lightningcss@1.30.2)(sass-embedded@1.93.3)(sass@1.93.3)(terser@5.44.1)(yaml@2.8.1))(yaml@2.8.1))(vue@3.5.25(typescript@5.9.3))
       '@wagmi/core':
-        specifier: ^3.0.0
-        version: 3.0.0(react@19.2.0)(typescript@5.9.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13))
+        specifier: ^3.4.2
+        version: 3.4.2(react@19.2.0)(typescript@5.9.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13))
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -54,8 +54,8 @@ importers:
         specifier: ^3.0.4
         version: 3.0.4(typescript@5.9.3)(vue@3.5.25(typescript@5.9.3))
       prividium:
-        specifier: ^0.1.2
-        version: 0.1.2(@fastify/swagger@9.6.1)(openapi-types@12.1.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13))
+        specifier: ^0.15.0
+        version: 0.15.0(@fastify/swagger@9.6.1)(openapi-types@12.1.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13))
       tailwindcss:
         specifier: ^4.1.17
         version: 4.1.17
@@ -76,7 +76,7 @@ importers:
         version: 1.0.5(vue@3.5.25(typescript@5.9.3))
       zksync-sso:
         specifier: 1.0.0-beta.4
-        version: 1.0.0-beta.4(@simplewebauthn/browser@13.2.2)(@simplewebauthn/server@13.2.2)(@wagmi/core@3.0.0(react@19.2.0)(typescript@5.9.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13)))(typescript@5.9.3)(zod@4.1.13)
+        version: 1.0.0-beta.4(@simplewebauthn/browser@13.2.2)(@simplewebauthn/server@13.2.2)(@wagmi/core@3.4.2(react@19.2.0)(typescript@5.9.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13)))(typescript@5.9.3)(zod@4.1.13)
       zod:
         specifier: ^4.1.13
         version: 4.1.13
@@ -677,8 +677,8 @@ packages:
   '@fastify/send@4.1.0':
     resolution: {integrity: sha512-TMYeQLCBSy2TOFmV95hQWkiTYgC/SEx7vMdV+wnZVX4tt8VBLKzmH8vV9OzJehV0+XBfg+WxPMt5wp+JBUKsVw==}
 
-  '@fastify/static@8.3.0':
-    resolution: {integrity: sha512-yKxviR5PH1OKNnisIzZKmgZSus0r2OZb8qCSbqmw34aolT4g3UlzYfeBRym+HJ1J471CR8e2ldNub4PubD1coA==}
+  '@fastify/static@9.1.0':
+    resolution: {integrity: sha512-EPRNQYqEYEYTK8yyGbcM0iHpyJaupb94bey5O6iCQfLTADr02kaZU+qeHSdd9H9TiMwTBVkrMa59V8CMbn3avQ==}
 
   '@fastify/swagger@9.6.1':
     resolution: {integrity: sha512-fKlpJqFMWoi4H3EdUkDaMteEYRCfQMEkK0HJJ0eaf4aRlKd8cbq0pVkOfXDXmtvMTXYcnx3E+l023eFDBsA1HA==}
@@ -2031,14 +2031,17 @@ packages:
     peerDependencies:
       vue: ^3.5.0
 
-  '@wagmi/core@3.0.0':
-    resolution: {integrity: sha512-wOn8jwB9GNYTdrc4CP/huf1aAhDoQ5GKl5OhxGBZx9X4qE+wReW05dTcurEc+XBl9B/ZVis2JdXVU3ZiYqyS8Q==}
+  '@wagmi/core@3.4.2':
+    resolution: {integrity: sha512-01i0ILBe74G8eairY2AIKC4Atrd00xw7EckZ5luU1ARl/6789UH79wXHwJDkHyktXtjn6QoSoBRW2brtlS8SWg==}
     peerDependencies:
       '@tanstack/query-core': '>=5.0.0'
+      ox: '>=0.11.1'
       typescript: '>=5.7.3'
       viem: 2.x
     peerDependenciesMeta:
       '@tanstack/query-core':
+        optional: true
+      ox:
         optional: true
       typescript:
         optional: true
@@ -2186,6 +2189,10 @@ packages:
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
+  balanced-match@4.0.4:
+    resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
+    engines: {node: 18 || 20 || >=22}
+
   bare-events@2.8.2:
     resolution: {integrity: sha512-riJjyv1/mHLIPX4RwiK+oW9/4c3TEUeORHKefKAKnZ5kyslbN+HXowtbaVEqt4IMUB7OXlfixcs6gsFeo/jhiQ==}
     peerDependencies:
@@ -2218,6 +2225,10 @@ packages:
 
   brace-expansion@2.0.2:
     resolution: {integrity: sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ==}
+
+  brace-expansion@5.0.5:
+    resolution: {integrity: sha512-VZznLgtwhn+Mact9tfiwx64fA9erHH/MCXEUfB/0bX/6Fz6ny5EGTXYltMocqg4xFAQZtnO3DHWWXi8RiuN7cQ==}
+    engines: {node: 18 || 20 || >=22}
 
   braces@3.0.3:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
@@ -2373,9 +2384,9 @@ packages:
     resolution: {integrity: sha512-5IKcdX0nnYavi6G7TtOhwkYzyjfJlatbjMjuLSfE2kYT5pMDOilZ4OvMhi637CcDICTmz3wARPoyhqyX1Y+XvA==}
     engines: {node: ^14.18.0 || >=16.10.0}
 
-  content-disposition@0.5.4:
-    resolution: {integrity: sha512-FveZTNuGw04cxlAiWbzi6zTAL/lhehaWbTtgluJh4/E95DqMwTmha3KZN1aAWA8cFIhHzMZUvLevkw5Rqk+tSQ==}
-    engines: {node: '>= 0.6'}
+  content-disposition@1.0.1:
+    resolution: {integrity: sha512-oIXISMynqSqm241k6kcQ5UwttDILMK4BiurCfGEREw6+X9jkkpEe5T9FZaApyLGGOnFuyMWZpdolTXMtvEJ08Q==}
+    engines: {node: '>=18'}
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
@@ -2874,8 +2885,8 @@ packages:
       openapi-types: ^12.1.3
       zod: '>=4.1.5'
 
-  fastify@5.6.2:
-    resolution: {integrity: sha512-dPugdGnsvYkBlENLhCgX8yhyGCsCPrpA8lFWbTNU428l+YOnLgYHR69hzV8HWPC79n536EqzqQtvhtdaCE0dKg==}
+  fastify@5.8.4:
+    resolution: {integrity: sha512-sa42J1xylbBAYUWALSBoyXKPDUvM3OoNOibIefA+Oha57FryXKKCZarA1iDntOCWp3O35voZLuDg2mdODXtPzQ==}
 
   fastq@1.19.1:
     resolution: {integrity: sha512-GwLTyxkCXjXbxqIhTsMI2Nui8huMPtnxg7krajPJAjnEG/iiOS7i+zCtWGZR9G0NBKbXKh6X9m9UIsYX/N6vvQ==}
@@ -3006,10 +3017,9 @@ packages:
     resolution: {integrity: sha512-DfXN8DfhJ7NH3Oe7cFmu3NCu1wKbkReJ8TorzSAFbSKrlNaQSKfIzqYqVY8zlbs2NLBbWpRiU52GX2PbaBVNkg==}
     hasBin: true
 
-  glob@11.1.0:
-    resolution: {integrity: sha512-vuNwKSaKiqm7g0THUBu2x7ckSs3XJLXE+2ssL7/MfTGPLLcrJQ/4Uq1CjPTtO5cCIiRxqvN6Twy1qOwhL0Xjcw==}
-    engines: {node: 20 || >=22}
-    hasBin: true
+  glob@13.0.6:
+    resolution: {integrity: sha512-Wjlyrolmm8uDpm/ogGyXZXb1Z+Ca2B8NbJwqBVg0axK9GbBeoS7yGV6vjXnYdGm6X53iehEuxxbyiKp8QmN4Vw==}
+    engines: {node: 18 || 20 || >=22}
 
   global-directory@4.0.1:
     resolution: {integrity: sha512-wHTUcDUoZ1H5/0iVqEudYW4/kAlN5cZ3j/bXn0Dpbizl9iaUVeWSHqiOjsgk6OW2bkLclbBjzewBz6weQ1zA2Q==}
@@ -3224,10 +3234,6 @@ packages:
 
   jackspeak@3.4.3:
     resolution: {integrity: sha512-OGlZQpz2yfahA/Rd1Y8Cd9SIEsqvXkLVoSw/cgwhnhFMDbsQFeZYoJJ7bIZBS9BcamUW96asq/npPWugM+RQBw==}
-
-  jackspeak@4.1.1:
-    resolution: {integrity: sha512-zptv57P3GpL+O0I7VdMJNBZCu+BPHVQUk55Ft8/QCJjTVxrnJHuVuX/0Bl2A6/+2oyR/ZMEuFKwmzqqZ/U5nPQ==}
-    engines: {node: 20 || >=22}
 
   jiti@2.6.1:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
@@ -3493,6 +3499,10 @@ packages:
     resolution: {integrity: sha512-enIvLvRAFZYXJzkCYG5RKmPfrFArdLv+R+lbQ53BmIMLIry74bjKzX6iHAm8WYamJkhSSEabrWN5D97XnKObjQ==}
     engines: {node: 20 || >=22}
 
+  minimatch@10.2.5:
+    resolution: {integrity: sha512-MULkVLfKGYDFYejP07QOurDLLQpcjk7Fw+7jXS2R2czRQzR56yHRveU5NDJEOviH+hETZKSkIk5c+T23GjFUMg==}
+    engines: {node: 18 || 20 || >=22}
+
   minimatch@3.1.2:
     resolution: {integrity: sha512-J7p63hRiAjw1NDEww1W7i37+ByIrOWO5XQQAzZ3VOcL0PNybwpfmV/N05zFAzwQ9USyEcX6t3UO+K5aqBQOIHw==}
 
@@ -3506,6 +3516,10 @@ packages:
 
   minipass@7.1.2:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
+    engines: {node: '>=16 || 14 >=14.17'}
+
+  minipass@7.1.3:
+    resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
     engines: {node: '>=16 || 14 >=14.17'}
 
   minizlib@3.1.0:
@@ -3780,9 +3794,9 @@ packages:
     resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
     engines: {node: '>=16 || 14 >=14.18'}
 
-  path-scurry@2.0.1:
-    resolution: {integrity: sha512-oWyT4gICAu+kaA7QWk/jvCHWarMKNs6pXOGWKDTr7cw4IGcUbW+PeTfbaQiLGheFRpjo6O9J0PmyMfQPjH71oA==}
-    engines: {node: 20 || >=22}
+  path-scurry@2.0.2:
+    resolution: {integrity: sha512-3O/iVVsJAPsOnpwWIeD+d6z/7PmqApyQePUtCndjatj/9I5LylHvt5qluFaBT3I5h3r1ejfR056c+FCv+NnNXg==}
+    engines: {node: 18 || 20 || >=22}
 
   path-type@6.0.0:
     resolution: {integrity: sha512-Vj7sf++t5pBD637NSfkxpHSMfWaeig5+DKWLhcqIYx6mWQz5hdJTGDVMQiJcw1ZYkhs7AazKDGpRVji1LJCZUQ==}
@@ -4026,8 +4040,8 @@ packages:
     resolution: {integrity: sha512-nODzvTiYVRGRqAOvE84Vk5JDPyyxsVk0/fbA/bq7RqlnhksGpset09XTxbpvLTIjoaF7K8Z8DG8yHtKGTPSYRw==}
     engines: {node: '>=20'}
 
-  prividium@0.1.2:
-    resolution: {integrity: sha512-w4B2WHtkObtAJjqx8WPfVfQ1epQBaswUi90+pC+MAwq+qRtpCqmzhL96gd8kS8lBITgXzXaq9FOWw8oE6svBsw==}
+  prividium@0.15.0:
+    resolution: {integrity: sha512-QaQHohBxKLzbNxnU3fm8WcM5CuU2S6udJ+I+NzR+qjAzCOTi6VrwvqBHbmBxmcpmcZGMh/j6xrS9lqAFxUunjQ==}
     hasBin: true
     peerDependencies:
       viem: '>=2.0.0'
@@ -5656,14 +5670,14 @@ snapshots:
       http-errors: 2.0.1
       mime: 3.0.0
 
-  '@fastify/static@8.3.0':
+  '@fastify/static@9.1.0':
     dependencies:
       '@fastify/accept-negotiator': 2.0.1
       '@fastify/send': 4.1.0
-      content-disposition: 0.5.4
+      content-disposition: 1.0.1
       fastify-plugin: 5.1.0
       fastq: 1.19.1
-      glob: 11.1.0
+      glob: 13.0.6
 
   '@fastify/swagger@9.6.1':
     dependencies:
@@ -7244,7 +7258,7 @@ snapshots:
     dependencies:
       vue: 3.5.25(typescript@5.9.3)
 
-  '@wagmi/core@3.0.0(react@19.2.0)(typescript@5.9.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13))':
+  '@wagmi/core@3.4.2(react@19.2.0)(typescript@5.9.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13))':
     dependencies:
       eventemitter3: 5.0.1
       mipd: 0.0.7(typescript@5.9.3)
@@ -7390,6 +7404,8 @@ snapshots:
 
   balanced-match@1.0.2: {}
 
+  balanced-match@4.0.4: {}
+
   bare-events@2.8.2: {}
 
   base64-js@1.5.1: {}
@@ -7416,6 +7432,10 @@ snapshots:
   brace-expansion@2.0.2:
     dependencies:
       balanced-match: 1.0.2
+
+  brace-expansion@5.0.5:
+    dependencies:
+      balanced-match: 4.0.4
 
   braces@3.0.3:
     dependencies:
@@ -7566,9 +7586,7 @@ snapshots:
 
   consola@3.4.2: {}
 
-  content-disposition@0.5.4:
-    dependencies:
-      safe-buffer: 5.2.1
+  content-disposition@1.0.1: {}
 
   convert-source-map@2.0.0: {}
 
@@ -8121,15 +8139,15 @@ snapshots:
 
   fastify-plugin@5.1.0: {}
 
-  fastify-type-provider-zod@6.1.0(@fastify/swagger@9.6.1)(fastify@5.6.2)(openapi-types@12.1.3)(zod@4.1.13):
+  fastify-type-provider-zod@6.1.0(@fastify/swagger@9.6.1)(fastify@5.8.4)(openapi-types@12.1.3)(zod@4.1.13):
     dependencies:
       '@fastify/error': 4.2.0
       '@fastify/swagger': 9.6.1
-      fastify: 5.6.2
+      fastify: 5.8.4
       openapi-types: 12.1.3
       zod: 4.1.13
 
-  fastify@5.6.2:
+  fastify@5.8.4:
     dependencies:
       '@fastify/ajv-compiler': 4.0.5
       '@fastify/error': 4.2.0
@@ -8315,14 +8333,11 @@ snapshots:
       package-json-from-dist: 1.0.1
       path-scurry: 1.11.1
 
-  glob@11.1.0:
+  glob@13.0.6:
     dependencies:
-      foreground-child: 3.3.1
-      jackspeak: 4.1.1
-      minimatch: 10.1.1
-      minipass: 7.1.2
-      package-json-from-dist: 1.0.1
-      path-scurry: 2.0.1
+      minimatch: 10.2.5
+      minipass: 7.1.3
+      path-scurry: 2.0.2
 
   global-directory@4.0.1:
     dependencies:
@@ -8521,10 +8536,6 @@ snapshots:
       '@isaacs/cliui': 8.0.2
     optionalDependencies:
       '@pkgjs/parseargs': 0.11.0
-
-  jackspeak@4.1.1:
-    dependencies:
-      '@isaacs/cliui': 8.0.2
 
   jiti@2.6.1: {}
 
@@ -8762,6 +8773,10 @@ snapshots:
     dependencies:
       '@isaacs/brace-expansion': 5.0.0
 
+  minimatch@10.2.5:
+    dependencies:
+      brace-expansion: 5.0.5
+
   minimatch@3.1.2:
     dependencies:
       brace-expansion: 1.1.12
@@ -8775,6 +8790,8 @@ snapshots:
       brace-expansion: 2.0.2
 
   minipass@7.1.2: {}
+
+  minipass@7.1.3: {}
 
   minizlib@3.1.0:
     dependencies:
@@ -9264,10 +9281,10 @@ snapshots:
       lru-cache: 10.4.3
       minipass: 7.1.2
 
-  path-scurry@2.0.1:
+  path-scurry@2.0.2:
     dependencies:
       lru-cache: 11.2.2
-      minipass: 7.1.2
+      minipass: 7.1.3
 
   path-type@6.0.0: {}
 
@@ -9494,14 +9511,15 @@ snapshots:
 
   pretty-bytes@7.1.0: {}
 
-  prividium@0.1.2(@fastify/swagger@9.6.1)(openapi-types@12.1.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13)):
+  prividium@0.15.0(@fastify/swagger@9.6.1)(openapi-types@12.1.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13)):
     dependencies:
       '@clack/prompts': 0.11.0
       '@fastify/http-proxy': 11.3.0
-      '@fastify/static': 8.3.0
+      '@fastify/static': 9.1.0
       appdirsjs: 1.2.7
-      fastify: 5.6.2
-      fastify-type-provider-zod: 6.1.0(@fastify/swagger@9.6.1)(fastify@5.6.2)(openapi-types@12.1.3)(zod@4.1.13)
+      date-fns: 4.1.0
+      fastify: 5.8.4
+      fastify-type-provider-zod: 6.1.0(@fastify/swagger@9.6.1)(fastify@5.8.4)(openapi-types@12.1.3)(zod@4.1.13)
       kleur: 4.1.5
       open: 10.2.0
       viem: 2.40.2(typescript@5.9.3)(zod@4.1.13)
@@ -10552,7 +10570,7 @@ snapshots:
     optionalDependencies:
       '@simplewebauthn/browser': 13.2.2
 
-  zksync-sso@1.0.0-beta.4(@simplewebauthn/browser@13.2.2)(@simplewebauthn/server@13.2.2)(@wagmi/core@3.0.0(react@19.2.0)(typescript@5.9.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13)))(typescript@5.9.3)(zod@4.1.13):
+  zksync-sso@1.0.0-beta.4(@simplewebauthn/browser@13.2.2)(@simplewebauthn/server@13.2.2)(@wagmi/core@3.4.2(react@19.2.0)(typescript@5.9.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13)))(typescript@5.9.3)(zod@4.1.13):
     dependencies:
       '@peculiar/asn1-ecc': 2.6.0
       '@peculiar/asn1-schema': 2.6.0
@@ -10564,7 +10582,7 @@ snapshots:
     optionalDependencies:
       '@simplewebauthn/browser': 13.2.2
       '@simplewebauthn/server': 13.2.2
-      '@wagmi/core': 3.0.0(react@19.2.0)(typescript@5.9.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13))
+      '@wagmi/core': 3.4.2(react@19.2.0)(typescript@5.9.3)(viem@2.40.2(typescript@5.9.3)(zod@4.1.13))
       typescript: 5.9.3
     transitivePeerDependencies:
       - zod
