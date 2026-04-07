@@ -1,11 +1,5 @@
 import type { Chain } from "viem";
 import type { PrividiumChain } from "prividium";
-import { sepolia } from "viem/chains";
-
-/**
- * L1 chain configuration (Sepolia testnet)
- */
-export const CHAIN_L1 = sepolia;
 
 /**
  * Get the main chain from Prividium
