@@ -160,19 +160,25 @@ async function main() {
       VALUES ('admin', '{contract_deployment,full_sequencer_rpc_access,full_read_access}', true)
       ON CONFLICT (role_name) DO NOTHING
     `;
-    await sql`
-      INSERT INTO users (id, display_name, oidc_sub, source)
-      VALUES (${ADMIN_USER.id}, ${ADMIN_USER.display}, ${ADMIN_USER.sub}, 'oidc')
-      ON CONFLICT (id) DO NOTHING
+    const [existingAdmin] = await sql`
+      SELECT id FROM users WHERE oidc_sub = ${ADMIN_USER.sub}
     `;
+    const adminUserId = existingAdmin?.id ?? ADMIN_USER.id;
+    if (!existingAdmin) {
+      await sql`
+        INSERT INTO users (id, display_name, oidc_sub, source)
+        VALUES (${ADMIN_USER.id}, ${ADMIN_USER.display}, ${ADMIN_USER.sub}, 'oidc')
+        ON CONFLICT (id) DO NOTHING
+      `;
+    }
     await sql`
       INSERT INTO user_wallets (wallet_address, user_id)
-      VALUES (${addr(ADMIN_USER.wallet)}, ${ADMIN_USER.id})
+      VALUES (${addr(ADMIN_USER.wallet)}, ${adminUserId})
       ON CONFLICT (wallet_address) WHERE deleted_at IS NULL DO NOTHING
     `;
     await sql`
       INSERT INTO user_roles (user_id, role_name)
-      VALUES (${ADMIN_USER.id}, 'admin')
+      VALUES (${adminUserId}, 'admin')
       ON CONFLICT (user_id, role_name) DO NOTHING
     `;
     console.log(`✅ Admin user: ${ADMIN_USER.display}`);
